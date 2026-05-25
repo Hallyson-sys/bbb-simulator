@@ -78,6 +78,147 @@ function limitarResultado($valor, $min = 0, $max = 100){
     return max($min, min($max, $valor));
 }
 
+
+/* ==========================
+   📈 POPULARIDADE AVANÇADA NO PAREDÃO
+   Quanto menor a popularidade, maior a rejeição do público.
+   Líder e Anjo NÃO ganham popularidade aqui.
+========================== */
+
+function popularidadeJogadorResultado($jogadores, $nome){
+    $jogador = buscarJogadorResultado($jogadores, $nome);
+    if(!$jogador) return 50;
+
+    return limitarResultado((int)($jogador['popularidade'] ?? 50), 0, 100);
+}
+
+function statusPopularidadeResultado($popularidade){
+    if($popularidade >= 90) return "Favorito absoluto";
+    if($popularidade >= 75) return "Muito querido";
+    if($popularidade >= 60) return "Bem aceito";
+    if($popularidade >= 45) return "Dividido pelo público";
+    if($popularidade >= 30) return "Mal visto";
+    return "Cancelado";
+}
+
+function calcularRejeicaoPublicaResultado($jogador){
+    $popularidade = limitarResultado((int)($jogador['popularidade'] ?? 50), 0, 100);
+
+    /* Base principal: baixa popularidade vira alta rejeição */
+    $rejeicao = 105 - $popularidade;
+
+    $personalidade = $jogador['personalidade'] ?? 'Neutro';
+
+    /* Personalidade influencia como o público costuma reagir */
+    if($personalidade == 'Planta'){
+        $rejeicao += rand(3, 9);
+    }
+
+    if($personalidade == 'Barraqueiro' || $personalidade == 'Explosivo'){
+        $rejeicao += rand(-8, 10);
+    }
+
+    if($personalidade == 'Influencer'){
+        $rejeicao += rand(-7, 4);
+    }
+
+    if($personalidade == 'Fofo'){
+        $rejeicao -= rand(2, 8);
+    }
+
+    if($personalidade == 'Manipulador' || $personalidade == 'Falso'){
+        $rejeicao += rand(2, 10);
+    }
+
+    /* Status da semana também pesa um pouco */
+    if(!empty($jogador['status']['monstro'])){
+        $rejeicao += rand(2, 6);
+    }
+
+    if(!empty($jogador['status']['xepa'])){
+        $rejeicao += rand(0, 3);
+    }
+
+    if(!empty($jogador['status']['vip'])){
+        $rejeicao -= rand(0, 3);
+    }
+
+    /* Histórico: quem cai muito no paredão pode saturar o público */
+    $paredoes = $jogador['estatisticas']['paredao'] ?? 0;
+    if($paredoes >= 2){
+        $rejeicao += min(8, $paredoes * 2);
+    }
+
+    /* Pequeno ruído para não ficar matemático demais */
+    $rejeicao += rand(-5, 5);
+
+    return max(5, $rejeicao);
+}
+
+function gerarRankingEliminacaoPorPopularidade($jogadores, $paredao){
+    $pesos = [];
+    $total = 0;
+
+    foreach($paredao as $nome){
+        $jogador = buscarJogadorResultado($jogadores, $nome);
+        if(!$jogador) continue;
+
+        $peso = calcularRejeicaoPublicaResultado($jogador);
+        $pesos[$nome] = $peso;
+        $total += $peso;
+    }
+
+    if(empty($pesos) || $total <= 0){
+        return [];
+    }
+
+    $ranking = [];
+    $nomes = array_keys($pesos);
+    $acumulado = 0;
+
+    foreach($nomes as $i => $nome){
+        if($i == count($nomes) - 1){
+            $pct = round(100 - $acumulado, 2);
+        }else{
+            $pct = round(($pesos[$nome] / $total) * 100, 2);
+            $acumulado += $pct;
+        }
+
+        $ranking[$nome] = max(0.01, $pct);
+    }
+
+    arsort($ranking);
+
+    return $ranking;
+}
+
+function ajustarPopularidadePosParedaoResultado(&$jogadores, $ranking, $eliminado){
+    foreach($jogadores as &$j){
+        $nome = $j['nome'] ?? '';
+
+        if($nome == '' || !isset($ranking[$nome])) continue;
+
+        if(!isset($j['popularidade'])){
+            $j['popularidade'] = 50;
+        }
+
+        if(nomeIgualResultado($nome, $eliminado)){
+            continue;
+        }
+
+        /* Sobreviver ao paredão costuma fortalecer a imagem pública */
+        $ganho = rand(3, 7);
+
+        /* Sobreviver com baixa rejeição aumenta ainda mais */
+        if(($ranking[$nome] ?? 100) < 20){
+            $ganho += rand(2, 5);
+        }
+
+        $j['popularidade'] = limitarResultado($j['popularidade'] + $ganho, 0, 100);
+    }
+    unset($j);
+}
+
 /* Se já revelou e voltou por refresh, mantém informação */
 if(isset($_SESSION['ultimo_ranking_eliminacao']) && isset($_SESSION['eliminado'])){
     $ranking = $_SESSION['ultimo_ranking_eliminacao'];
@@ -103,39 +244,19 @@ if(isset($_POST['revelar'])){
         exit;
     }
 
-    shuffle($paredao);
+    /* Agora o resultado é baseado em popularidade/rejeição pública */
+    $ranking = gerarRankingEliminacaoPorPopularidade($jogadores, $paredao);
 
-    $qtdParedao = count($paredao);
-
-    if($qtdParedao == 2){
-
-        $p1 = rand(5100,8000) / 100;
-        $p2 = round(100 - $p1, 2);
-
-        $ranking = [
-            $paredao[0] => $p1,
-            $paredao[1] => $p2
-        ];
-
-    }else{
-
-        $p1 = rand(4500,7500) / 100;
-        $resto = 100 - $p1;
-
-        $maxP2 = max(1001, (int)($resto * 100) - 1);
-        $p2 = rand(1000, $maxP2) / 100;
-        $p3 = round(100 - $p1 - $p2, 2);
-
-        $ranking = [
-            $paredao[0] => $p1,
-            $paredao[1] => $p2,
-            $paredao[2] => $p3
-        ];
+    if(empty($ranking)){
+        $_SESSION['evento_extra'][] = "⚠️ Erro ao calcular resultado do paredão.";
+        header("Location: jogo.php");
+        exit;
     }
 
-    arsort($ranking);
-
     $eliminado = array_key_first($ranking);
+
+    /* Quem sobrevive ganha popularidade. Líder e Anjo não ganham nada por prova. */
+    ajustarPopularidadePosParedaoResultado($jogadores, $ranking, $eliminado);
 
     foreach($jogadores as $k => $j){
 
@@ -633,6 +754,10 @@ body::before{
                             <div class="label">Emparedado</div>
                             <h3><?php echo e($nome); ?></h3>
                             <p><?php echo e(resumoParticipanteResultado($jogadorParedao)); ?></p>
+                            <?php $popParedao = popularidadeJogadorResultado($jogadores, $nome); ?>
+                            <p style="margin-top:8px;color:#ffd9eb;">
+                                📈 Popularidade: <b><?php echo $popParedao; ?>/100</b> • <?php echo e(statusPopularidadeResultado($popParedao)); ?>
+                            </p>
                         </div>
 
                     <?php endforeach; ?>
@@ -716,6 +841,7 @@ body::before{
 
             <p class="after-text">
                 O maior percentual representa quem recebeu mais votos para sair.
+                Agora o resultado é calculado com base na popularidade pública, rejeição, personalidade e situação da semana.
             </p>
 
         </div>
