@@ -53,6 +53,15 @@ function prepararRelacoesIniciais(&$jogadores){
                 "imune" => 0
             ];
         }
+
+        /* Sistema de alianças: garante compatibilidade com saves antigos */
+        if(!array_key_exists('alianca', $j)){
+            $j['alianca'] = null;
+        }
+
+        if(!isset($j['historico_aliancas']) || !is_array($j['historico_aliancas'])){
+            $j['historico_aliancas'] = [];
+        }
     }
     unset($j);
 
@@ -221,6 +230,316 @@ function aplicarAcaoDoJogador(&$jogadores, $meuNome, $alvo, $acao){
     return $evento;
 }
 
+
+/* =====================================================
+   SISTEMA DE ALIANÇAS
+   - Cria grupos automaticamente com base em amizade/confiança.
+   - Rompe alianças quando a rivalidade sobe.
+   - Influencia voto inteligente e eventos sociais.
+===================================================== */
+
+function nomesBaseAliancas(){
+    return [
+        "Fadas", "Camarote", "Pipoca Raiz", "Quarto Céu",
+        "Quarto Mar", "Os Visionários", "Panelinha VIP",
+        "Os Protagonistas", "Baile da Xepa", "Equipe Eclipse",
+        "Laços Fortes", "Modo Turbo", "Tribo do Jogo"
+    ];
+}
+
+function nomeAliancaDisponivel($jogadores){
+    $usadas = [];
+
+    foreach($jogadores as $j){
+        if(!empty($j['alianca'])){
+            $usadas[] = $j['alianca'];
+        }
+    }
+
+    $bases = nomesBaseAliancas();
+    shuffle($bases);
+
+    foreach($bases as $base){
+        if(!in_array($base, $usadas)){
+            return $base;
+        }
+    }
+
+    return "Aliança ".rand(100,999);
+}
+
+function indiceJogadorPorNome($jogadores, $nome){
+    foreach($jogadores as $i=>$j){
+        if(($j['nome'] ?? '') == $nome){
+            return $i;
+        }
+    }
+
+    return null;
+}
+
+function obterAliancaJogador($jogadores, $nome){
+    foreach($jogadores as $j){
+        if(($j['nome'] ?? '') == $nome){
+            return $j['alianca'] ?? null;
+        }
+    }
+
+    return null;
+}
+
+function mesmaAlianca($jogadorA, $jogadorB){
+    return (
+        !empty($jogadorA['alianca']) &&
+        !empty($jogadorB['alianca']) &&
+        $jogadorA['alianca'] == $jogadorB['alianca']
+    );
+}
+
+function membrosDaAlianca($jogadores, $alianca){
+    $membros = [];
+
+    foreach($jogadores as $j){
+        if(($j['alianca'] ?? null) == $alianca){
+            $membros[] = $j['nome'];
+        }
+    }
+
+    return $membros;
+}
+
+function tamanhoAlianca($jogadores, $alianca){
+    return count(membrosDaAlianca($jogadores, $alianca));
+}
+
+function registrarHistoricoAlianca(&$jogadores, $nome, $mensagem){
+    foreach($jogadores as &$j){
+        if(($j['nome'] ?? '') == $nome){
+            if(!isset($j['historico_aliancas']) || !is_array($j['historico_aliancas'])){
+                $j['historico_aliancas'] = [];
+            }
+
+            $j['historico_aliancas'][] = $mensagem;
+
+            if(count($j['historico_aliancas']) > 15){
+                $j['historico_aliancas'] = array_slice($j['historico_aliancas'], -15);
+            }
+
+            break;
+        }
+    }
+    unset($j);
+}
+
+function criarAliancaEntre(&$jogadores, $nomeA, $nomeB, $nomeAlianca = null){
+    if($nomeA == '' || $nomeB == '' || $nomeA == $nomeB) return "";
+
+    $idxA = indiceJogadorPorNome($jogadores, $nomeA);
+    $idxB = indiceJogadorPorNome($jogadores, $nomeB);
+
+    if($idxA === null || $idxB === null) return "";
+
+    if(!empty($jogadores[$idxA]['alianca']) && !empty($jogadores[$idxB]['alianca'])){
+        return "";
+    }
+
+    if($nomeAlianca == null){
+        $nomeAlianca = !empty($jogadores[$idxA]['alianca'])
+            ? $jogadores[$idxA]['alianca']
+            : (!empty($jogadores[$idxB]['alianca']) ? $jogadores[$idxB]['alianca'] : nomeAliancaDisponivel($jogadores));
+    }
+
+    $jogadores[$idxA]['alianca'] = $nomeAlianca;
+    $jogadores[$idxB]['alianca'] = $nomeAlianca;
+
+    registrarHistoricoAlianca($jogadores, $nomeA, "Entrou na aliança $nomeAlianca com $nomeB.");
+    registrarHistoricoAlianca($jogadores, $nomeB, "Entrou na aliança $nomeAlianca com $nomeA.");
+
+    alterarRelacao($jogadores, $nomeA, $nomeB, 8, -4, 10);
+    alterarRelacao($jogadores, $nomeB, $nomeA, 8, -4, 10);
+
+    return "🤝 $nomeA e $nomeB oficializaram a aliança <b>$nomeAlianca</b>.";
+}
+
+function entrarEmAlianca(&$jogadores, $nome, $alianca){
+    if($nome == '' || $alianca == '') return "";
+
+    $idx = indiceJogadorPorNome($jogadores, $nome);
+    if($idx === null) return "";
+
+    if(($jogadores[$idx]['alianca'] ?? null) == $alianca) return "";
+
+    $jogadores[$idx]['alianca'] = $alianca;
+    registrarHistoricoAlianca($jogadores, $nome, "Entrou na aliança $alianca.");
+
+    foreach($jogadores as $membro){
+        if(($membro['nome'] ?? '') != $nome && ($membro['alianca'] ?? null) == $alianca){
+            alterarRelacao($jogadores, $nome, $membro['nome'], 5, -2, 6);
+            alterarRelacao($jogadores, $membro['nome'], $nome, 4, -2, 5);
+        }
+    }
+
+    return "🤝 $nome entrou para a aliança <b>$alianca</b>.";
+}
+
+function romperAlianca(&$jogadores, $nome, $motivo = "a confiança desmoronou"){
+    if($nome == '') return "";
+
+    $idx = indiceJogadorPorNome($jogadores, $nome);
+    if($idx === null) return "";
+
+    $alianca = $jogadores[$idx]['alianca'] ?? null;
+    if(empty($alianca)) return "";
+
+    $jogadores[$idx]['alianca'] = null;
+    registrarHistoricoAlianca($jogadores, $nome, "Saiu da aliança $alianca porque $motivo.");
+
+    foreach($jogadores as $membro){
+        if(($membro['nome'] ?? '') != $nome && ($membro['alianca'] ?? null) == $alianca){
+            alterarRelacao($jogadores, $nome, $membro['nome'], -8, 8, -10);
+            alterarRelacao($jogadores, $membro['nome'], $nome, -6, 6, -8);
+        }
+    }
+
+    return "💥 $nome rompeu com a aliança <b>$alianca</b>: $motivo.";
+}
+
+function relacaoMediaComAlianca($jogadores, $nome, $alianca){
+    $total = 0;
+    $qtd = 0;
+
+    foreach($jogadores as $membro){
+        if(($membro['nome'] ?? '') == $nome) continue;
+        if(($membro['alianca'] ?? null) != $alianca) continue;
+
+        $rel = getRelacaoEntre($jogadores, $nome, $membro['nome']);
+        $score = ($rel['amizade'] ?? 0) + (($rel['confianca'] ?? 0) * 0.7) - (($rel['rivalidade'] ?? 0) * 1.2);
+
+        $total += $score;
+        $qtd++;
+    }
+
+    if($qtd == 0) return 0;
+
+    return $total / $qtd;
+}
+
+function atualizarAliancasAutomaticas(&$jogadores){
+    prepararRelacoesIniciais($jogadores);
+
+    $eventos = [];
+
+    /* 1) Rompimentos: se alguém está muito mal com o próprio grupo, sai. */
+    foreach($jogadores as $j){
+        $nome = $j['nome'] ?? '';
+        $alianca = $j['alianca'] ?? null;
+
+        if($nome == '' || empty($alianca)) continue;
+
+        $media = relacaoMediaComAlianca($jogadores, $nome, $alianca);
+
+        if($media < 8 && rand(1,100) <= 45){
+            $ev = romperAlianca($jogadores, $nome, "a relação com o grupo ficou muito desgastada");
+            if($ev != '') $eventos[] = $ev;
+        }
+    }
+
+    /* 2) Entrada em alianças: participantes sem grupo procuram pessoas confiáveis. */
+    foreach($jogadores as $j){
+        $nome = $j['nome'] ?? '';
+        if($nome == '' || !empty($j['alianca'])) continue;
+
+        $melhorAlianca = null;
+        $melhorScore = -999;
+
+        foreach($jogadores as $outro){
+            if(($outro['nome'] ?? '') == $nome) continue;
+            if(empty($outro['alianca'])) continue;
+
+            $rel = getRelacaoEntre($jogadores, $nome, $outro['nome']);
+            $score = ($rel['amizade'] ?? 0) + ($rel['confianca'] ?? 0) - (($rel['rivalidade'] ?? 0) * 1.5);
+
+            if($score > $melhorScore){
+                $melhorScore = $score;
+                $melhorAlianca = $outro['alianca'];
+            }
+        }
+
+        if($melhorAlianca != null && $melhorScore >= 90 && tamanhoAlianca($jogadores, $melhorAlianca) < 5 && rand(1,100) <= 45){
+            $ev = entrarEmAlianca($jogadores, $nome, $melhorAlianca);
+            if($ev != '') $eventos[] = $ev;
+        }
+    }
+
+    /* 3) Criação de novas alianças: duplas com alta amizade/confiança criam grupo. */
+    for($i = 0; $i < count($jogadores); $i++){
+        for($k = $i + 1; $k < count($jogadores); $k++){
+
+            $a = $jogadores[$i];
+            $b = $jogadores[$k];
+
+            if(!empty($a['alianca']) || !empty($b['alianca'])) continue;
+
+            $relAB = getRelacaoEntre($jogadores, $a['nome'], $b['nome']);
+            $relBA = getRelacaoEntre($jogadores, $b['nome'], $a['nome']);
+
+            $score = 
+                ($relAB['amizade'] ?? 0) +
+                ($relAB['confianca'] ?? 0) +
+                ($relBA['amizade'] ?? 0) +
+                ($relBA['confianca'] ?? 0) -
+                (($relAB['rivalidade'] ?? 0) + ($relBA['rivalidade'] ?? 0));
+
+            if($score >= 170 && rand(1,100) <= 35){
+                $ev = criarAliancaEntre($jogadores, $a['nome'], $b['nome']);
+                if($ev != '') $eventos[] = $ev;
+                break 2;
+            }
+        }
+    }
+
+    return $eventos;
+}
+
+function escolherAlvoDoGrupo($jogadores, $alianca){
+    if(empty($alianca)) return null;
+
+    $pontuacao = [];
+
+    foreach($jogadores as $membro){
+        if(($membro['alianca'] ?? null) != $alianca) continue;
+
+        foreach($jogadores as $alvo){
+            if(($alvo['alianca'] ?? null) == $alianca) continue;
+            if(($alvo['nome'] ?? '') == ($membro['nome'] ?? '')) continue;
+            if(!empty($alvo['status']['lider'])) continue;
+            if(!empty($alvo['status']['imune'])) continue;
+
+            $rel = getRelacaoEntre($jogadores, $membro['nome'], $alvo['nome']);
+            $score = ($rel['rivalidade'] ?? 0) + (100 - ($rel['amizade'] ?? 0)) + rand(0,10);
+
+            $pontuacao[$alvo['nome']] = ($pontuacao[$alvo['nome']] ?? 0) + $score;
+        }
+    }
+
+    if(empty($pontuacao)) return null;
+
+    arsort($pontuacao);
+
+    return array_key_first($pontuacao);
+}
+
+function eventoAliancaSocial(&$jogadores){
+    $eventos = atualizarAliancasAutomaticas($jogadores);
+
+    if(!empty($eventos)){
+        return $eventos;
+    }
+
+    return [];
+}
+
+
 /* =====================================================
    STATUS
 ===================================================== */
@@ -332,7 +651,7 @@ function eventoSocial(&$jogadores){
 
     $eventos = [];
 
-    $tipo = rand(1,6);
+    $tipo = rand(1,7);
 
     if($tipo == 1){
         alterarRelacao($jogadores, $a['nome'], $b['nome'], 12, -5, 10);
@@ -365,6 +684,21 @@ function eventoSocial(&$jogadores){
         alterarRelacao($jogadores, $a['nome'], $b['nome'], 10, -5, 12);
         $eventos[] = "👀 {$a['nome']} e {$b['nome']} começaram uma possível aliança.";
     }
+
+    if($tipo == 7){
+        alterarRelacao($jogadores, $a['nome'], $b['nome'], 12, -6, 14);
+        alterarRelacao($jogadores, $b['nome'], $a['nome'], 10, -4, 12);
+
+        $eventoAlianca = criarAliancaEntre($jogadores, $a['nome'], $b['nome']);
+
+        if($eventoAlianca != ""){
+            $eventos[] = $eventoAlianca;
+        }else{
+            $eventos[] = "🤝 {$a['nome']} e {$b['nome']} reforçaram uma parceria estratégica.";
+        }
+    }
+
+    $eventos = array_merge($eventos, eventoAliancaSocial($jogadores));
 
     return $eventos;
 }
@@ -427,6 +761,20 @@ function escolherVoto($jogador, $jogadores){
             ($rel['confianca'] * 0.2) +
             ((100 - $outro['popularidade']) * 0.15) +
             (rand(0,40) * $perfil['aleatorio']);
+
+        /* Alianças protegem membros do mesmo grupo */
+        if(mesmaAlianca($jogador, $outro)){
+            $score -= 80;
+        }
+
+        /* Grupos podem mirar juntos em um alvo comum */
+        if(!empty($jogador['alianca'])){
+            $alvoDoGrupo = escolherAlvoDoGrupo($jogadores, $jogador['alianca']);
+
+            if($alvoDoGrupo == ($outro['nome'] ?? '')){
+                $score += 25;
+            }
+        }
 
         if($jogador['personalidade'] == "Estrategista"){
             $score += (100 - $outro['popularidade']) * 0.25;
@@ -577,7 +925,9 @@ function cicloDoJogo($jogadores){
     $anjo  = provaAnjo($jogadores);
     $imune = imunizar($jogadores, $anjo);
 
+    $eventosAliancas = atualizarAliancasAutomaticas($jogadores);
     $eventosFesta = festa($jogadores);
+    $eventosAliancas = array_merge($eventosAliancas, atualizarAliancasAutomaticas($jogadores));
     $discordia = jogoDiscordia($jogadores);
 
     $indicado = indicacaoLider($lider, $jogadores);
@@ -594,6 +944,7 @@ function cicloDoJogo($jogadores){
         "lider"=>$lider['nome'],
         "anjo"=>$anjo['nome'],
         "imune"=>$imune['nome'],
+        "aliancas"=>$eventosAliancas,
         "festa"=>$eventosFesta,
         "discordia"=>$discordia,
         "paredao"=>$paredao,
