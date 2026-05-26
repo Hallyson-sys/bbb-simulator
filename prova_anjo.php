@@ -35,12 +35,11 @@ if (!isset($_SESSION['evento_extra'])) {
 $participantes = [];
 
 foreach ($jogadores as $j) {
-    if ($j['nome'] != $lider) {
+    if (($j['nome'] ?? '') != $lider) {
         $participantes[] = $j;
     }
 }
 
-/* segurança: se não tiver gente suficiente */
 if (count($participantes) == 0) {
     $_SESSION['evento_extra'][] = "⚠️ Não havia participantes disponíveis para a Prova do Anjo.";
     $_SESSION['prova_anjo_finalizada'] = true;
@@ -50,33 +49,116 @@ if (count($participantes) == 0) {
 }
 
 /* ===============================
-   FUNÇÃO PARA FINALIZAR A PROVA
+   PROVAS DO ANJO
+================================= */
+
+$provasAnjo = [
+
+    1 => [
+        "titulo" => "🔑 Chaves da Sorte",
+        "texto" => "Escolha uma chave. A chave certa abre o colar do Anjo.",
+        "max" => 20,
+        "tipo" => "select",
+        "label" => "Chave"
+    ],
+
+    2 => [
+        "titulo" => "⚡ Quiz Turbo",
+        "texto" => "Responda corretamente para tentar conquistar o Anjo.",
+        "tipo" => "quiz"
+    ],
+
+    3 => [
+        "titulo" => "🎁 Presente Certo",
+        "texto" => "Escolha um presente. Um deles guarda o colar do Anjo.",
+        "max" => 5,
+        "tipo" => "botoes",
+        "label" => "🎁 Presente"
+    ],
+
+    4 => [
+        "titulo" => "🌟 Estrela Premiada",
+        "texto" => "Escolha uma estrela. A estrela iluminada vence a prova.",
+        "max" => 4,
+        "tipo" => "botoes",
+        "label" => "⭐ Estrela"
+    ],
+
+    5 => [
+        "titulo" => "🦋 Borboleta Azul",
+        "texto" => "Escolha uma borboleta. Uma delas carrega o poder do Anjo.",
+        "max" => 3,
+        "tipo" => "botoes",
+        "label" => "🦋 Borboleta"
+    ],
+
+    6 => [
+        "titulo" => "🔮 Cristal do Anjo",
+        "texto" => "Escolha um cristal. O cristal correto revela o vencedor.",
+        "max" => 4,
+        "tipo" => "botoes",
+        "label" => "🔮 Cristal"
+    ],
+
+    7 => [
+        "titulo" => "☁️ Nuvem da Sorte",
+        "texto" => "Escolha uma nuvem. Uma delas esconde o colar do Anjo.",
+        "max" => 5,
+        "tipo" => "botoes",
+        "label" => "☁️ Nuvem"
+    ],
+
+    8 => [
+        "titulo" => "🪽 Asas do Anjo",
+        "texto" => "Escolha uma asa. A asa certa te leva até o colar.",
+        "max" => 3,
+        "tipo" => "botoes",
+        "label" => "🪽 Asa"
+    ],
+
+    9 => [
+        "titulo" => "🌈 Arco da Proteção",
+        "texto" => "Escolha uma cor do arco. Uma delas ativa a proteção do Anjo.",
+        "max" => 5,
+        "tipo" => "botoes",
+        "label" => "🌈 Cor"
+    ],
+
+    10 => [
+        "titulo" => "🕯️ Luz do Anjo",
+        "texto" => "Escolha uma vela. A vela acesa revela o campeão.",
+        "max" => 4,
+        "tipo" => "botoes",
+        "label" => "🕯️ Vela"
+    ]
+
+];
+
+/* ===============================
+   FUNÇÕES
 ================================= */
 
 function finalizarProvaAnjo(&$jogadores, $campeaoNome, $lider)
 {
-
     if (!isset($_SESSION['evento_extra'])) {
         $_SESSION['evento_extra'] = [];
     }
 
-    /* limpa anjo e imunidade antigos */
     foreach ($jogadores as &$j) {
         $j['status']['anjo'] = false;
         $j['status']['imune'] = false;
     }
     unset($j);
 
-    /* marca o anjo */
     foreach ($jogadores as &$j) {
-        if ($j['nome'] == $campeaoNome) {
+        if (($j['nome'] ?? '') == $campeaoNome) {
 
             $j['status']['anjo'] = true;
-        
+
             if(!isset($j['estatisticas'])){
                 $j['estatisticas'] = [];
             }
-        
+
             $j['estatisticas']['anjo'] =
             ($j['estatisticas']['anjo'] ?? 0) + 1;
         }
@@ -85,18 +167,37 @@ function finalizarProvaAnjo(&$jogadores, $campeaoNome, $lider)
 
     $_SESSION['jogadores'] = $jogadores;
     $_SESSION['anjo'] = $campeaoNome;
-    
+
     unset($_SESSION['imune']);
-    
+
     $_SESSION['prova_anjo_finalizada'] = true;
     $_SESSION['fase_semana'] = 'monstro';
-    
+
     $_SESSION['evento_extra'][] = "😇 " . $campeaoNome . " venceu a Prova do Anjo.";
-    
+
     unset($_SESSION['prova_anjo_tipo']);
-    unset($_SESSION['memoria_seq']);
     unset($_SESSION['caixa_certa']);
     unset($_SESSION['quiz_anjo']);
+    unset($_SESSION['anjo_numero_certo']);
+}
+
+function sortearNPCAnjo($participantes, $meuNome)
+{
+    $npcs = [];
+
+    foreach ($participantes as $p) {
+        if (($p['nome'] ?? '') != $meuNome) {
+            $npcs[] = $p;
+        }
+    }
+
+    if (count($npcs) > 0) {
+        $campeao = $npcs[array_rand($npcs)];
+        return $campeao['nome'];
+    }
+
+    $campeao = $participantes[array_rand($participantes)];
+    return $campeao['nome'];
 }
 
 /* ===============================
@@ -123,25 +224,19 @@ if ($meuNome == $lider) {
 
 if (!isset($_SESSION['prova_anjo_tipo'])) {
 
-    $_SESSION['prova_anjo_tipo'] = rand(1, 3);
+    $_SESSION['prova_anjo_tipo'] = rand(1, 10);
 
-    /* PROVA 1 - MEMÓRIA */
     if ($_SESSION['prova_anjo_tipo'] == 1) {
-
-        $lista = ['🔥', '⭐', '🎯', '💎', '⚡', '🎮', '🚀', '🏆'];
-        shuffle($lista);
-
-        $_SESSION['memoria_seq'] = array_slice($lista, 0, 5);
-    }
-
-    /* PROVA 2 - CHAVES */
-    if ($_SESSION['prova_anjo_tipo'] == 2) {
-
         $_SESSION['caixa_certa'] = rand(1, 20);
     }
 
-    /* PROVA 3 - QUIZ */
-    if ($_SESSION['prova_anjo_tipo'] == 3) {
+    if ($_SESSION['prova_anjo_tipo'] >= 3 && $_SESSION['prova_anjo_tipo'] <= 10) {
+        $tipoTemp = $_SESSION['prova_anjo_tipo'];
+        $maxTemp = $provasAnjo[$tipoTemp]['max'] ?? 5;
+        $_SESSION['anjo_numero_certo'] = rand(1, $maxTemp);
+    }
+
+    if ($_SESSION['prova_anjo_tipo'] == 2) {
 
         $perguntas = [
 
@@ -161,6 +256,18 @@ if (!isset($_SESSION['prova_anjo_tipo'])) {
                 "p" => "5 x 4 = ?",
                 "a" => "20",
                 "op" => ["15", "25", "20", "18"]
+            ],
+
+            [
+                "p" => "Qual número vem depois do 29?",
+                "a" => "30",
+                "op" => ["28", "31", "30", "39"]
+            ],
+
+            [
+                "p" => "Qual palavra combina com proteção?",
+                "a" => "Escudo",
+                "op" => ["Escudo", "Espelho", "Fogo", "Chuva"]
             ]
 
         ];
@@ -179,62 +286,34 @@ if (isset($_POST['jogar'])) {
     $tipo   = $_SESSION['prova_anjo_tipo'];
     $venceu = false;
 
-    /* PROVA 1 - MEMÓRIA */
     if ($tipo == 1) {
-
-        $resp = trim($_POST['resposta'] ?? '');
-        $certa = implode('', $_SESSION['memoria_seq']);
-
-        if ($resp == $certa) {
-            $venceu = true;
-        }
-    }
-
-    /* PROVA 2 - CHAVES */
-    if ($tipo == 2) {
-
         $caixa = intval($_POST['caixa'] ?? 0);
 
-        if ($caixa == $_SESSION['caixa_certa']) {
+        if ($caixa == ($_SESSION['caixa_certa'] ?? 0)) {
             $venceu = true;
         }
     }
 
-    /* PROVA 3 - QUIZ */
-    if ($tipo == 3) {
-
+    if ($tipo == 2) {
         $resp = $_POST['quiz'] ?? '';
 
-        if ($resp == $_SESSION['quiz_anjo']['a']) {
+        if ($resp == ($_SESSION['quiz_anjo']['a'] ?? '')) {
             $venceu = true;
         }
     }
 
-    /* ===========================
-       DEFINIR CAMPEÃO
-       Se você vencer e não for líder, você vira Anjo.
-       Se errar, NPC ganha.
-    =========================== */
+    if ($tipo >= 3 && $tipo <= 10) {
+        $escolha = intval($_POST['escolha'] ?? 0);
+
+        if ($escolha == ($_SESSION['anjo_numero_certo'] ?? 0)) {
+            $venceu = true;
+        }
+    }
 
     if ($venceu) {
         $campeaoNome = $meuNome;
     } else {
-
-        $npcs = [];
-
-        foreach ($participantes as $p) {
-            if ($p['nome'] != $meuNome) {
-                $npcs[] = $p;
-            }
-        }
-
-        if (count($npcs) > 0) {
-            $campeao = $npcs[array_rand($npcs)];
-        } else {
-            $campeao = $participantes[array_rand($participantes)];
-        }
-
-        $campeaoNome = $campeao['nome'];
+        $campeaoNome = sortearNPCAnjo($participantes, $meuNome);
     }
 
     finalizarProvaAnjo($jogadores, $campeaoNome, $lider);
@@ -244,6 +323,24 @@ if (isset($_POST['jogar'])) {
 }
 
 $tipo = $_SESSION['prova_anjo_tipo'];
+$provaAtual = $provasAnjo[$tipo] ?? $provasAnjo[1];
+
+function textoBotaoAnjo($prova, $i)
+{
+    $label = $prova['label'] ?? 'Opção';
+
+    if (($prova['titulo'] ?? '') == '🌈 Arco da Proteção') {
+        $cores = ['Rosa', 'Azul', 'Dourado', 'Verde', 'Roxo'];
+        return "🌈 " . ($cores[$i-1] ?? "Cor $i");
+    }
+
+    if (($prova['titulo'] ?? '') == '🪽 Asas do Anjo') {
+        $letras = ['A', 'B', 'C'];
+        return $label . " " . ($letras[$i-1] ?? $i);
+    }
+
+    return $label . " " . $i;
+}
 
 ?>
 <!DOCTYPE html>
@@ -262,7 +359,10 @@ $tipo = $_SESSION['prova_anjo_tipo'];
 
         body {
             font-family: Arial, sans-serif;
-            background: radial-gradient(circle at top, #15365f, #050813 75%);
+            background:
+                radial-gradient(circle at top left, rgba(0, 191, 255, .22), transparent 35%),
+                radial-gradient(circle at top right, rgba(255, 0, 119, .16), transparent 34%),
+                radial-gradient(circle at bottom, #15365f, #050813 75%);
             color: white;
             min-height: 100vh;
             display: flex;
@@ -272,20 +372,22 @@ $tipo = $_SESSION['prova_anjo_tipo'];
         }
 
         .box {
-            width: 760px;
+            width: 780px;
             max-width: 100%;
-            background: rgba(255, 255, 255, .05);
-            padding: 35px;
-            border-radius: 28px;
-            box-shadow: 0 0 35px rgba(0, 0, 0, .45);
+            background: rgba(255, 255, 255, .06);
+            padding: 36px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,.12);
+            box-shadow: 0 0 40px rgba(0, 0, 0, .48);
             animation: subir .7s ease;
+            backdrop-filter: blur(14px);
         }
 
         h1 {
             text-align: center;
-            font-size: 38px;
+            font-size: 40px;
             margin-bottom: 12px;
-            background: linear-gradient(90deg, #ff0077, #ffcc00);
+            background: linear-gradient(90deg, #00bfff, #ffcc00, #ff0077);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -297,20 +399,22 @@ $tipo = $_SESSION['prova_anjo_tipo'];
             margin-bottom: 25px;
             opacity: .9;
             font-size: 17px;
+            line-height:1.5;
         }
 
         .alerta {
-            background: rgba(255, 255, 255, .06);
-            padding: 14px;
-            border-radius: 14px;
-            margin-bottom: 20px;
+            background: rgba(255, 255, 255, .07);
+            padding: 15px;
+            border-radius: 16px;
+            margin-bottom: 22px;
             text-align: center;
+            line-height:1.5;
         }
 
         p {
             font-size: 18px;
             line-height: 1.6;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
         }
 
         input,
@@ -327,17 +431,19 @@ $tipo = $_SESSION['prova_anjo_tipo'];
             width: 100%;
             padding: 16px;
             border: none;
-            border-radius: 14px;
-            font-size: 20px;
+            border-radius: 15px;
+            font-size: 19px;
             font-weight: bold;
             cursor: pointer;
             color: white;
             background: linear-gradient(135deg, #00bfff, #004cff);
-            transition: .2s;
+            transition: .22s;
+            min-height:58px;
         }
 
         button:hover {
-            transform: scale(1.02);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow:0 0 20px rgba(0,191,255,.35);
         }
 
         .ops {
@@ -345,6 +451,13 @@ $tipo = $_SESSION['prova_anjo_tipo'];
             grid-template-columns: 1fr 1fr;
             gap: 12px;
             margin-bottom: 18px;
+        }
+
+        .grid-botoes{
+            display:grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap:12px;
+            margin-bottom:18px;
         }
 
         label {
@@ -370,6 +483,13 @@ $tipo = $_SESSION['prova_anjo_tipo'];
                 transform: translateY(0);
             }
         }
+
+        @media(max-width:700px){
+            .ops,
+            .grid-botoes{
+                grid-template-columns:1fr;
+            }
+        }
     </style>
 </head>
 
@@ -389,44 +509,29 @@ $tipo = $_SESSION['prova_anjo_tipo'];
 
         <form method="POST">
 
+            <p><b><?php echo $provaAtual['titulo']; ?></b></p>
+            <p><?php echo $provaAtual['texto']; ?></p>
+
             <?php if ($tipo == 1): ?>
 
-                <p>🧠 <b>Memória Relâmpago</b></p>
-
-                <p>Memorize a sequência:</p>
-
-                <p style="font-size:34px;text-align:center;">
-                    <?php echo implode(' ', $_SESSION['memoria_seq']); ?>
-                </p>
-
-                <p>Digite exatamente igual, sem espaços:</p>
-
-                <input type="text" name="resposta" required>
-
-            <?php endif; ?>
-
-            <?php if ($tipo == 2): ?>
-
-                <p>🔑 <b>Chaves da Sorte</b></p>
-
-                <p>Escolha uma caixa de 1 até 20:</p>
-
                 <select name="caixa" required>
-                    <option value="">Escolher</option>
+                    <option value="">Escolher chave</option>
 
                     <?php for ($i = 1; $i <= 20; $i++): ?>
                         <option value="<?php echo $i; ?>">
-                            <?php echo $i; ?>
+                            🔑 Chave <?php echo $i; ?>
                         </option>
                     <?php endfor; ?>
 
                 </select>
 
+                <button name="jogar">
+                    💙 Disputar Prova
+                </button>
+
             <?php endif; ?>
 
-            <?php if ($tipo == 3): ?>
-
-                <p>⚡ <b>Quiz Turbo</b></p>
+            <?php if ($tipo == 2): ?>
 
                 <p><?php echo $_SESSION['quiz_anjo']['p']; ?></p>
 
@@ -446,11 +551,25 @@ $tipo = $_SESSION['prova_anjo_tipo'];
 
                 </div>
 
+                <button name="jogar">
+                    💙 Disputar Prova
+                </button>
+
             <?php endif; ?>
 
-            <button name="jogar">
-                💙 Disputar Prova
-            </button>
+            <?php if ($tipo >= 3 && $tipo <= 10): ?>
+
+                <div class="grid-botoes">
+                    <?php for ($i = 1; $i <= $provaAtual['max']; $i++): ?>
+                        <button type="submit" name="escolha" value="<?php echo $i; ?>">
+                            <?php echo textoBotaoAnjo($provaAtual, $i); ?>
+                        </button>
+                    <?php endfor; ?>
+                </div>
+
+                <input type="hidden" name="jogar" value="1">
+
+            <?php endif; ?>
 
         </form>
 
