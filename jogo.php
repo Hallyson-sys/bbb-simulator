@@ -222,6 +222,322 @@ function limitar($valor, $min = 0, $max = 100)
     return max($min, min($max, $valor));
 }
 
+function definirTamanhoParedao($jogadores)
+{
+    $total = count($jogadores);
+
+    if ($total <= 4) {
+        return 3;
+    }
+
+    if ($total <= 6) {
+        return 2;
+    }
+
+    $sorteio = rand(1, 100);
+
+    if ($sorteio <= 70) {
+        return 3;
+    }
+
+    if ($sorteio <= 95) {
+        return 4;
+    }
+
+    return 5;
+}
+
+/* =========================
+   🚗 PROVA BATE-VOLTA
+   - Não acontece toda semana.
+   - Não acontece a partir do Top 10.
+   - Indicação do Líder não joga.
+   - Se o jogador estiver no paredão e puder jogar, ele joga uma prova de sorte.
+========================= */
+
+function participantesBateVolta($paredao)
+{
+    $indicacaoLider = $_SESSION['indicacao_lider'] ?? '';
+    $participantes = [];
+
+    foreach ($paredao as $nome) {
+        if ($nome == '') continue;
+
+        /* O indicado do líder não participa do Bate-Volta */
+        if (nomeIgual($nome, $indicacaoLider)) continue;
+
+        $participantes[] = $nome;
+    }
+
+    return array_values(array_unique($participantes));
+}
+
+function sortearTipoBateVolta()
+{
+    $tipos = ['portas', 'urna', 'dado'];
+    return $tipos[array_rand($tipos)];
+}
+
+function nomeTipoBateVolta($tipo)
+{
+    if ($tipo == 'portas') return '🚪 Portas da Sorte';
+    if ($tipo == 'urna') return '🎲 Urna Misteriosa';
+    if ($tipo == 'dado') return '🎯 Dado da Virada';
+
+    return '🚗 Prova Bate-Volta';
+}
+
+function descricaoTipoBateVolta($tipo)
+{
+    if ($tipo == 'portas') {
+        return 'Escolha uma porta. Uma delas dá uma grande vantagem na disputa.';
+    }
+
+    if ($tipo == 'urna') {
+        return 'Escolha um número. Quem chegar mais perto do número secreto leva vantagem.';
+    }
+
+    if ($tipo == 'dado') {
+        return 'Escolha sua aposta no dado. Se acertar a tendência do resultado, ganha vantagem.';
+    }
+
+    return 'Uma prova rápida de sorte para tentar escapar do paredão.';
+}
+
+function deveTerBateVolta($jogadores, $paredao)
+{
+    /* A partir do Top 10 não tem mais Bate-Volta */
+    if (count($jogadores) <= 10) {
+        return false;
+    }
+
+    $participantes = participantesBateVolta($paredao);
+
+    /* Se tiver menos de 2 pessoas elegíveis, não faz sentido ter prova */
+    if (count($participantes) < 2) {
+        return false;
+    }
+
+    /* Chance da semana ter Bate-Volta: 45% */
+    return rand(1, 100) <= 45;
+}
+
+function removerVencedorDoParedao($vencedor)
+{
+    if ($vencedor == '' || !isset($_SESSION['paredao']) || !is_array($_SESSION['paredao'])) {
+        return;
+    }
+
+    $_SESSION['paredao'] = array_values(array_filter($_SESSION['paredao'], function ($nome) use ($vencedor) {
+        return !nomeIgual($nome, $vencedor);
+    }));
+}
+
+function iniciarBateVoltaAposParedao(&$jogadores)
+{
+    if (isset($_SESSION['bate_volta_decidido'])) {
+        return false;
+    }
+
+    $_SESSION['bate_volta_decidido'] = true;
+
+    $paredaoAtual = $_SESSION['paredao'] ?? [];
+
+    if (!deveTerBateVolta($jogadores, $paredaoAtual)) {
+        if (count($jogadores) <= 10) {
+            $_SESSION['evento_extra'][] = "🚗 A partir do Top 10, não existe mais Prova Bate-Volta.";
+        }
+        return false;
+    }
+
+    $participantes = participantesBateVolta($paredaoAtual);
+
+    $_SESSION['bate_volta'] = [
+        'tipo' => sortearTipoBateVolta(),
+        'participantes' => $participantes,
+        'finalizado' => false
+    ];
+
+    $_SESSION['evento_extra'][] =
+        "🚗 Teremos Prova Bate-Volta! Jogam: <b>" . implode(", ", $participantes) . "</b>.";
+
+    $meuNome = $_SESSION['meu_nome'] ?? '';
+
+    if ($meuNome != '' && in_array($meuNome, $participantes)) {
+        $_SESSION['fase_semana'] = 'bate_volta';
+        return true;
+    }
+
+    /* Se o jogador não participa, os NPCs fazem a prova automaticamente */
+    $vencedor = $participantes[array_rand($participantes)];
+
+    removerVencedorDoParedao($vencedor);
+
+    $_SESSION['bate_volta']['finalizado'] = true;
+    $_SESSION['bate_volta_resultado'] = [
+        'vencedor' => $vencedor,
+        'automatico' => true
+    ];
+
+    $_SESSION['evento_extra'][] =
+        "🏁 " . nomeTipoBateVolta($_SESSION['bate_volta']['tipo']) . ": <b>$vencedor</b> venceu e escapou do paredão.";
+
+    $_SESSION['evento_extra'][] =
+        "🚨 Paredão final após o Bate-Volta: <b>" . implode(" x ", $_SESSION['paredao']) . "</b>.";
+
+    return false;
+}
+
+function pontuarBateVolta($tipo, $escolha)
+{
+    $score = rand(1, 100);
+    $detalhe = "";
+
+    if ($tipo == 'portas') {
+        $portaPremiada = (string)rand(1, 3);
+
+        if ((string)$escolha == $portaPremiada) {
+            $score += 45;
+            $detalhe = "Você escolheu a porta premiada.";
+        } else {
+            $score += rand(0, 18);
+            $detalhe = "A porta premiada era a $portaPremiada.";
+        }
+    } elseif ($tipo == 'urna') {
+        $numeroSecreto = rand(1, 5);
+        $distancia = abs(((int)$escolha) - $numeroSecreto);
+
+        $score += max(0, 45 - ($distancia * 15));
+        $detalhe = "O número secreto era $numeroSecreto.";
+    } elseif ($tipo == 'dado') {
+        $dado = rand(1, 6);
+
+        $acertou =
+            ($escolha == 'baixo' && $dado <= 2) ||
+            ($escolha == 'medio' && $dado >= 3 && $dado <= 4) ||
+            ($escolha == 'alto' && $dado >= 5);
+
+        if ($acertou) {
+            $score += 45;
+            $detalhe = "O dado caiu em $dado e sua aposta deu certo.";
+        } else {
+            $score += rand(0, 15);
+            $detalhe = "O dado caiu em $dado.";
+        }
+    }
+
+    return [
+        'score' => $score,
+        'detalhe' => $detalhe
+    ];
+}
+
+function resolverBateVoltaJogador(&$jogadores, $escolha)
+{
+    if (!isset($_SESSION['bate_volta']) || empty($_SESSION['bate_volta']['participantes'])) {
+        return "⚠️ Não existe Prova Bate-Volta ativa.";
+    }
+
+    $bateVolta = $_SESSION['bate_volta'];
+    $tipo = $bateVolta['tipo'] ?? 'portas';
+    $participantes = $bateVolta['participantes'];
+    $meuNome = $_SESSION['meu_nome'] ?? '';
+
+    if (!in_array($meuNome, $participantes)) {
+        return "⚠️ Você não está entre os participantes do Bate-Volta.";
+    }
+
+    if ($escolha == '') {
+        return "⚠️ Escolha uma opção para jogar o Bate-Volta.";
+    }
+
+    $placar = [];
+
+    $resultadoJogador = pontuarBateVolta($tipo, $escolha);
+    $placar[$meuNome] = $resultadoJogador['score'];
+
+    foreach ($participantes as $nome) {
+        if (nomeIgual($nome, $meuNome)) continue;
+
+        if ($tipo == 'portas') {
+            $escolhaNPC = (string)rand(1, 3);
+        } elseif ($tipo == 'urna') {
+            $escolhaNPC = (string)rand(1, 5);
+        } else {
+            $opcoes = ['baixo', 'medio', 'alto'];
+            $escolhaNPC = $opcoes[array_rand($opcoes)];
+        }
+
+        $resultadoNPC = pontuarBateVolta($tipo, $escolhaNPC);
+        $placar[$nome] = $resultadoNPC['score'];
+    }
+
+    arsort($placar);
+    $vencedor = array_key_first($placar);
+
+    removerVencedorDoParedao($vencedor);
+
+    $_SESSION['bate_volta']['finalizado'] = true;
+    $_SESSION['bate_volta_resultado'] = [
+        'vencedor' => $vencedor,
+        'placar' => $placar,
+        'detalhe_jogador' => $resultadoJogador['detalhe']
+    ];
+
+    $_SESSION['evento_extra'][] =
+        "🏁 " . nomeTipoBateVolta($tipo) . ": <b>$vencedor</b> venceu e escapou do paredão.";
+
+    $_SESSION['evento_extra'][] =
+        "🚨 Paredão final após o Bate-Volta: <b>" . implode(" x ", $_SESSION['paredao']) . "</b>.";
+
+    $_SESSION['fase_semana'] = 'discordia';
+
+    if (nomeIgual($vencedor, $meuNome)) {
+        alterarPopularidadePublica($jogadores, $meuNome, 3, 8, "venceu o Bate-Volta e escapou do paredão", true);
+        return "🏆 Você venceu o Bate-Volta e escapou do paredão! " . $resultadoJogador['detalhe'];
+    }
+
+    return "🚗 Você jogou o Bate-Volta, mas quem venceu foi <b>$vencedor</b>. " . $resultadoJogador['detalhe'];
+}
+
+function definirFaseDepoisDaFormacaoDoParedao(&$jogadores)
+{
+    $poderAtualCuringa = obterPoderCuringaAtual();
+
+    if (
+        $poderAtualCuringa &&
+        ($poderAtualCuringa['tipo'] ?? '') == 'contra_golpe' &&
+        nomeIgual(($poderAtualCuringa['dono'] ?? ''), ($_SESSION['meu_nome'] ?? '')) &&
+        in_array(($_SESSION['meu_nome'] ?? ''), $_SESSION['paredao'] ?? []) &&
+        !isset($_SESSION['curinga_contra_golpe_usado']) &&
+        !empty(candidatosContraGolpeCuringa($jogadores, $_SESSION['paredao'] ?? []))
+    ) {
+        $_SESSION['fase_semana'] = 'contra_golpe_curinga';
+        return;
+    }
+
+    if (
+        $poderAtualCuringa &&
+        ($poderAtualCuringa['tipo'] ?? '') == 'trocar_emparedado' &&
+        nomeIgual(($poderAtualCuringa['dono'] ?? ''), ($_SESSION['meu_nome'] ?? '')) &&
+        !isset($_SESSION['curinga_troca_usada']) &&
+        count(array_filter($_SESSION['paredao'] ?? [], function ($nome) {
+            return !nomeIgual($nome, $_SESSION['indicacao_lider'] ?? '');
+        })) > 0 &&
+        !empty(candidatosTrocaCuringaEntrada($jogadores, $_SESSION['paredao'] ?? []))
+    ) {
+        $_SESSION['fase_semana'] = 'troca_curinga';
+        return;
+    }
+
+    if (iniciarBateVoltaAposParedao($jogadores)) {
+        return;
+    }
+
+    $_SESSION['fase_semana'] = 'discordia';
+}
+
+
 function calcularQtdVIP($total)
 {
     if ($total >= 18) return 8;
@@ -239,30 +555,48 @@ $qtdVIP = calcularQtdVIP(count($jogadores));
    Usa a chave $j['alianca'] dentro de cada participante.
 ========================= */
 
-function nomesBaseAliancas(){
+function nomesBaseAliancas()
+{
     return [
-        "Fadas Sensatas", "Camarote Raiz", "Pipoca de Ouro", "Quarto Eclipse",
-        "Quarto Maré", "Os Visionários", "Panelinha VIP", "Os Protagonistas",
-        "Baile da Xepa", "Equipe Eclipse", "Laços Fortes", "Modo Turbo",
-        "Tribo do Jogo", "Conselho Secreto", "Operação Paredão", "Tropa da Resenha",
-        "Pódio Fechado", "Central da Treta", "Bonde dos Imunes", "Xadrez da Casa"
+        "Fadas Sensatas",
+        "Camarote Raiz",
+        "Pipoca de Ouro",
+        "Quarto Eclipse",
+        "Quarto Maré",
+        "Os Visionários",
+        "Panelinha VIP",
+        "Os Protagonistas",
+        "Baile da Xepa",
+        "Equipe Eclipse",
+        "Laços Fortes",
+        "Modo Turbo",
+        "Tribo do Jogo",
+        "Conselho Secreto",
+        "Operação Paredão",
+        "Tropa da Resenha",
+        "Pódio Fechado",
+        "Central da Treta",
+        "Bonde dos Imunes",
+        "Xadrez da Casa"
     ];
 }
 
-function indiceJogadorPorNome($jogadores, $nome){
-    foreach($jogadores as $i => $j){
-        if(nomeIgual(($j['nome'] ?? ''), $nome)){
+function indiceJogadorPorNome($jogadores, $nome)
+{
+    foreach ($jogadores as $i => $j) {
+        if (nomeIgual(($j['nome'] ?? ''), $nome)) {
             return $i;
         }
     }
     return null;
 }
 
-function nomeAliancaDisponivel($jogadores){
+function nomeAliancaDisponivel($jogadores)
+{
     $usadas = [];
 
-    foreach($jogadores as $j){
-        if(!empty($j['alianca'])){
+    foreach ($jogadores as $j) {
+        if (!empty($j['alianca'])) {
             $usadas[] = $j['alianca'];
         }
     }
@@ -270,20 +604,21 @@ function nomeAliancaDisponivel($jogadores){
     $bases = nomesBaseAliancas();
     shuffle($bases);
 
-    foreach($bases as $base){
-        if(!in_array($base, $usadas)){
+    foreach ($bases as $base) {
+        if (!in_array($base, $usadas)) {
             return $base;
         }
     }
 
-    return "Aliança ".rand(100,999);
+    return "Aliança " . rand(100, 999);
 }
 
-function membrosDaAlianca($jogadores, $alianca){
+function membrosDaAlianca($jogadores, $alianca)
+{
     $membros = [];
 
-    foreach($jogadores as $j){
-        if(!empty($j['alianca']) && $j['alianca'] == $alianca){
+    foreach ($jogadores as $j) {
+        if (!empty($j['alianca']) && $j['alianca'] == $alianca) {
             $membros[] = $j['nome'];
         }
     }
@@ -291,20 +626,22 @@ function membrosDaAlianca($jogadores, $alianca){
     return $membros;
 }
 
-function tamanhoAlianca($jogadores, $alianca){
+function tamanhoAlianca($jogadores, $alianca)
+{
     return count(membrosDaAlianca($jogadores, $alianca));
 }
 
-function mesmaAliancaNomes($jogadores, $nomeA, $nomeB){
+function mesmaAliancaNomes($jogadores, $nomeA, $nomeB)
+{
     $aliancaA = null;
     $aliancaB = null;
 
-    foreach($jogadores as $j){
-        if(nomeIgual(($j['nome'] ?? ''), $nomeA)){
+    foreach ($jogadores as $j) {
+        if (nomeIgual(($j['nome'] ?? ''), $nomeA)) {
             $aliancaA = $j['alianca'] ?? null;
         }
 
-        if(nomeIgual(($j['nome'] ?? ''), $nomeB)){
+        if (nomeIgual(($j['nome'] ?? ''), $nomeB)) {
             $aliancaB = $j['alianca'] ?? null;
         }
     }
@@ -312,16 +649,17 @@ function mesmaAliancaNomes($jogadores, $nomeA, $nomeB){
     return !empty($aliancaA) && !empty($aliancaB) && $aliancaA == $aliancaB;
 }
 
-function registrarHistoricoAlianca(&$jogadores, $nome, $mensagem){
-    foreach($jogadores as &$j){
-        if(nomeIgual(($j['nome'] ?? ''), $nome)){
-            if(!isset($j['historico_aliancas']) || !is_array($j['historico_aliancas'])){
+function registrarHistoricoAlianca(&$jogadores, $nome, $mensagem)
+{
+    foreach ($jogadores as &$j) {
+        if (nomeIgual(($j['nome'] ?? ''), $nome)) {
+            if (!isset($j['historico_aliancas']) || !is_array($j['historico_aliancas'])) {
                 $j['historico_aliancas'] = [];
             }
 
             $j['historico_aliancas'][] = $mensagem;
 
-            if(count($j['historico_aliancas']) > 15){
+            if (count($j['historico_aliancas']) > 15) {
                 $j['historico_aliancas'] = array_slice($j['historico_aliancas'], -15);
             }
 
@@ -331,20 +669,21 @@ function registrarHistoricoAlianca(&$jogadores, $nome, $mensagem){
     unset($j);
 }
 
-function criarAliancaEntre(&$jogadores, $nomeA, $nomeB, $nomeAlianca = null){
-    if(($_SESSION['rodada'] ?? 1) < 2) return "";
-    if($nomeA == '' || $nomeB == '' || nomeIgual($nomeA, $nomeB)) return "";
+function criarAliancaEntre(&$jogadores, $nomeA, $nomeB, $nomeAlianca = null)
+{
+    if (($_SESSION['rodada'] ?? 1) < 2) return "";
+    if ($nomeA == '' || $nomeB == '' || nomeIgual($nomeA, $nomeB)) return "";
 
     $idxA = indiceJogadorPorNome($jogadores, $nomeA);
     $idxB = indiceJogadorPorNome($jogadores, $nomeB);
 
-    if($idxA === null || $idxB === null) return "";
+    if ($idxA === null || $idxB === null) return "";
 
-    if(!empty($jogadores[$idxA]['alianca']) && !empty($jogadores[$idxB]['alianca'])){
+    if (!empty($jogadores[$idxA]['alianca']) && !empty($jogadores[$idxB]['alianca'])) {
         return "";
     }
 
-    if($nomeAlianca == null){
+    if ($nomeAlianca == null) {
         $nomeAlianca = !empty($jogadores[$idxA]['alianca'])
             ? $jogadores[$idxA]['alianca']
             : (!empty($jogadores[$idxB]['alianca']) ? $jogadores[$idxB]['alianca'] : nomeAliancaDisponivel($jogadores));
@@ -362,19 +701,20 @@ function criarAliancaEntre(&$jogadores, $nomeA, $nomeB, $nomeAlianca = null){
     return "🤝 $nomeA e $nomeB oficializaram a aliança <b>$nomeAlianca</b>.";
 }
 
-function entrarEmAlianca(&$jogadores, $nome, $alianca){
-    if($nome == '' || $alianca == '') return "";
+function entrarEmAlianca(&$jogadores, $nome, $alianca)
+{
+    if ($nome == '' || $alianca == '') return "";
 
     $idx = indiceJogadorPorNome($jogadores, $nome);
-    if($idx === null) return "";
+    if ($idx === null) return "";
 
-    if(($jogadores[$idx]['alianca'] ?? null) == $alianca) return "";
+    if (($jogadores[$idx]['alianca'] ?? null) == $alianca) return "";
 
     $jogadores[$idx]['alianca'] = $alianca;
     registrarHistoricoAlianca($jogadores, $nome, "Entrou na aliança $alianca.");
 
-    foreach($jogadores as $membro){
-        if(!nomeIgual(($membro['nome'] ?? ''), $nome) && ($membro['alianca'] ?? null) == $alianca){
+    foreach ($jogadores as $membro) {
+        if (!nomeIgual(($membro['nome'] ?? ''), $nome) && ($membro['alianca'] ?? null) == $alianca) {
             alterarAfinidade($jogadores, $nome, $membro['nome'], 5, -2, 6);
             alterarAfinidade($jogadores, $membro['nome'], $nome, 4, -2, 5);
         }
@@ -383,20 +723,21 @@ function entrarEmAlianca(&$jogadores, $nome, $alianca){
     return "🤝 $nome entrou para a aliança <b>$alianca</b>.";
 }
 
-function romperAlianca(&$jogadores, $nome, $motivo = "a confiança desmoronou"){
-    if($nome == '') return "";
+function romperAlianca(&$jogadores, $nome, $motivo = "a confiança desmoronou")
+{
+    if ($nome == '') return "";
 
     $idx = indiceJogadorPorNome($jogadores, $nome);
-    if($idx === null) return "";
+    if ($idx === null) return "";
 
     $alianca = $jogadores[$idx]['alianca'] ?? null;
-    if(empty($alianca)) return "";
+    if (empty($alianca)) return "";
 
     $jogadores[$idx]['alianca'] = null;
     registrarHistoricoAlianca($jogadores, $nome, "Saiu da aliança $alianca porque $motivo.");
 
-    foreach($jogadores as $membro){
-        if(!nomeIgual(($membro['nome'] ?? ''), $nome) && ($membro['alianca'] ?? null) == $alianca){
+    foreach ($jogadores as $membro) {
+        if (!nomeIgual(($membro['nome'] ?? ''), $nome) && ($membro['alianca'] ?? null) == $alianca) {
             alterarAfinidade($jogadores, $nome, $membro['nome'], -8, 8, -10);
             alterarAfinidade($jogadores, $membro['nome'], $nome, -6, 6, -8);
         }
@@ -405,13 +746,14 @@ function romperAlianca(&$jogadores, $nome, $motivo = "a confiança desmoronou"){
     return "💥 $nome rompeu com a aliança <b>$alianca</b>: $motivo.";
 }
 
-function relacaoMediaComAlianca($jogadores, $nome, $alianca, $meuNome = ''){
+function relacaoMediaComAlianca($jogadores, $nome, $alianca, $meuNome = '')
+{
     $total = 0;
     $qtd = 0;
 
-    foreach($jogadores as $membro){
-        if(nomeIgual(($membro['nome'] ?? ''), $nome)) continue;
-        if(($membro['alianca'] ?? null) != $alianca) continue;
+    foreach ($jogadores as $membro) {
+        if (nomeIgual(($membro['nome'] ?? ''), $nome)) continue;
+        if (($membro['alianca'] ?? null) != $alianca) continue;
 
         $rel = obterRelacaoCompleta($jogadores, $nome, $membro['nome'], $meuNome);
         $score = ($rel['amizade'] ?? 0) + (($rel['confianca'] ?? 0) * 0.7) - (($rel['rivalidade'] ?? 0) * 1.2);
@@ -422,74 +764,75 @@ function relacaoMediaComAlianca($jogadores, $nome, $alianca, $meuNome = ''){
     return $qtd == 0 ? 0 : ($total / $qtd);
 }
 
-function atualizarAliancasAutomaticas(&$jogadores, $meuNome = ''){
+function atualizarAliancasAutomaticas(&$jogadores, $meuNome = '')
+{
     $eventos = [];
 
     /* As alianças só começam a se formar a partir da Rodada 2,
        quando a casa já teve tempo de criar afinidades e rivalidades. */
-    if(($_SESSION['rodada'] ?? 1) < 2){
+    if (($_SESSION['rodada'] ?? 1) < 2) {
         return $eventos;
     }
 
-    foreach($jogadores as &$j){
-        if(!array_key_exists('alianca', $j)){
+    foreach ($jogadores as &$j) {
+        if (!array_key_exists('alianca', $j)) {
             $j['alianca'] = null;
         }
-        if(!isset($j['historico_aliancas']) || !is_array($j['historico_aliancas'])){
+        if (!isset($j['historico_aliancas']) || !is_array($j['historico_aliancas'])) {
             $j['historico_aliancas'] = [];
         }
     }
     unset($j);
 
     /* Rompimentos */
-    foreach($jogadores as $j){
+    foreach ($jogadores as $j) {
         $nome = $j['nome'] ?? '';
         $alianca = $j['alianca'] ?? null;
 
-        if($nome == '' || empty($alianca)) continue;
+        if ($nome == '' || empty($alianca)) continue;
 
         $media = relacaoMediaComAlianca($jogadores, $nome, $alianca, $meuNome);
 
-        if($media < 8 && rand(1,100) <= 35){
+        if ($media < 8 && rand(1, 100) <= 35) {
             $ev = romperAlianca($jogadores, $nome, "a relação com o grupo ficou muito desgastada");
-            if($ev != '') $eventos[] = $ev;
+            if ($ev != '') $eventos[] = $ev;
         }
     }
 
     /* Entrada em alianças existentes */
-    foreach($jogadores as $j){
+    foreach ($jogadores as $j) {
         $nome = $j['nome'] ?? '';
-        if($nome == '' || !empty($j['alianca'])) continue;
+        if ($nome == '' || !empty($j['alianca'])) continue;
 
         $melhorAlianca = null;
         $melhorScore = -999;
 
-        foreach($jogadores as $outro){
-            if(nomeIgual(($outro['nome'] ?? ''), $nome)) continue;
-            if(empty($outro['alianca'])) continue;
+        foreach ($jogadores as $outro) {
+            if (nomeIgual(($outro['nome'] ?? ''), $nome)) continue;
+            if (empty($outro['alianca'])) continue;
 
             $rel = obterRelacaoCompleta($jogadores, $nome, $outro['nome'], $meuNome);
             $score = ($rel['amizade'] ?? 0) + ($rel['confianca'] ?? 0) - (($rel['rivalidade'] ?? 0) * 1.5);
 
-            if($score > $melhorScore){
+            if ($score > $melhorScore) {
                 $melhorScore = $score;
                 $melhorAlianca = $outro['alianca'];
             }
         }
 
-        if($melhorAlianca != null && $melhorScore >= 90 && tamanhoAlianca($jogadores, $melhorAlianca) < 5 && rand(1,100) <= 35){
+        if ($melhorAlianca != null && $melhorScore >= 90 && tamanhoAlianca($jogadores, $melhorAlianca) < 5 && rand(1, 100) <= 35) {
             $ev = entrarEmAlianca($jogadores, $nome, $melhorAlianca);
-            if($ev != '') $eventos[] = $ev;
+            if ($ev != '') $eventos[] = $ev;
         }
     }
 
     /* Criação de novas alianças */
-    for($i = 0; $i < count($jogadores); $i++){
-        for($k = $i + 1; $k < count($jogadores); $k++){
+    for ($i = 0; $i < count($jogadores); $i++) {
+        for ($k = $i + 1; $k < count($jogadores); $k++) {
             $a = $jogadores[$i];
             $b = $jogadores[$k];
 
-            if(!empty($a['alianca']) || !empty($b['alianca'])) continue;
+            if (!empty($a['alianca']) || !empty($b['alianca'])) continue;
 
             $relAB = obterRelacaoCompleta($jogadores, $a['nome'], $b['nome'], $meuNome);
             $relBA = obterRelacaoCompleta($jogadores, $b['nome'], $a['nome'], $meuNome);
@@ -501,9 +844,9 @@ function atualizarAliancasAutomaticas(&$jogadores, $meuNome = ''){
                 ($relBA['confianca'] ?? 0) -
                 (($relAB['rivalidade'] ?? 0) + ($relBA['rivalidade'] ?? 0));
 
-            if($score >= 170 && rand(1,100) <= 25){
+            if ($score >= 170 && rand(1, 100) <= 25) {
                 $ev = criarAliancaEntre($jogadores, $a['nome'], $b['nome']);
-                if($ev != '') $eventos[] = $ev;
+                if ($ev != '') $eventos[] = $ev;
                 break 2;
             }
         }
@@ -512,43 +855,45 @@ function atualizarAliancasAutomaticas(&$jogadores, $meuNome = ''){
     return $eventos;
 }
 
-function escolherAlvoDoGrupo($jogadores, $alianca, $bloqueados = []){
-    if(empty($alianca)) return null;
+function escolherAlvoDoGrupo($jogadores, $alianca, $bloqueados = [])
+{
+    if (empty($alianca)) return null;
 
     $pontuacao = [];
 
-    foreach($jogadores as $membro){
-        if(($membro['alianca'] ?? null) != $alianca) continue;
+    foreach ($jogadores as $membro) {
+        if (($membro['alianca'] ?? null) != $alianca) continue;
 
-        foreach($jogadores as $alvo){
+        foreach ($jogadores as $alvo) {
             $nomeAlvo = $alvo['nome'] ?? '';
 
-            if($nomeAlvo == '') continue;
-            if(($alvo['alianca'] ?? null) == $alianca) continue;
-            if(nomeIgual($nomeAlvo, ($membro['nome'] ?? ''))) continue;
-            if(in_array($nomeAlvo, $bloqueados)) continue;
-            if(!empty($alvo['status']['lider'])) continue;
-            if(!empty($alvo['status']['imune'])) continue;
+            if ($nomeAlvo == '') continue;
+            if (($alvo['alianca'] ?? null) == $alianca) continue;
+            if (nomeIgual($nomeAlvo, ($membro['nome'] ?? ''))) continue;
+            if (in_array($nomeAlvo, $bloqueados)) continue;
+            if (!empty($alvo['status']['lider'])) continue;
+            if (!empty($alvo['status']['imune'])) continue;
 
             $rel = obterRelacaoCompleta($jogadores, $membro['nome'], $nomeAlvo, $_SESSION['meu_nome'] ?? '');
-            $score = ($rel['rivalidade'] ?? 0) + (100 - ($rel['amizade'] ?? 0)) + rand(0,10);
+            $score = ($rel['rivalidade'] ?? 0) + (100 - ($rel['amizade'] ?? 0)) + rand(0, 10);
 
             $pontuacao[$nomeAlvo] = ($pontuacao[$nomeAlvo] ?? 0) + $score;
         }
     }
 
-    if(empty($pontuacao)) return null;
+    if (empty($pontuacao)) return null;
 
     arsort($pontuacao);
     return array_key_first($pontuacao);
 }
 
-function gerarResumoAliancas($jogadores){
+function gerarResumoAliancas($jogadores)
+{
     $aliancas = [];
 
-    foreach($jogadores as $j){
-        if(!empty($j['alianca'])){
-            if(!isset($aliancas[$j['alianca']])){
+    foreach ($jogadores as $j) {
+        if (!empty($j['alianca'])) {
+            if (!isset($aliancas[$j['alianca']])) {
                 $aliancas[$j['alianca']] = [];
             }
             $aliancas[$j['alianca']][] = $j['nome'];
@@ -559,9 +904,10 @@ function gerarResumoAliancas($jogadores){
     return $aliancas;
 }
 
-function obterAliancaJogador($jogadores, $nome){
-    foreach($jogadores as $j){
-        if(nomeIgual(($j['nome'] ?? ''), $nome)){
+function obterAliancaJogador($jogadores, $nome)
+{
+    foreach ($jogadores as $j) {
+        if (nomeIgual(($j['nome'] ?? ''), $nome)) {
             return $j['alianca'] ?? null;
         }
     }
@@ -569,17 +915,18 @@ function obterAliancaJogador($jogadores, $nome){
     return null;
 }
 
-function calcularAceitacaoNaAlianca($jogadores, $nome, $alianca, $meuNome = ''){
-    if($nome == '' || $alianca == '') return 0;
+function calcularAceitacaoNaAlianca($jogadores, $nome, $alianca, $meuNome = '')
+{
+    if ($nome == '' || $alianca == '') return 0;
 
     $membros = membrosDaAlianca($jogadores, $alianca);
-    if(empty($membros)) return 0;
+    if (empty($membros)) return 0;
 
     $total = 0;
     $qtd = 0;
 
-    foreach($membros as $membro){
-        if(nomeIgual($membro, $nome)) continue;
+    foreach ($membros as $membro) {
+        if (nomeIgual($membro, $nome)) continue;
 
         $rel = obterRelacaoCompleta($jogadores, $membro, $nome, $meuNome);
         $score = ($rel['amizade'] ?? 0) + (($rel['confianca'] ?? 0) * 0.8) - (($rel['rivalidade'] ?? 0) * 1.4);
@@ -587,42 +934,43 @@ function calcularAceitacaoNaAlianca($jogadores, $nome, $alianca, $meuNome = ''){
         $qtd++;
     }
 
-    if($qtd == 0) return 0;
+    if ($qtd == 0) return 0;
 
     return round($total / $qtd);
 }
 
-function jogadorEntrarEmAlianca(&$jogadores, $nome, $alianca){
-    if(($_SESSION['rodada'] ?? 1) < 2){
+function jogadorEntrarEmAlianca(&$jogadores, $nome, $alianca)
+{
+    if (($_SESSION['rodada'] ?? 1) < 2) {
         return "⏳ As alianças ainda não começaram oficialmente. Elas só abrem a partir da Rodada 2.";
     }
 
-    if($nome == '' || $alianca == ''){
+    if ($nome == '' || $alianca == '') {
         return "⚠️ Escolha uma aliança válida.";
     }
 
-    if(!empty(obterAliancaJogador($jogadores, $nome))){
+    if (!empty(obterAliancaJogador($jogadores, $nome))) {
         return "⚠️ $nome já está em uma aliança. Para entrar em outra, primeiro precisa sair da atual.";
     }
 
-    if(tamanhoAlianca($jogadores, $alianca) <= 0){
+    if (tamanhoAlianca($jogadores, $alianca) <= 0) {
         return "⚠️ Essa aliança não existe mais.";
     }
 
-    if(tamanhoAlianca($jogadores, $alianca) >= 5){
+    if (tamanhoAlianca($jogadores, $alianca) >= 5) {
         return "🚫 A aliança <b>$alianca</b> recusou a entrada de $nome porque o grupo já está cheio.";
     }
 
     $aceitacao = calcularAceitacaoNaAlianca($jogadores, $nome, $alianca, $_SESSION['meu_nome'] ?? '');
     $chance = max(15, min(90, $aceitacao));
 
-    if(rand(1,100) <= $chance){
+    if (rand(1, 100) <= $chance) {
         $ev = entrarEmAlianca($jogadores, $nome, $alianca);
         alterarPopularidadePublica($jogadores, $nome, 1, 4, "entrou em uma aliança estratégica", true);
         return $ev != '' ? $ev : "🤝 $nome entrou para a aliança <b>$alianca</b>.";
     }
 
-    foreach(membrosDaAlianca($jogadores, $alianca) as $membro){
+    foreach (membrosDaAlianca($jogadores, $alianca) as $membro) {
         alterarAfinidade($jogadores, $membro, $nome, -4, 3, -6);
         alterarAfinidade($jogadores, $nome, $membro, -3, 2, -4);
     }
@@ -631,10 +979,11 @@ function jogadorEntrarEmAlianca(&$jogadores, $nome, $alianca){
     return "🚫 $nome tentou entrar na aliança <b>$alianca</b>, mas o grupo recusou por falta de confiança.";
 }
 
-function jogadorSairDaAlianca(&$jogadores, $nome){
+function jogadorSairDaAlianca(&$jogadores, $nome)
+{
     $alianca = obterAliancaJogador($jogadores, $nome);
 
-    if(empty($alianca)){
+    if (empty($alianca)) {
         return "⚠️ $nome não está em nenhuma aliança no momento.";
     }
 
@@ -644,28 +993,575 @@ function jogadorSairDaAlianca(&$jogadores, $nome){
     return $ev != '' ? $ev : "💥 $nome saiu da aliança <b>$alianca</b>.";
 }
 
-function alvoCombinadoDaAlianca($jogadores, $alianca, $bloqueados = []){
-    if(empty($alianca)) return null;
 
-    if(!isset($_SESSION['alvos_aliancas_semana'])){
+function nomeAliancaJaExiste($jogadores, $nomeAlianca)
+{
+    foreach ($jogadores as $j) {
+        if (!empty($j['alianca']) && mb_strtolower(trim($j['alianca']), 'UTF-8') === mb_strtolower(trim($nomeAlianca), 'UTF-8')) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function calcularChanceAceitarConviteAlianca($jogadores, $convidado, $criador, $meuNome = '')
+{
+    $relConvidado = obterRelacaoCompleta($jogadores, $convidado, $criador, $meuNome);
+    $relCriador = obterRelacaoCompleta($jogadores, $criador, $convidado, $meuNome);
+
+    $scoreConvidado = $relConvidado['score'] ?? 0;
+    $scoreCriador = $relCriador['score'] ?? 0;
+
+    $amizade = (($relConvidado['amizade'] ?? 0) + ($relCriador['amizade'] ?? 0)) / 2;
+    $confianca = (($relConvidado['confianca'] ?? 0) + ($relCriador['confianca'] ?? 0)) / 2;
+    $rivalidade = (($relConvidado['rivalidade'] ?? 0) + ($relCriador['rivalidade'] ?? 0)) / 2;
+    $romance = max(obterRomance($jogadores, $convidado, $criador), obterRomance($jogadores, $criador, $convidado));
+
+    $chance = 25;
+    $chance += (int)round(($scoreConvidado + $scoreCriador) / 5);
+    $chance += (int)round($amizade / 5);
+    $chance += (int)round($confianca / 6);
+    $chance -= (int)round($rivalidade / 3);
+
+    if ($romance >= 30) $chance += 8;
+    if ($romance >= 60) $chance += 12;
+
+    if (saoAliados($jogadores, $convidado, $criador, $meuNome)) $chance += 18;
+    if (saoRivais($jogadores, $convidado, $criador, $meuNome)) $chance -= 30;
+
+    return max(8, min(92, $chance));
+}
+
+function criarAliancaJogadorComConvites(&$jogadores, $criador, $nomeAlianca, $convidados)
+{
+    if (($_SESSION['rodada'] ?? 1) < 2) {
+        return "⏳ As alianças só podem ser criadas a partir da Rodada 2.";
+    }
+
+    if ($criador == '') {
+        return "⚠️ Jogador inválido para criar aliança.";
+    }
+
+    if (!empty(obterAliancaJogador($jogadores, $criador))) {
+        return "⚠️ $criador já está em uma aliança. Para criar outra, primeiro precisa sair da atual.";
+    }
+
+    $nomeAlianca = trim((string)$nomeAlianca);
+    if ($nomeAlianca == '') {
+        $nomeAlianca = nomeAliancaDisponivel($jogadores);
+    }
+
+    $nomeAlianca = strip_tags($nomeAlianca);
+    $nomeAlianca = mb_substr($nomeAlianca, 0, 35, 'UTF-8');
+
+    if (nomeAliancaJaExiste($jogadores, $nomeAlianca)) {
+        return "⚠️ Já existe uma aliança chamada <b>$nomeAlianca</b>. Escolha outro nome.";
+    }
+
+    if (!is_array($convidados)) {
+        $convidados = [];
+    }
+
+    $convidados = array_values(array_unique(array_filter(array_map('trim', $convidados), function ($nome) use ($criador) {
+        return $nome != '' && !nomeIgual($nome, $criador);
+    })));
+
+    if (count($convidados) == 0) {
+        return "⚠️ Escolha pelo menos 1 participante para convidar para a aliança.";
+    }
+
+    if (count($convidados) > 5) {
+        $convidados = array_slice($convidados, 0, 5);
+    }
+
+    $aceitos = [];
+    $recusados = [];
+    $ignorados = [];
+
+    foreach ($convidados as $nomeConvidado) {
+        $idx = indiceJogadorPorNome($jogadores, $nomeConvidado);
+
+        if ($idx === null) {
+            continue;
+        }
+
+        if (!empty($jogadores[$idx]['alianca'])) {
+            $ignorados[] = $nomeConvidado;
+            continue;
+        }
+
+        $chance = calcularChanceAceitarConviteAlianca($jogadores, $nomeConvidado, $criador, $_SESSION['meu_nome'] ?? '');
+
+        if (rand(1, 100) <= $chance) {
+            $aceitos[] = $nomeConvidado;
+        } else {
+            $recusados[] = $nomeConvidado;
+            alterarAfinidade($jogadores, $nomeConvidado, $criador, -4, 3, -5);
+            alterarAfinidade($jogadores, $criador, $nomeConvidado, -2, 2, -3);
+        }
+    }
+
+    if (empty($aceitos)) {
+        alterarPopularidadePublica($jogadores, $criador, -4, 0, "tentou montar uma aliança, mas ninguém aceitou", true);
+
+        $msg = "💔 $criador tentou criar a aliança <b>$nomeAlianca</b>, mas ninguém aceitou o convite.";
+
+        if (!empty($recusados)) {
+            $msg .= " Recusaram: " . implode(', ', $recusados) . ".";
+        }
+
+        if (!empty($ignorados)) {
+            $msg .= " Já estavam em outra aliança: " . implode(', ', $ignorados) . ".";
+        }
+
+        return $msg;
+    }
+
+    $idxCriador = indiceJogadorPorNome($jogadores, $criador);
+    if ($idxCriador !== null) {
+        $jogadores[$idxCriador]['alianca'] = $nomeAlianca;
+        registrarHistoricoAlianca($jogadores, $criador, "Criou a aliança $nomeAlianca.");
+    }
+
+    foreach ($aceitos as $nomeAceito) {
+        $idxAceito = indiceJogadorPorNome($jogadores, $nomeAceito);
+        if ($idxAceito === null) continue;
+
+        $jogadores[$idxAceito]['alianca'] = $nomeAlianca;
+        registrarHistoricoAlianca($jogadores, $nomeAceito, "Aceitou o convite de $criador e entrou na aliança $nomeAlianca.");
+
+        alterarAfinidade($jogadores, $criador, $nomeAceito, 10, -4, 10);
+        alterarAfinidade($jogadores, $nomeAceito, $criador, 8, -4, 8);
+
+        foreach ($aceitos as $outroAceito) {
+            if (nomeIgual($nomeAceito, $outroAceito)) continue;
+            alterarAfinidade($jogadores, $nomeAceito, $outroAceito, 4, -2, 5);
+        }
+    }
+
+    impactoPopularidadePorPersonalidade($jogadores, $criador, "alianca", true);
+
+    $membros = array_merge([$criador], $aceitos);
+    $msg = "🤝 $criador criou a aliança <b>$nomeAlianca</b> com " . implode(', ', $aceitos) . ".";
+    $msg .= "<br>👥 Membros atuais: " . implode(', ', $membros) . ".";
+
+    if (!empty($recusados)) {
+        $msg .= "<br>🚫 Recusaram o convite: " . implode(', ', $recusados) . ".";
+    }
+
+    if (!empty($ignorados)) {
+        $msg .= "<br>⚠️ Não foram convidados porque já estavam em outra aliança: " . implode(', ', $ignorados) . ".";
+    }
+
+    return $msg;
+}
+
+function alvoCombinadoDaAlianca($jogadores, $alianca, $bloqueados = [])
+{
+    if (empty($alianca)) return null;
+
+    if (!isset($_SESSION['alvos_aliancas_semana'])) {
         $_SESSION['alvos_aliancas_semana'] = [];
     }
 
-    if(isset($_SESSION['alvos_aliancas_semana'][$alianca])){
+    if (isset($_SESSION['alvos_aliancas_semana'][$alianca])) {
         $alvoSalvo = $_SESSION['alvos_aliancas_semana'][$alianca];
-        if(!in_array($alvoSalvo, $bloqueados)){
+        if (!in_array($alvoSalvo, $bloqueados)) {
             return $alvoSalvo;
         }
     }
 
     $alvo = escolherAlvoDoGrupo($jogadores, $alianca, $bloqueados);
 
-    if($alvo != null){
+    if ($alvo != null) {
         $_SESSION['alvos_aliancas_semana'][$alianca] = $alvo;
     }
 
     return $alvo;
 }
+
+
+/* =========================
+   🎁 PODER CURINGA
+   Aparece apenas em algumas semanas e cria reviravoltas no jogo.
+========================= */
+
+function catalogoPoderesCuringa()
+{
+    return [
+        "voto_duplo" => [
+            "nome" => "Voto Duplo",
+            "emoji" => "🗳️",
+            "descricao" => "O voto do dono vale por dois na votação da casa."
+        ],
+        "imunidade_extra" => [
+            "nome" => "Imunidade Extra",
+            "emoji" => "🛡️",
+            "descricao" => "O dono pode imunizar uma pessoa antes da formação do paredão."
+        ],
+        "anular_voto" => [
+            "nome" => "Anular Voto",
+            "emoji" => "🚫",
+            "descricao" => "O dono escolhe uma pessoa e o voto dela será anulado."
+        ],
+        "espiao" => [
+            "nome" => "Espião do Confessionário",
+            "emoji" => "👁️",
+            "descricao" => "O dono escolhe alguém para descobrir em quem essa pessoa votou."
+        ],
+        "contra_golpe" => [
+            "nome" => "Contra-Golpe",
+            "emoji" => "⚡",
+            "descricao" => "Se o dono cair no paredão, ele puxa mais uma pessoa."
+        ],
+        "trocar_emparedado" => [
+            "nome" => "Troca de Emparedado",
+            "emoji" => "🔁",
+            "descricao" => "O dono pode trocar um emparedado por outra pessoa, mas nunca pode tirar a indicação do líder."
+        ]
+    ];
+}
+
+function obterPoderCuringaAtual()
+{
+    return $_SESSION['poder_curinga'] ?? null;
+}
+
+function nomesJogadoresAtivos($jogadores)
+{
+    $nomes = [];
+
+    foreach ($jogadores as $j) {
+        $nome = $j['nome'] ?? '';
+        if ($nome != '') {
+            $nomes[] = $nome;
+        }
+    }
+
+    return $nomes;
+}
+
+function prepararSorteioPoderCuringa($jogadores)
+{
+    $rodadaAtual = $_SESSION['rodada'] ?? 1;
+
+    if ($rodadaAtual < 2) {
+        return false;
+    }
+
+    if (($_SESSION['curinga_decidido_rodada'] ?? null) == $rodadaAtual) {
+        return isset($_SESSION['poder_curinga']);
+    }
+
+    $_SESSION['curinga_decidido_rodada'] = $rodadaAtual;
+
+    unset($_SESSION['poder_curinga']);
+    unset($_SESSION['curinga_voto_duplo_ativo']);
+    unset($_SESSION['curinga_anular_voto_de']);
+    unset($_SESSION['curinga_espiar_voto_de']);
+    unset($_SESSION['curinga_contra_golpe_usado']);
+    unset($_SESSION['curinga_troca_usada']);
+    unset($_SESSION['imunidade_curinga']);
+
+    /* Nem toda semana tem Poder do Big Fone. Chance atual: 60%. */
+    if (rand(1, 100) > 60) {
+        $_SESSION['evento_extra'][] = "🎁 Nesta semana, não teremos Poder do Big Fone.";
+        return false;
+    }
+
+    $catalogo = catalogoPoderesCuringa();
+    $tipos = array_keys($catalogo);
+    $tipo = $tipos[array_rand($tipos)];
+
+    $nomes = nomesJogadoresAtivos($jogadores);
+    if (empty($nomes)) {
+        return false;
+    }
+
+    $dono = $nomes[array_rand($nomes)];
+
+    $_SESSION['poder_curinga'] = [
+        "tipo" => $tipo,
+        "dono" => $dono,
+        "usado" => false,
+        "rodada" => $rodadaAtual
+    ];
+
+    $_SESSION['evento_extra'][] =
+        "☎️ Poder do Big Fone da semana: <b>" . $catalogo[$tipo]['emoji'] . " " . $catalogo[$tipo]['nome'] . "</b>. Dono do poder: <b>$dono</b>.";
+
+    return true;
+}
+
+function marcarPoderCuringaUsado()
+{
+    if (isset($_SESSION['poder_curinga'])) {
+        $_SESSION['poder_curinga']['usado'] = true;
+    }
+}
+
+function aplicarImunidadeCuringa(&$jogadores, $alvo, $dono)
+{
+    if ($alvo == '') return "⚠️ Escolha alguém para receber a imunidade.";
+
+    foreach ($jogadores as &$j) {
+        if (nomeIgual(($j['nome'] ?? ''), $alvo)) {
+            if (!empty($j['status']['lider'])) {
+                unset($j);
+                return "⚠️ O líder já está protegido e não precisa receber a imunidade do Poder do Big Fone.";
+            }
+
+            $j['status']['imune'] = true;
+            $_SESSION['imunidade_curinga'] = $alvo;
+            marcarPoderCuringaUsado();
+
+            unset($j);
+            return "🛡️ $dono usou o Poder do Big Fone e imunizou <b>$alvo</b>.";
+        }
+    }
+    unset($j);
+
+    return "⚠️ Participante inválido para imunizar.";
+}
+
+function ativarVotoDuploCuringa($dono)
+{
+    $_SESSION['curinga_voto_duplo_ativo'] = $dono;
+    marcarPoderCuringaUsado();
+
+    return "🗳️ $dono ativou o Poder do Big Fone. Seu voto valerá por dois na votação da casa.";
+}
+
+function escolherAlvoValidoCuringa($jogadores, $bloqueados = [])
+{
+    $opcoes = [];
+
+    foreach ($jogadores as $j) {
+        $nome = $j['nome'] ?? '';
+
+        if ($nome == '') continue;
+        if (in_array($nome, $bloqueados)) continue;
+        if (!empty($j['status']['lider'])) continue;
+        if (!empty($j['status']['imune'])) continue;
+
+        $opcoes[] = $nome;
+    }
+
+    if (empty($opcoes)) return null;
+
+    return $opcoes[array_rand($opcoes)];
+}
+
+function usarPoderCuringaAutomaticoNPC(&$jogadores)
+{
+    $poder = obterPoderCuringaAtual();
+
+    if (!$poder || !empty($poder['usado'])) return "";
+
+    $dono = $poder['dono'] ?? '';
+    $tipo = $poder['tipo'] ?? '';
+
+    if ($dono == '' || $dono == ($_SESSION['meu_nome'] ?? '')) return "";
+
+    if ($tipo == 'voto_duplo') {
+        return ativarVotoDuploCuringa($dono);
+    }
+
+    if ($tipo == 'imunidade_extra') {
+        $alvo = escolherAlvoValidoCuringa($jogadores, []);
+        if ($alvo == null) $alvo = $dono;
+        return aplicarImunidadeCuringa($jogadores, $alvo, $dono);
+    }
+
+    if ($tipo == 'anular_voto') {
+        $alvo = escolherAlvoValidoCuringa($jogadores, [$dono]);
+        if ($alvo != null) {
+            $_SESSION['curinga_anular_voto_de'] = $alvo;
+            marcarPoderCuringaUsado();
+            return "🚫 $dono usou o Poder do Big Fone para anular o voto de <b>$alvo</b>.";
+        }
+    }
+
+    if ($tipo == 'espiao') {
+        $alvo = escolherAlvoValidoCuringa($jogadores, [$dono]);
+        if ($alvo != null) {
+            $_SESSION['curinga_espiar_voto_de'] = $alvo;
+            marcarPoderCuringaUsado();
+            return "👁️ $dono ganhou o direito de espiar um voto no confessionário.";
+        }
+    }
+
+    /* Contra-golpe e troca ficam guardados para agir depois que o paredão for formado. */
+    if ($tipo == 'contra_golpe' || $tipo == 'trocar_emparedado') {
+        marcarPoderCuringaUsado();
+        return "🎁 $dono guardou o Poder do Big Fone para usar na formação do paredão.";
+    }
+
+    return "";
+}
+
+function reaplicarImunidadeCuringa(&$jogadores)
+{
+    $imunizado = $_SESSION['imunidade_curinga'] ?? '';
+
+    if ($imunizado == '') return;
+
+    foreach ($jogadores as &$j) {
+        if (nomeIgual(($j['nome'] ?? ''), $imunizado)) {
+            if (empty($j['status']['lider'])) {
+                $j['status']['imune'] = true;
+            }
+            break;
+        }
+    }
+    unset($j);
+}
+
+function votoEstaAnuladoPeloCuringa($votante)
+{
+    return isset($_SESSION['curinga_anular_voto_de']) && nomeIgual($_SESSION['curinga_anular_voto_de'], $votante);
+}
+
+function pesoVotoCuringa($votante)
+{
+    if (isset($_SESSION['curinga_voto_duplo_ativo']) && nomeIgual($_SESSION['curinga_voto_duplo_ativo'], $votante)) {
+        return 2;
+    }
+
+    return 1;
+}
+
+function aplicarEspiaoCuringaNoResultado($votosDetalhados)
+{
+    $alvo = $_SESSION['curinga_espiar_voto_de'] ?? '';
+    $poder = obterPoderCuringaAtual();
+
+    if ($alvo == '' || !$poder) return;
+
+    foreach ($votosDetalhados as $votoInfo) {
+        if (nomeIgual($votoInfo['votante'] ?? '', $alvo)) {
+            $_SESSION['evento_extra'][] =
+                "👁️ Poder do Big Fone revelou para " . $poder['dono'] . ": $alvo votou em " . $votoInfo['voto'] . ".";
+            return;
+        }
+    }
+}
+
+function candidatosContraGolpeCuringa($jogadores, $paredaoAtual)
+{
+    $bloqueados = $paredaoAtual;
+
+    if (isset($_SESSION['lider'])) {
+        $bloqueados[] = $_SESSION['lider'];
+    }
+
+    if (isset($_SESSION['indicacao_lider'])) {
+        $bloqueados[] = $_SESSION['indicacao_lider'];
+    }
+
+    if (isset($_SESSION['indicacao_bigfone'])) {
+        $bloqueados[] = $_SESSION['indicacao_bigfone'];
+    }
+
+    $candidatos = [];
+
+    foreach ($jogadores as $j) {
+        $nome = $j['nome'] ?? '';
+
+        if ($nome == '') continue;
+        if (in_array($nome, $bloqueados)) continue;
+        if (!empty($j['status']['lider'])) continue;
+        if (!empty($j['status']['imune'])) continue;
+
+        $candidatos[] = $nome;
+    }
+
+    return $candidatos;
+}
+
+function aplicarContraGolpeCuringaNPC(&$jogadores, &$paredaoAtual)
+{
+    $poder = obterPoderCuringaAtual();
+
+    if (!$poder || ($poder['tipo'] ?? '') != 'contra_golpe') return "";
+
+    $dono = $poder['dono'] ?? '';
+
+    if ($dono == '' || $dono == ($_SESSION['meu_nome'] ?? '')) return "";
+    if (!in_array($dono, $paredaoAtual)) return "";
+    if (isset($_SESSION['curinga_contra_golpe_usado'])) return "";
+
+    $candidatos = candidatosContraGolpeCuringa($jogadores, $paredaoAtual);
+    if (empty($candidatos)) return "";
+
+    $alvo = $candidatos[array_rand($candidatos)];
+    $paredaoAtual[] = $alvo;
+
+    $_SESSION['curinga_contra_golpe_usado'] = true;
+    return "⚡ Pelo Contra-Golpe do Big Fone, $dono puxou <b>$alvo</b> para o paredão.";
+}
+
+function candidatosTrocaCuringaEntrada($jogadores, $paredaoAtual)
+{
+    $bloqueados = $paredaoAtual;
+
+    if (isset($_SESSION['lider'])) {
+        $bloqueados[] = $_SESSION['lider'];
+    }
+
+    $candidatos = [];
+
+    foreach ($jogadores as $j) {
+        $nome = $j['nome'] ?? '';
+
+        if ($nome == '') continue;
+        if (in_array($nome, $bloqueados)) continue;
+        if (!empty($j['status']['lider'])) continue;
+        if (!empty($j['status']['imune'])) continue;
+
+        $candidatos[] = $nome;
+    }
+
+    return $candidatos;
+}
+
+function aplicarTrocaEmparedadoCuringaNPC(&$jogadores, &$paredaoAtual)
+{
+    $poder = obterPoderCuringaAtual();
+
+    if (!$poder || ($poder['tipo'] ?? '') != 'trocar_emparedado') return "";
+
+    $dono = $poder['dono'] ?? '';
+
+    if ($dono == '' || $dono == ($_SESSION['meu_nome'] ?? '')) return "";
+    if (isset($_SESSION['curinga_troca_usada'])) return "";
+
+    $indicacaoLider = $_SESSION['indicacao_lider'] ?? '';
+
+    $saidas = array_values(array_filter($paredaoAtual, function ($nome) use ($indicacaoLider) {
+        return !nomeIgual($nome, $indicacaoLider);
+    }));
+
+    $entradas = candidatosTrocaCuringaEntrada($jogadores, $paredaoAtual);
+
+    if (empty($saidas) || empty($entradas)) return "";
+
+    $sair = $saidas[array_rand($saidas)];
+    $entrar = $entradas[array_rand($entradas)];
+
+    foreach ($paredaoAtual as $i => $nome) {
+        if (nomeIgual($nome, $sair)) {
+            $paredaoAtual[$i] = $entrar;
+            break;
+        }
+    }
+
+    $paredaoAtual = array_values(array_unique($paredaoAtual));
+
+    $_SESSION['curinga_troca_usada'] = true;
+    return "🔁 Pelo Poder do Big Fone, $dono tirou <b>$sair</b> do paredão e colocou <b>$entrar</b>. A indicação do líder foi preservada.";
+}
+
 
 $EMOJIS_QUERIDOMETRO = [
 
@@ -935,9 +1831,10 @@ function alterarPopularidadeMotivo(&$jogadores, $nome, $min, $max, $motivo, $mos
    diretamente a permanência no resultado.php.
 ========================= */
 
-function obterPopularidadeJogador($jogadores, $nome){
-    foreach($jogadores as $j){
-        if(($j['nome'] ?? '') == $nome){
+function obterPopularidadeJogador($jogadores, $nome)
+{
+    foreach ($jogadores as $j) {
+        if (($j['nome'] ?? '') == $nome) {
             return $j['popularidade'] ?? 50;
         }
     }
@@ -945,28 +1842,31 @@ function obterPopularidadeJogador($jogadores, $nome){
     return 50;
 }
 
-function nivelPopularidadePublica($popularidade){
-    if($popularidade >= 90) return "favorito";
-    if($popularidade >= 70) return "querido";
-    if($popularidade >= 50) return "neutro";
-    if($popularidade >= 30) return "mal_visto";
+function nivelPopularidadePublica($popularidade)
+{
+    if ($popularidade >= 90) return "favorito";
+    if ($popularidade >= 70) return "querido";
+    if ($popularidade >= 50) return "neutro";
+    if ($popularidade >= 30) return "mal_visto";
     return "cancelado";
 }
 
-function descricaoPopularidadePublica($popularidade){
+function descricaoPopularidadePublica($popularidade)
+{
     $nivel = nivelPopularidadePublica($popularidade);
 
-    if($nivel == "favorito") return "favorito do público";
-    if($nivel == "querido") return "querido pelo público";
-    if($nivel == "neutro") return "dividindo opiniões";
-    if($nivel == "mal_visto") return "mal visto pelo público";
+    if ($nivel == "favorito") return "favorito do público";
+    if ($nivel == "querido") return "querido pelo público";
+    if ($nivel == "neutro") return "dividindo opiniões";
+    if ($nivel == "mal_visto") return "mal visto pelo público";
     return "cancelado nas redes";
 }
 
-function registrarHistoricoPopularidade(&$jogadores, $nome, $valor, $motivo){
-    foreach($jogadores as &$j){
-        if(($j['nome'] ?? '') == $nome){
-            if(!isset($j['historico_popularidade']) || !is_array($j['historico_popularidade'])){
+function registrarHistoricoPopularidade(&$jogadores, $nome, $valor, $motivo)
+{
+    foreach ($jogadores as &$j) {
+        if (($j['nome'] ?? '') == $nome) {
+            if (!isset($j['historico_popularidade']) || !is_array($j['historico_popularidade'])) {
                 $j['historico_popularidade'] = [];
             }
 
@@ -977,7 +1877,7 @@ function registrarHistoricoPopularidade(&$jogadores, $nome, $valor, $motivo){
                 "popularidade" => $j['popularidade'] ?? 50
             ];
 
-            if(count($j['historico_popularidade']) > 20){
+            if (count($j['historico_popularidade']) > 20) {
                 $j['historico_popularidade'] = array_slice($j['historico_popularidade'], -20);
             }
 
@@ -987,38 +1887,40 @@ function registrarHistoricoPopularidade(&$jogadores, $nome, $valor, $motivo){
     unset($j);
 }
 
-function alterarPopularidadePublica(&$jogadores, $nome, $min, $max, $motivo, $mostrarNoAoVivo = true){
-    if($nome == '') return 0;
+function alterarPopularidadePublica(&$jogadores, $nome, $min, $max, $motivo, $mostrarNoAoVivo = true)
+{
+    if ($nome == '') return 0;
 
     $valor = rand($min, $max);
 
-    if($valor == 0){
+    if ($valor == 0) {
         return 0;
     }
 
     alterarPopularidade($jogadores, $nome, $valor);
     registrarHistoricoPopularidade($jogadores, $nome, $valor, $motivo);
 
-    if($mostrarNoAoVivo){
-        if(!isset($_SESSION['evento_extra'])){
+    if ($mostrarNoAoVivo) {
+        if (!isset($_SESSION['evento_extra'])) {
             $_SESSION['evento_extra'] = [];
         }
 
-        if($valor > 0){
+        if ($valor > 0) {
             $_SESSION['evento_extra'][] = "📈 O público reagiu bem: $nome ganhou $valor de popularidade ($motivo).";
-        }else{
-            $_SESSION['evento_extra'][] = "📉 O público reagiu mal: $nome perdeu ".abs($valor)." de popularidade ($motivo).";
+        } else {
+            $_SESSION['evento_extra'][] = "📉 O público reagiu mal: $nome perdeu " . abs($valor) . " de popularidade ($motivo).";
         }
     }
 
     return $valor;
 }
 
-function impactoPopularidadePorPersonalidade(&$jogadores, $nome, $tipo, $mostrarNoAoVivo = false){
+function impactoPopularidadePorPersonalidade(&$jogadores, $nome, $tipo, $mostrarNoAoVivo = false)
+{
     $personalidade = "Neutro";
 
-    foreach($jogadores as $j){
-        if(($j['nome'] ?? '') == $nome){
+    foreach ($jogadores as $j) {
+        if (($j['nome'] ?? '') == $nome) {
             $personalidade = $j['personalidade'] ?? 'Neutro';
             break;
         }
@@ -1028,104 +1930,147 @@ function impactoPopularidadePorPersonalidade(&$jogadores, $nome, $tipo, $mostrar
     $max = 0;
     $motivo = "movimentou o jogo";
 
-    if($tipo == "vt"){
-        $min = -5; $max = 8; $motivo = "tentou render VT";
-        if($personalidade == "Influencer"){ $min = -4; $max = 12; }
-        if($personalidade == "Planta"){ $min = -8; $max = 4; }
-        if($personalidade == "Barraqueiro"){ $min = -6; $max = 10; }
+    if ($tipo == "vt") {
+        $min = -5;
+        $max = 8;
+        $motivo = "tentou render VT";
+        if ($personalidade == "Influencer") {
+            $min = -4;
+            $max = 12;
+        }
+        if ($personalidade == "Planta") {
+            $min = -8;
+            $max = 4;
+        }
+        if ($personalidade == "Barraqueiro") {
+            $min = -6;
+            $max = 10;
+        }
     }
 
-    if($tipo == "fofoca"){
-        $min = -8; $max = 3; $motivo = "se envolveu em fofoca";
-        if($personalidade == "Manipulador" || $personalidade == "Falso"){ $min = -12; $max = 2; }
+    if ($tipo == "fofoca") {
+        $min = -8;
+        $max = 3;
+        $motivo = "se envolveu em fofoca";
+        if ($personalidade == "Manipulador" || $personalidade == "Falso") {
+            $min = -12;
+            $max = 2;
+        }
     }
 
-    if($tipo == "treta"){
-        $min = -8; $max = 6; $motivo = "entrou em uma treta";
-        if($personalidade == "Barraqueiro" || $personalidade == "Explosivo"){ $min = -10; $max = 10; }
-        if($personalidade == "Fofo"){ $min = -10; $max = 2; }
+    if ($tipo == "treta") {
+        $min = -8;
+        $max = 6;
+        $motivo = "entrou em uma treta";
+        if ($personalidade == "Barraqueiro" || $personalidade == "Explosivo") {
+            $min = -10;
+            $max = 10;
+        }
+        if ($personalidade == "Fofo") {
+            $min = -10;
+            $max = 2;
+        }
     }
 
-    if($tipo == "romance"){
-        $min = 1; $max = 6; $motivo = "viveu um momento de romance";
-        if($personalidade == "Fofo" || $personalidade == "Emocional"){ $max = 8; }
+    if ($tipo == "romance") {
+        $min = 1;
+        $max = 6;
+        $motivo = "viveu um momento de romance";
+        if ($personalidade == "Fofo" || $personalidade == "Emocional") {
+            $max = 8;
+        }
     }
 
-    if($tipo == "alianca"){
-        $min = 1; $max = 4; $motivo = "fortaleceu uma aliança";
-        if($personalidade == "Manipulador" || $personalidade == "Falso"){ $min = -2; $max = 3; }
+    if ($tipo == "alianca") {
+        $min = 1;
+        $max = 4;
+        $motivo = "fortaleceu uma aliança";
+        if ($personalidade == "Manipulador" || $personalidade == "Falso") {
+            $min = -2;
+            $max = 3;
+        }
     }
 
-    if($tipo == "planta"){
-        $min = -4; $max = -1; $motivo = "ficou apagado demais";
+    if ($tipo == "planta") {
+        $min = -4;
+        $max = -1;
+        $motivo = "ficou apagado demais";
     }
 
-    if($tipo == "confessionario_bom"){
-        $min = 1; $max = 5; $motivo = "fez um confessionário marcante";
-        if($personalidade == "Influencer"){ $max = 7; }
+    if ($tipo == "confessionario_bom") {
+        $min = 1;
+        $max = 5;
+        $motivo = "fez um confessionário marcante";
+        if ($personalidade == "Influencer") {
+            $max = 7;
+        }
     }
 
-    if($tipo == "confessionario_ruim"){
-        $min = -5; $max = -1; $motivo = "soou mal no confessionário";
+    if ($tipo == "confessionario_ruim") {
+        $min = -5;
+        $max = -1;
+        $motivo = "soou mal no confessionário";
     }
 
-    if($min == 0 && $max == 0){
+    if ($min == 0 && $max == 0) {
         return 0;
     }
 
     return alterarPopularidadePublica($jogadores, $nome, $min, $max, $motivo, $mostrarNoAoVivo);
 }
 
-function aplicarImpactoPublicoConfessionario(&$jogadores, $nome, $tipo){
-    if($tipo == "vt" || $tipo == "sonho_vitoria"){
+function aplicarImpactoPublicoConfessionario(&$jogadores, $nome, $tipo)
+{
+    if ($tipo == "vt" || $tipo == "sonho_vitoria") {
         return impactoPopularidadePorPersonalidade($jogadores, $nome, "confessionario_bom", false);
     }
 
-    if($tipo == "romance" || $tipo == "desabafo"){
+    if ($tipo == "romance" || $tipo == "desabafo") {
         return impactoPopularidadePorPersonalidade($jogadores, $nome, "romance", false);
     }
 
-    if($tipo == "rival" || $tipo == "vinganca" || $tipo == "falsidade"){
+    if ($tipo == "rival" || $tipo == "vinganca" || $tipo == "falsidade") {
         return impactoPopularidadePorPersonalidade($jogadores, $nome, "treta", false);
     }
 
-    if($tipo == "estrategia"){
+    if ($tipo == "estrategia") {
         return alterarPopularidadePublica($jogadores, $nome, -3, 4, "mostrou estratégia no confessionário", false);
     }
 
-    if($tipo == "neutro" || $tipo == "observacao"){
+    if ($tipo == "neutro" || $tipo == "observacao") {
         return alterarPopularidadePublica($jogadores, $nome, -1, 2, "teve um confessionário discreto", false);
     }
 
     return 0;
 }
 
-function aplicarDesgasteSemanalPublico(&$jogadores){
-    $chave = 'desgaste_publico_rodada_'.($_SESSION['rodada'] ?? 1);
+function aplicarDesgasteSemanalPublico(&$jogadores)
+{
+    $chave = 'desgaste_publico_rodada_' . ($_SESSION['rodada'] ?? 1);
 
-    if(isset($_SESSION[$chave])){
+    if (isset($_SESSION[$chave])) {
         return;
     }
 
-    foreach($jogadores as $j){
+    foreach ($jogadores as $j) {
         $nome = $j['nome'] ?? '';
-        if($nome == '') continue;
+        if ($nome == '') continue;
 
         $personalidade = $j['personalidade'] ?? 'Neutro';
 
-        if($personalidade == 'Planta'){
+        if ($personalidade == 'Planta') {
             alterarPopularidadePublica($jogadores, $nome, -2, 0, "passou a semana apagado", false);
         }
 
-        if(!empty($j['status']['monstro'])){
+        if (!empty($j['status']['monstro'])) {
             alterarPopularidadePublica($jogadores, $nome, -3, -1, "sofreu desgaste com o Monstro", false);
         }
 
-        if(!empty($j['status']['xepa']) && rand(1,100) <= 25){
+        if (!empty($j['status']['xepa']) && rand(1, 100) <= 25) {
             alterarPopularidadePublica($jogadores, $nome, -1, 1, "teve pouca visibilidade na Xepa", false);
         }
 
-        if(!empty($j['status']['vip']) && rand(1,100) <= 20){
+        if (!empty($j['status']['vip']) && rand(1, 100) <= 20) {
             alterarPopularidadePublica($jogadores, $nome, -1, 2, "apareceu mais no VIP", false);
         }
     }
@@ -2148,9 +3093,9 @@ function gerarAcoesNPC(&$jogadores, $meuNome, $quantidade = 3)
                     $eventos[] = "👀 $nomeNPC começou uma possível aliança com $nomeAlvo.";
                 }
 
-                if(rand(1,100) <= 35){
+                if (rand(1, 100) <= 35) {
                     $eventoAlianca = criarAliancaEntre($jogadores, $nomeNPC, $nomeAlvo);
-                    if($eventoAlianca != ''){
+                    if ($eventoAlianca != '') {
                         $eventos[] = $eventoAlianca;
                     }
                 }
@@ -2711,9 +3656,9 @@ if (isset($_POST['acao']) && strpos($fase, 'interacoes') !== false && $_SESSION[
                 }
             }
 
-            if(rand(1,100) <= 45){
+            if (rand(1, 100) <= 45) {
                 impactoPopularidadePorPersonalidade($jogadores, $meuNome, "fofoca", true);
-            }else{
+            } else {
                 alterarPopularidadePublica($jogadores, $meuNome, 1, 4, "movimentou o jogo com uma fofoca que o público comprou", true);
             }
 
@@ -2738,30 +3683,16 @@ if (isset($_POST['acao']) && strpos($fase, 'interacoes') !== false && $_SESSION[
         }
     }
 
-    if ($acao == "alianca" && $alvo) {
-        if(($rodada ?? 1) < 2){
-            $evento = "⏳ As alianças só começam oficialmente a partir da Rodada 2.";
-        }
-        elseif (rand(1, 100) <= 65) {
+    if ($acao == "alianca") {
+        $nomeAliancaCriada = $_POST['nome_alianca'] ?? '';
+        $convidadosAlianca = $_POST['convidados_alianca'] ?? [];
 
-            $_SESSION['relacoes_jogador'][$alvo] =
-                ($_SESSION['relacoes_jogador'][$alvo] ?? 0) + 10;
-
-            alterarAfinidade($jogadores, $meuNome, $alvo, 10, -5, 10);
-            alterarAfinidade($jogadores, $alvo, $meuNome, 10, -5, 10);
-
-            $eventoAlianca = criarAliancaEntre($jogadores, $meuNome, $alvo);
-            impactoPopularidadePorPersonalidade($jogadores, $meuNome, "alianca", true);
-            $evento = ($eventoAlianca != '') ? $eventoAlianca : "🤝 $meuNome reforçou uma aliança secreta com $alvo.";
-        } else {
-
-            $_SESSION['relacoes_jogador'][$alvo] =
-                ($_SESSION['relacoes_jogador'][$alvo] ?? 0) - 2;
-
-            alterarAfinidade($jogadores, $alvo, $meuNome, -3, 2, -5);
-            alterarPopularidadePublica($jogadores, $meuNome, -3, 0, "tentou forçar uma aliança e pegou mal", true);
-            $evento = "🤝 $meuNome tentou criar aliança com $alvo, mas foi recusado.";
-        }
+        $evento = criarAliancaJogadorComConvites(
+            $jogadores,
+            $meuNome,
+            $nomeAliancaCriada,
+            $convidadosAlianca
+        );
     }
 
     if ($acao == "entrar_alianca") {
@@ -3274,17 +4205,17 @@ function escolherAlvoInteligente($jogadores, $votante, $bloqueados = [])
         }
 
         $aliancaVotante = null;
-        foreach($jogadores as $jBuscaAlianca){
-            if(($jBuscaAlianca['nome'] ?? '') == $votante){
+        foreach ($jogadores as $jBuscaAlianca) {
+            if (($jBuscaAlianca['nome'] ?? '') == $votante) {
                 $aliancaVotante = $jBuscaAlianca['alianca'] ?? null;
                 break;
             }
         }
 
-        if(!empty($aliancaVotante)){
+        if (!empty($aliancaVotante)) {
             $bloqueadosGrupo = array_values(array_unique(array_merge($bloqueados, [$votante])));
             $alvoDoGrupo = alvoCombinadoDaAlianca($jogadores, $aliancaVotante, $bloqueadosGrupo);
-            if($alvoDoGrupo == $alvo){
+            if ($alvoDoGrupo == $alvo) {
                 $peso += 45;
             }
         }
@@ -3347,6 +4278,208 @@ if (isset($_POST['indicar_bigfone'])) {
     exit;
 }
 
+
+/* =========================
+   🎁 PROCESSAR PODER CURINGA
+========================= */
+
+if (isset($_POST['usar_poder_curinga'])) {
+
+    $poder = obterPoderCuringaAtual();
+
+    if (!$poder) {
+        $_SESSION['evento_extra'][] = "⚠️ Não existe Poder do Big Fone ativo nesta rodada.";
+        header("Location: jogo.php");
+        exit;
+    }
+
+    $dono = $poder['dono'] ?? '';
+    $tipo = $poder['tipo'] ?? '';
+
+    if (!nomeIgual($dono, $meuNome)) {
+        $_SESSION['evento_extra'][] = "⚠️ Apenas o dono do Poder do Big Fone pode usar esse poder.";
+        header("Location: jogo.php");
+        exit;
+    }
+
+    $eventoCuringa = "";
+
+    if ($tipo == 'voto_duplo') {
+        $eventoCuringa = ativarVotoDuploCuringa($dono);
+    }
+
+    if ($tipo == 'imunidade_extra') {
+        $alvo = $_POST['alvo_curinga'] ?? $dono;
+        $eventoCuringa = aplicarImunidadeCuringa($jogadores, $alvo, $dono);
+    }
+
+    if ($tipo == 'anular_voto') {
+        $alvo = $_POST['alvo_curinga'] ?? '';
+
+        if ($alvo == '' || nomeIgual($alvo, $dono)) {
+            $eventoCuringa = "⚠️ Escolha outro participante para ter o voto anulado.";
+        } else {
+            $_SESSION['curinga_anular_voto_de'] = $alvo;
+            marcarPoderCuringaUsado();
+            $eventoCuringa = "🚫 $dono usou o Poder do Big Fone para anular o voto de <b>$alvo</b>.";
+        }
+    }
+
+    if ($tipo == 'espiao') {
+        $alvo = $_POST['alvo_curinga'] ?? '';
+
+        if ($alvo == '' || nomeIgual($alvo, $dono)) {
+            $eventoCuringa = "⚠️ Escolha outro participante para espionar o voto.";
+        } else {
+            $_SESSION['curinga_espiar_voto_de'] = $alvo;
+            marcarPoderCuringaUsado();
+            $eventoCuringa = "👁️ $dono usou o Poder do Big Fone para espiar o voto de <b>$alvo</b>.";
+        }
+    }
+
+    if ($tipo == 'contra_golpe') {
+        marcarPoderCuringaUsado();
+        $eventoCuringa = "⚡ $dono ativou o Contra-Golpe. Se cair no paredão, poderá puxar alguém junto.";
+    }
+
+    if ($tipo == 'trocar_emparedado') {
+        marcarPoderCuringaUsado();
+        $eventoCuringa = "🔁 $dono ativou o Poder de Troca. Se houver paredão formado, poderá trocar um emparedado, exceto a indicação do líder.";
+    }
+
+    if ($eventoCuringa != "") {
+        $_SESSION['evento_extra'][] = $eventoCuringa;
+    }
+
+    garantirMeuJogadorNaLista($jogadores);
+    $_SESSION['jogadores'] = $jogadores;
+    $_SESSION['fase_semana'] = 'interacoes_2';
+    $_SESSION['acoes_restantes'] = 3;
+
+    header("Location: jogo.php");
+    exit;
+}
+
+if (isset($_POST['pular_poder_curinga'])) {
+
+    $eventoNPC = usarPoderCuringaAutomaticoNPC($jogadores);
+
+    if ($eventoNPC != "") {
+        $_SESSION['evento_extra'][] = $eventoNPC;
+    }
+
+    garantirMeuJogadorNaLista($jogadores);
+    $_SESSION['jogadores'] = $jogadores;
+    $_SESSION['fase_semana'] = 'interacoes_2';
+    $_SESSION['acoes_restantes'] = 3;
+
+    header("Location: jogo.php");
+    exit;
+}
+
+if (isset($_POST['contra_golpe_curinga'])) {
+
+    $poder = obterPoderCuringaAtual();
+    $alvo = $_POST['alvo_contra_golpe'] ?? '';
+
+    if ($poder && ($poder['tipo'] ?? '') == 'contra_golpe' && nomeIgual(($poder['dono'] ?? ''), $meuNome) && $alvo != '') {
+        if (!isset($_SESSION['paredao'])) {
+            $_SESSION['paredao'] = [];
+        }
+
+        if (!in_array($alvo, $_SESSION['paredao'])) {
+            $_SESSION['paredao'][] = $alvo;
+        }
+
+        $_SESSION['curinga_contra_golpe_usado'] = true;
+        $_SESSION['evento_extra'][] = "⚡ Pelo Contra-Golpe do Big Fone, $meuNome puxou <b>$alvo</b> para o paredão.";
+    }
+
+    definirFaseDepoisDaFormacaoDoParedao($jogadores);
+
+    header("Location: jogo.php");
+    exit;
+}
+
+if (isset($_POST['trocar_emparedado_curinga'])) {
+
+    $poder = obterPoderCuringaAtual();
+    $sair = $_POST['sair_paredao_curinga'] ?? '';
+    $entrar = $_POST['entrar_paredao_curinga'] ?? '';
+
+    if ($poder && ($poder['tipo'] ?? '') == 'trocar_emparedado' && nomeIgual(($poder['dono'] ?? ''), $meuNome)) {
+        $indicacaoLider = $_SESSION['indicacao_lider'] ?? '';
+
+        if (nomeIgual($sair, $indicacaoLider)) {
+            $_SESSION['evento_extra'][] = "⚠️ O Poder do Big Fone não pode tirar do paredão a pessoa indicada pelo líder.";
+        } elseif ($sair != '' && $entrar != '' && isset($_SESSION['paredao'])) {
+            foreach ($_SESSION['paredao'] as $i => $nome) {
+                if (nomeIgual($nome, $sair)) {
+                    $_SESSION['paredao'][$i] = $entrar;
+                    break;
+                }
+            }
+
+            $_SESSION['paredao'] = array_values(array_unique($_SESSION['paredao']));
+            $_SESSION['curinga_troca_usada'] = true;
+            $_SESSION['evento_extra'][] = "🔁 Pelo Poder do Big Fone, $meuNome tirou <b>$sair</b> do paredão e colocou <b>$entrar</b>. A indicação do líder foi preservada.";
+        }
+    }
+
+    definirFaseDepoisDaFormacaoDoParedao($jogadores);
+
+    header("Location: jogo.php");
+    exit;
+}
+
+
+/* PODERES DO BIG FONE USADOS NO JOGO.PHP */
+if (isset($_POST['usar_bigfone_anular_voto'])) {
+
+    $alvo = $_POST['alvo_anular_voto_bigfone'] ?? '';
+
+    if (($_SESSION['bigfone_anular_voto_pendente'] ?? false) && nomeIgual(($_SESSION['bigfone_dono_poder'] ?? ''), $meuNome) && $alvo != '' && !nomeIgual($alvo, $meuNome)) {
+        $_SESSION['curinga_anular_voto_de'] = $alvo;
+        unset($_SESSION['bigfone_anular_voto_pendente']);
+        $_SESSION['evento_extra'][] = "🚫 Pelo poder do Big Fone, $meuNome anulou o voto de <b>$alvo</b>.";
+    } else {
+        $_SESSION['evento_extra'][] = "⚠️ Escolha válida obrigatória para anular o voto pelo Big Fone.";
+    }
+
+    header("Location: jogo.php");
+    exit;
+}
+
+if (isset($_POST['pular_bigfone_anular_voto'])) {
+    unset($_SESSION['bigfone_anular_voto_pendente']);
+    $_SESSION['evento_extra'][] = "🚫 $meuNome decidiu não usar o poder de anular voto do Big Fone.";
+    header("Location: jogo.php");
+    exit;
+}
+
+if (isset($_POST['usar_bigfone_espiar_voto'])) {
+
+    $alvo = $_POST['alvo_espiar_voto_bigfone'] ?? '';
+
+    if (($_SESSION['bigfone_espiar_voto_pendente'] ?? false) && nomeIgual(($_SESSION['bigfone_dono_poder'] ?? ''), $meuNome) && $alvo != '' && !nomeIgual($alvo, $meuNome)) {
+        $_SESSION['curinga_espiar_voto_de'] = $alvo;
+        unset($_SESSION['bigfone_espiar_voto_pendente']);
+        $_SESSION['evento_extra'][] = "👁️ Pelo poder do Big Fone, $meuNome escolheu espiar o voto de <b>$alvo</b>.";
+    } else {
+        $_SESSION['evento_extra'][] = "⚠️ Escolha válida obrigatória para espiar voto pelo Big Fone.";
+    }
+
+    header("Location: jogo.php");
+    exit;
+}
+
+if (isset($_POST['pular_bigfone_espiar_voto'])) {
+    unset($_SESSION['bigfone_espiar_voto_pendente']);
+    $_SESSION['evento_extra'][] = "👁️ $meuNome decidiu não usar o poder de espiar voto do Big Fone.";
+    header("Location: jogo.php");
+    exit;
+}
+
 /* VOTO DO JOGADOR NO PAREDÃO */
 if (isset($_POST['votar_paredao'])) {
 
@@ -3371,10 +4504,26 @@ if (isset($_POST['votar_paredao'])) {
     exit;
 }
 
+
+/* PROCESSAR PROVA BATE-VOLTA DO JOGADOR */
+if (isset($_POST['jogar_bate_volta'])) {
+
+    $escolhaBateVolta = $_POST['escolha_bate_volta'] ?? '';
+    $eventoBateVolta = resolverBateVoltaJogador($jogadores, $escolhaBateVolta);
+
+    $_SESSION['evento_extra'][] = $eventoBateVolta;
+    $_SESSION['jogadores'] = $jogadores;
+
+    header("Location: jogo.php");
+    exit;
+}
+
 /* PROCESSAR PAREDÃO */
 if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
 
     $lider = $_SESSION['lider'] ?? '';
+    reaplicarImunidadeCuringa($jogadores);
+    $_SESSION['jogadores'] = $jogadores;
 
     /* TOP 4: líder está salvo e os outros 3 vão direto ao paredão */
     if (count($jogadores) == 4 && $lider != '') {
@@ -3498,16 +4647,27 @@ if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
                 continue;
             }
 
+            if (votoEstaAnuladoPeloCuringa($votante)) {
+                $_SESSION['evento_extra'][] = "🚫 Poder do Big Fone: o voto de $votante foi anulado.";
+                continue;
+            }
+
             if (!isset($votos[$voto])) {
                 $votos[$voto] = 0;
             }
 
-            $votos[$voto]++;
+            $pesoVoto = pesoVotoCuringa($votante);
+            $votos[$voto] += $pesoVoto;
 
             $votosDetalhados[] = [
                 "votante" => $votante,
-                "voto" => $voto
+                "voto" => $voto,
+                "peso" => $pesoVoto
             ];
+
+            if ($pesoVoto > 1) {
+                $_SESSION['evento_extra'][] = "🗳️ Poder do Big Fone: o voto de $votante valeu por $pesoVoto.";
+            }
 
             continue;
         }
@@ -3515,15 +4675,28 @@ if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
         $voto = escolherAlvoInteligente($jogadores, $votante, $bloqueados);
 
         if ($voto) {
+
+            if (votoEstaAnuladoPeloCuringa($votante)) {
+                $_SESSION['evento_extra'][] = "🚫 Poder do Big Fone: o voto de $votante foi anulado.";
+                continue;
+            }
+
             if (!isset($votos[$voto])) {
                 $votos[$voto] = 0;
             }
 
-            $votos[$voto]++;
+            $pesoVoto = pesoVotoCuringa($votante);
+            $votos[$voto] += $pesoVoto;
+
             $votosDetalhados[] = [
                 "votante" => $votante,
-                "voto" => $voto
+                "voto" => $voto,
+                "peso" => $pesoVoto
             ];
+
+            if ($pesoVoto > 1) {
+                $_SESSION['evento_extra'][] = "🗳️ Poder do Big Fone: o voto de $votante valeu por $pesoVoto.";
+            }
         }
     }
 
@@ -3534,6 +4707,8 @@ if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
     if (!empty($votosDetalhados)) {
         $_SESSION['dedo_duro'] = $votosDetalhados[array_rand($votosDetalhados)];
     }
+
+    aplicarEspiaoCuringaNoResultado($votosDetalhados);
 
     $maisVotados = array_keys($votos);
     $paredao = [];
@@ -3550,16 +4725,27 @@ if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
         if (!in_array($nome, $paredao)) {
             $paredao[] = $nome;
         }
-
-        $limiteParedao = (count($jogadores) <= 6) ? 2 : 3;
-
-        if (count($paredao) >= $limiteParedao) {
-            break;
-        }
     }
 
-    $limiteParedao = (count($jogadores) <= 6) ? 2 : 3;
-    $_SESSION['paredao'] = array_slice($paredao, 0, $limiteParedao);
+    $limiteParedao = definirTamanhoParedao($jogadores);
+
+$_SESSION['paredao'] = array_slice(
+    $paredao,
+    0,
+    $limiteParedao
+);
+
+    $eventoContraGolpeNPC = aplicarContraGolpeCuringaNPC($jogadores, $_SESSION['paredao']);
+    if ($eventoContraGolpeNPC != "") {
+        $_SESSION['evento_extra'][] = $eventoContraGolpeNPC;
+    }
+
+    $eventoTrocaNPC = aplicarTrocaEmparedadoCuringaNPC($jogadores, $_SESSION['paredao']);
+    if ($eventoTrocaNPC != "") {
+        $_SESSION['evento_extra'][] = $eventoTrocaNPC;
+    }
+
+    $_SESSION['paredao'] = array_values(array_unique($_SESSION['paredao']));
     $_SESSION['paredao_formado'] = true;
 
     $_SESSION['evento_extra'][] = "🗳️ Resultado da Votação da Casa:";
@@ -3576,7 +4762,7 @@ if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
     $_SESSION['evento_extra'][] =
         "🚨 Está formado o paredão: " . implode(" x ", $_SESSION['paredao']) . ".";
 
-    $_SESSION['fase_semana'] = 'discordia';
+    definirFaseDepoisDaFormacaoDoParedao($jogadores);
 
     header("Location: jogo.php");
     exit;
@@ -3633,6 +4819,25 @@ if (isset($_POST['avancar_fase'])) {
             unset($_SESSION['bigfone_feito']);
             unset($_SESSION['bigfone_indicacao_pendente']);
             unset($_SESSION['bigfone_dono_poder']);
+    unset($_SESSION['bate_volta']);
+    unset($_SESSION['bate_volta_decidido']);
+    unset($_SESSION['bate_volta_resultado']);
+            unset($_SESSION['bate_volta']);
+            unset($_SESSION['bate_volta_decidido']);
+            unset($_SESSION['bate_volta_resultado']);
+            unset($_SESSION['bigfone_poder']);
+            unset($_SESSION['bigfone_anular_voto_pendente']);
+            unset($_SESSION['bigfone_espiar_voto_pendente']);
+            unset($_SESSION['bigfone_troca_emparedado_pendente']);
+            unset($_SESSION['bigfone_contragolpe_pendente']);
+            unset($_SESSION['poder_curinga']);
+            unset($_SESSION['curinga_decidido_rodada']);
+            unset($_SESSION['curinga_voto_duplo_ativo']);
+            unset($_SESSION['curinga_anular_voto_de']);
+            unset($_SESSION['curinga_espiar_voto_de']);
+            unset($_SESSION['curinga_contra_golpe_usado']);
+            unset($_SESSION['curinga_troca_usada']);
+            unset($_SESSION['imunidade_curinga']);
             unset($_SESSION['npc_festa_feita']);
             unset($_SESSION['alvos_aliancas_semana']);
             unset($_SESSION['confessionario_feito']);
@@ -3711,6 +4916,20 @@ if (isset($_POST['avancar_fase'])) {
     if ($fase == 'bigfone') {
         header("Location: big_fone.php");
         exit;
+    }
+
+    if ($fase == 'poder_curinga') {
+        $_SESSION['fase_semana'] = 'interacoes_2';
+        $_SESSION['acoes_restantes'] = 3;
+        header("Location: jogo.php");
+        exit;
+    }
+
+    if ($fase == 'contra_golpe_curinga' || $fase == 'troca_curinga') {
+        definirFaseDepoisDaFormacaoDoParedao($jogadores);
+
+    header("Location: jogo.php");
+    exit;
     }
 
     if ($fase == 'festa') {
@@ -4193,11 +5412,11 @@ if ($fase == 'confessionario' && !isset($_SESSION['confessionario_feito'])) {
 $jogadores = $_SESSION['jogadores'];
 garantirMeuJogadorNaLista($jogadores);
 garantirPopularidade($jogadores);
-foreach($jogadores as &$j){
-    if(!array_key_exists('alianca', $j)){
+foreach ($jogadores as &$j) {
+    if (!array_key_exists('alianca', $j)) {
         $j['alianca'] = null;
     }
-    if(!isset($j['historico_aliancas']) || !is_array($j['historico_aliancas'])){
+    if (!isset($j['historico_aliancas']) || !is_array($j['historico_aliancas'])) {
         $j['historico_aliancas'] = [];
     }
 }
@@ -4479,11 +5698,11 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
             align-items: start;
         }
 
-        .left-col{
-            min-width:0;
-            display:flex;
-            flex-direction:column;
-            gap:16px;
+        .left-col {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .left,
@@ -4987,118 +6206,118 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
         }
 
         .alianca-card,
-        .alianca-status{
-            color:#7dfcff;
-            font-weight:900;
-            text-shadow:0 0 12px rgba(0,217,255,.45);
+        .alianca-status {
+            color: #7dfcff;
+            font-weight: 900;
+            text-shadow: 0 0 12px rgba(0, 217, 255, .45);
         }
 
-        .aliancas-mini-box{
-            position:relative;
-            overflow:hidden;
-            padding:14px;
-            border-radius:22px;
+        .aliancas-mini-box {
+            position: relative;
+            overflow: hidden;
+            padding: 14px;
+            border-radius: 22px;
             background:
-                linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035)),
-                radial-gradient(circle at 15% 0%,rgba(255,0,140,.18),transparent 35%),
-                radial-gradient(circle at 95% 10%,rgba(0,217,255,.16),transparent 38%);
-            border:1px solid rgba(255,255,255,.11);
-            box-shadow:0 14px 30px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
-            backdrop-filter:blur(18px);
+                linear-gradient(180deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .035)),
+                radial-gradient(circle at 15% 0%, rgba(255, 0, 140, .18), transparent 35%),
+                radial-gradient(circle at 95% 10%, rgba(0, 217, 255, .16), transparent 38%);
+            border: 1px solid rgba(255, 255, 255, .11);
+            box-shadow: 0 14px 30px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .08);
+            backdrop-filter: blur(18px);
         }
 
-        .aliancas-mini-box::before{
-            content:"";
-            position:absolute;
-            inset:0 0 auto 0;
-            height:4px;
-            background:linear-gradient(90deg,var(--pink),var(--purple),var(--cyan),var(--gold));
-            opacity:.95;
+        .aliancas-mini-box::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan), var(--gold));
+            opacity: .95;
         }
 
-        .aliancas-mini-topo{
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:10px;
-            margin-bottom:10px;
+        .aliancas-mini-topo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
-        .aliancas-mini-topo h3{
-            margin:0;
-            font-size:18px;
-            line-height:1.2;
+        .aliancas-mini-topo h3 {
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.2;
         }
 
-        .aliancas-mini-topo span{
-            flex-shrink:0;
-            font-size:10px;
-            font-weight:900;
-            padding:6px 8px;
-            border-radius:999px;
-            color:#7dfcff;
-            background:rgba(0,217,255,.10);
-            border:1px solid rgba(0,217,255,.18);
+        .aliancas-mini-topo span {
+            flex-shrink: 0;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 6px 8px;
+            border-radius: 999px;
+            color: #7dfcff;
+            background: rgba(0, 217, 255, .10);
+            border: 1px solid rgba(0, 217, 255, .18);
         }
 
-        .aliancas-mini-lista{
-            display:grid;
-            gap:9px;
-            max-height:170px;
-            overflow-y:auto;
-            padding-right:6px;
-            scrollbar-width:thin;
-            scrollbar-color:#00d9ff rgba(255,255,255,.06);
+        .aliancas-mini-lista {
+            display: grid;
+            gap: 9px;
+            max-height: 170px;
+            overflow-y: auto;
+            padding-right: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: #00d9ff rgba(255, 255, 255, .06);
         }
 
-        .aliancas-mini-lista::-webkit-scrollbar{
-            width:7px;
+        .aliancas-mini-lista::-webkit-scrollbar {
+            width: 7px;
         }
 
-        .aliancas-mini-lista::-webkit-scrollbar-track{
-            background:rgba(255,255,255,.06);
-            border-radius:999px;
+        .aliancas-mini-lista::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, .06);
+            border-radius: 999px;
         }
 
-        .aliancas-mini-lista::-webkit-scrollbar-thumb{
-            background:linear-gradient(180deg,#ff008c,#7a00ff,#00d9ff);
-            border-radius:999px;
+        .aliancas-mini-lista::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #ff008c, #7a00ff, #00d9ff);
+            border-radius: 999px;
         }
 
-        .alianca-mini-card{
-            padding:10px 11px;
-            border-radius:16px;
-            background:linear-gradient(135deg,rgba(0,217,255,.09),rgba(255,0,140,.07));
-            border:1px solid rgba(255,255,255,.09);
+        .alianca-mini-card {
+            padding: 10px 11px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(0, 217, 255, .09), rgba(255, 0, 140, .07));
+            border: 1px solid rgba(255, 255, 255, .09);
         }
 
-        .alianca-mini-header{
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:8px;
-            margin-bottom:5px;
+        .alianca-mini-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 5px;
         }
 
-        .alianca-mini-header strong{
-            color:#7dfcff;
-            font-size:14px;
-            line-height:1.2;
-            text-shadow:0 0 12px rgba(0,217,255,.35);
+        .alianca-mini-header strong {
+            color: #7dfcff;
+            font-size: 14px;
+            line-height: 1.2;
+            text-shadow: 0 0 12px rgba(0, 217, 255, .35);
         }
 
-        .alianca-mini-header small{
-            flex-shrink:0;
-            color:rgba(255,255,255,.68);
-            font-size:10px;
-            font-weight:800;
+        .alianca-mini-header small {
+            flex-shrink: 0;
+            color: rgba(255, 255, 255, .68);
+            font-size: 10px;
+            font-weight: 800;
         }
 
-        .alianca-mini-card p{
-            margin:0;
-            color:rgba(255,255,255,.88);
-            font-size:12px;
-            line-height:1.35;
+        .alianca-mini-card p {
+            margin: 0;
+            color: rgba(255, 255, 255, .88);
+            font-size: 12px;
+            line-height: 1.35;
         }
 
         @media(max-width:1200px) {
@@ -5585,6 +6804,77 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
             border-radius: 999px;
             background: linear-gradient(#ff008c, #00d9ff);
         }
+
+        /* =========================
+   🎁 PODER CURINGA
+========================= */
+        .curinga-box {
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+            border-radius: 24px;
+            background:
+                radial-gradient(circle at top right, rgba(255, 216, 77, .20), transparent 34%),
+                linear-gradient(145deg, rgba(255, 0, 140, .12), rgba(0, 217, 255, .08));
+            border: 1px solid rgba(255, 216, 77, .24);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, .28), 0 0 28px rgba(255, 216, 77, .10);
+            margin-bottom: 16px;
+        }
+
+        .curinga-box::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ffd43b, #ff008c, #7a00ff, #00d9ff);
+        }
+
+        .curinga-topo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+
+        .curinga-icone {
+            width: 58px;
+            height: 58px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            background: linear-gradient(135deg, #ffd43b, #ff008c);
+            box-shadow: 0 0 22px rgba(255, 216, 77, .35);
+        }
+
+        .curinga-box h3 {
+            font-size: 22px;
+            margin: 0;
+        }
+
+        .curinga-box p {
+            color: rgba(255, 255, 255, .82);
+            line-height: 1.55;
+            margin: 6px 0;
+        }
+
+        .curinga-dono {
+            display: inline-flex;
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .28);
+            border: 1px solid rgba(255, 255, 255, .10);
+            font-weight: 800;
+        }
+
+        .curinga-opcoes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
     </style>
 </head>
 
@@ -5621,61 +6911,61 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
                 <h2>👥 Participantes</h2>
 
                 <div class="players-grid">
-                <?php foreach ($jogadores as $j): ?>
-                    <?php
-                    $relacaoComVoce = 0;
+                    <?php foreach ($jogadores as $j): ?>
+                        <?php
+                        $relacaoComVoce = 0;
 
-                    if (!nomeIgual(($j['nome'] ?? ''), $meuNome)) {
-                        $relacaoComVoce = $_SESSION['relacoes_jogador'][$j['nome']] ?? 0;
-                    }
+                        if (!nomeIgual(($j['nome'] ?? ''), $meuNome)) {
+                            $relacaoComVoce = $_SESSION['relacoes_jogador'][$j['nome']] ?? 0;
+                        }
 
-                    $classeRelacao = "neutra";
+                        $classeRelacao = "neutra";
 
-                    if ($relacaoComVoce >= 30) {
-                        $classeRelacao = "positiva";
-                    } elseif ($relacaoComVoce <= -10) {
-                        $classeRelacao = "negativa";
-                    }
-                    ?>
-                    <div class="card <?php echo $classeRelacao; ?> <?php if (nomeIgual(($j['nome'] ?? ''), $meuNome)) echo 'voce'; ?>">
+                        if ($relacaoComVoce >= 30) {
+                            $classeRelacao = "positiva";
+                        } elseif ($relacaoComVoce <= -10) {
+                            $classeRelacao = "negativa";
+                        }
+                        ?>
+                        <div class="card <?php echo $classeRelacao; ?> <?php if (nomeIgual(($j['nome'] ?? ''), $meuNome)) echo 'voce'; ?>">
 
-                        <div class="avatar"></div>
+                            <div class="avatar"></div>
 
-                        <h3>
-                            <?php echo $j['nome']; ?>, <?php echo $j['idade']; ?>
-                            <?php if (nomeIgual(($j['nome'] ?? ''), $meuNome)) echo " ⭐"; ?>
-                        </h3>
+                            <h3>
+                                <?php echo $j['nome']; ?>, <?php echo $j['idade']; ?>
+                                <?php if (nomeIgual(($j['nome'] ?? ''), $meuNome)) echo " ⭐"; ?>
+                            </h3>
 
-                        <p>💼 <?php echo $j['profissao']; ?></p>
-                        <p>📍 <?php echo $j['estado']; ?></p>
-                        <p>🎭 <?php echo $j['personalidade']; ?></p>
-                        <?php if (!empty($j['alianca'])): ?>
-                            <p class="alianca-card">🤝 Aliança: <?php echo $j['alianca']; ?></p>
-                        <?php endif; ?>
-                        <?php if (!nomeIgual(($j['nome'] ?? ''), $meuNome)): ?>
-                            <?php
-                            $romanceComVoce = obterRomance($jogadores, $meuNome, $j['nome'] ?? '');
-                            $statusRomanceCard = statusRomance($romanceComVoce, $j['nome'] ?? '', $meuNome);
-                            ?>
-                            <p class="afinidade-card">
-                                ❤️ Afinidade: <?php echo $relacaoComVoce; ?>
-                            </p>
-                            <p class="romance-card">
-                                💕 Romance: <?php echo $romanceComVoce; ?> <?php if ($statusRomanceCard != '') echo '— ' . $statusRomanceCard; ?>
-                            </p>
-                        <?php endif; ?>
+                            <p>💼 <?php echo $j['profissao']; ?></p>
+                            <p>📍 <?php echo $j['estado']; ?></p>
+                            <p>🎭 <?php echo $j['personalidade']; ?></p>
+                            <?php if (!empty($j['alianca'])): ?>
+                                <p class="alianca-card">🤝 Aliança: <?php echo $j['alianca']; ?></p>
+                            <?php endif; ?>
+                            <?php if (!nomeIgual(($j['nome'] ?? ''), $meuNome)): ?>
+                                <?php
+                                $romanceComVoce = obterRomance($jogadores, $meuNome, $j['nome'] ?? '');
+                                $statusRomanceCard = statusRomance($romanceComVoce, $j['nome'] ?? '', $meuNome);
+                                ?>
+                                <p class="afinidade-card">
+                                    ❤️ Afinidade: <?php echo $relacaoComVoce; ?>
+                                </p>
+                                <p class="romance-card">
+                                    💕 Romance: <?php echo $romanceComVoce; ?> <?php if ($statusRomanceCard != '') echo '— ' . $statusRomanceCard; ?>
+                                </p>
+                            <?php endif; ?>
 
-                        <div class="status">
-                            <?php if (!empty($j['status']['lider'])) echo "<div class='lider'>👑 Líder</div>"; ?>
-                            <?php if (!empty($j['status']['anjo'])) echo "<div class='anjo'>😇 Anjo</div>"; ?>
-                            <?php if (!empty($j['status']['imune'])) echo "<div class='imune'>🛡️ Imune</div>"; ?>
-                            <?php if (!empty($j['status']['vip'])) echo "<div class='vip'>🟡 VIP</div>"; ?>
-                            <?php if (!empty($j['status']['xepa'])) echo "<div class='xepa'>🍞 Xepa</div>"; ?>
-                            <?php if (!empty($j['status']['monstro'])) echo "<div style='color:#ff4d4d;'>👹 Monstro</div>"; ?>
-                            <?php if (!empty($j['alianca'])) echo "<div class='alianca-status'>🤝 ".$j['alianca']."</div>"; ?>
+                            <div class="status">
+                                <?php if (!empty($j['status']['lider'])) echo "<div class='lider'>👑 Líder</div>"; ?>
+                                <?php if (!empty($j['status']['anjo'])) echo "<div class='anjo'>😇 Anjo</div>"; ?>
+                                <?php if (!empty($j['status']['imune'])) echo "<div class='imune'>🛡️ Imune</div>"; ?>
+                                <?php if (!empty($j['status']['vip'])) echo "<div class='vip'>🟡 VIP</div>"; ?>
+                                <?php if (!empty($j['status']['xepa'])) echo "<div class='xepa'>🍞 Xepa</div>"; ?>
+                                <?php if (!empty($j['status']['monstro'])) echo "<div style='color:#ff4d4d;'>👹 Monstro</div>"; ?>
+                                <?php if (!empty($j['alianca'])) echo "<div class='alianca-status'>🤝 " . $j['alianca'] . "</div>"; ?>
+                            </div>
+
                         </div>
-
-                    </div>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -5959,10 +7249,73 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
 
                 <?php endif; ?>
 
+
+                <?php if (
+                    $fase == 'paredao' &&
+                    isset($_SESSION['indicacao_lider']) &&
+                    ($_SESSION['bigfone_anular_voto_pendente'] ?? false) &&
+                    nomeIgual(($_SESSION['bigfone_dono_poder'] ?? ''), $meuNome)
+                ): ?>
+
+                    <div class="box">
+                        <h3>🚫 Big Fone — Anular Voto</h3>
+                        <p>Escolha uma pessoa para ter o voto anulado nesta votação da casa.</p>
+                    </div>
+
+                    <form method="POST">
+                        <div class="participantes-escolha">
+                            <?php foreach ($jogadores as $j): ?>
+                                <?php if (!nomeIgual(($j['nome'] ?? ''), $meuNome)): ?>
+                                    <label class="participante-btn">
+                                        <input type="radio" name="alvo_anular_voto_bigfone" value="<?php echo $j['nome']; ?>" required>
+                                        <?php echo $j['nome']; ?>
+                                    </label>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <button class="btn" name="usar_bigfone_anular_voto">🚫 Confirmar Anulação</button>
+                        <button class="btn novo" name="pular_bigfone_anular_voto">Não usar agora</button>
+                    </form>
+
+                <?php endif; ?>
+
+                <?php if (
+                    $fase == 'paredao' &&
+                    isset($_SESSION['indicacao_lider']) &&
+                    ($_SESSION['bigfone_espiar_voto_pendente'] ?? false) &&
+                    nomeIgual(($_SESSION['bigfone_dono_poder'] ?? ''), $meuNome)
+                ): ?>
+
+                    <div class="box">
+                        <h3>👁️ Big Fone — Espiar Voto</h3>
+                        <p>Escolha uma pessoa. Depois da votação, você descobrirá em quem ela votou.</p>
+                    </div>
+
+                    <form method="POST">
+                        <div class="participantes-escolha">
+                            <?php foreach ($jogadores as $j): ?>
+                                <?php if (!nomeIgual(($j['nome'] ?? ''), $meuNome)): ?>
+                                    <label class="participante-btn">
+                                        <input type="radio" name="alvo_espiar_voto_bigfone" value="<?php echo $j['nome']; ?>" required>
+                                        <?php echo $j['nome']; ?>
+                                    </label>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <button class="btn" name="usar_bigfone_espiar_voto">👁️ Confirmar Espionagem</button>
+                        <button class="btn novo" name="pular_bigfone_espiar_voto">Não usar agora</button>
+                    </form>
+
+                <?php endif; ?>
+
                 <?php if (
                     $fase == 'paredao' &&
                     isset($_SESSION['indicacao_lider']) &&
                     !isset($_SESSION['bigfone_indicacao_pendente']) &&
+                    !($_SESSION['bigfone_anular_voto_pendente'] ?? false) &&
+                    !($_SESSION['bigfone_espiar_voto_pendente'] ?? false) &&
                     ($_SESSION['lider'] ?? '') != $meuNome &&
                     !isset($_SESSION['meu_voto_paredao'])
                 ): ?>
@@ -6329,14 +7682,14 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
                                 $minhaAliancaAtual = obterAliancaJogador($jogadores, $meuNome);
                                 $aliancasExistentesInteracao = gerarResumoAliancas($jogadores);
 
-                                if(($rodada ?? 1) >= 2){
-                                    if(empty($minhaAliancaAtual)){
+                                if (($rodada ?? 1) >= 2) {
+                                    if (empty($minhaAliancaAtual)) {
                                         $acoes[] = ["alianca", "🤝 Criar Aliança"];
 
-                                        if(!empty($aliancasExistentesInteracao)){
+                                        if (!empty($aliancasExistentesInteracao)) {
                                             $acoes[] = ["entrar_alianca", "🚪 Entrar em Aliança"];
                                         }
-                                    }else{
+                                    } else {
                                         $acoes[] = ["sair_alianca", "💥 Sair da Aliança"];
                                     }
                                 }
@@ -6365,7 +7718,7 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
                                 <input type="hidden" name="alvo2" id="alvo2">
                                 <input type="hidden" name="alianca_escolhida" id="alianca_escolhida">
 
-                                <?php if (!in_array($acaoSelecionada, ["aproximar_lider", "sair_alianca", "entrar_alianca"])): ?>
+                                <?php if (!in_array($acaoSelecionada, ["aproximar_lider", "sair_alianca", "entrar_alianca", "alianca"])): ?>
 
                                     <div class="box">
                                         <h3>
@@ -6385,6 +7738,59 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
                                             <?php endif; ?>
                                         <?php endforeach; ?>
 
+                                    </div>
+
+                                <?php endif; ?>
+
+                                <?php if ($acaoSelecionada == "alianca"): ?>
+
+                                    <div class="box">
+                                        <h3>🤝 Criar uma nova aliança</h3>
+                                        <p>Escolha um nome e convide até 5 participantes. Cada um pode aceitar ou recusar dependendo da afinidade, confiança e rivalidade com você.</p>
+                                    </div>
+
+                                    <div class="box">
+                                        <h3>🏷️ Nome da Aliança</h3>
+                                        <input
+                                            type="text"
+                                            name="nome_alianca"
+                                            id="nome_alianca"
+                                            maxlength="35"
+                                            placeholder="Ex: Bonde dos Imunes"
+                                            style="width:100%;padding:14px;border:none;border-radius:16px;margin-top:10px;font-size:15px;color:white;background:rgba(0,0,0,.35);outline:none;">
+                                        <small style="display:block;margin-top:8px;color:rgba(255,255,255,.68);">Se deixar vazio, o jogo gera um nome automaticamente.</small>
+                                    </div>
+
+                                    <div class="box">
+                                        <h3>📩 Convidar participantes</h3>
+                                        <p>Escolha de 1 até 5 pessoas. Participantes que já estão em outra aliança não entram no convite.</p>
+                                    </div>
+
+                                    <div class="participantes-escolha grupo-convidados-alianca">
+                                        <?php foreach ($jogadores as $j): ?>
+                                            <?php if (!nomeIgual(($j['nome'] ?? ''), $meuNome)): ?>
+                                                <?php
+                                                $nomeConvite = $j['nome'] ?? '';
+                                                $aliancaAtualConvite = $j['alianca'] ?? null;
+                                                $relConvite = $_SESSION['relacoes_jogador'][$nomeConvite] ?? 0;
+                                                $desabilitadoConvite = !empty($aliancaAtualConvite);
+                                                ?>
+
+                                                <label class="participante-btn <?php echo $desabilitadoConvite ? 'desabilitado-alianca' : ''; ?>" style="<?php echo $desabilitadoConvite ? 'opacity:.45;cursor:not-allowed;' : ''; ?>">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="convidados_alianca[]"
+                                                        value="<?php echo htmlspecialchars($nomeConvite, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        onclick="limitarConvidadosAlianca(this)"
+                                                        <?php echo $desabilitadoConvite ? 'disabled' : ''; ?>>
+                                                    🤝 <?php echo $nomeConvite; ?>
+                                                    <br><small>
+                                                        ❤️ Afinidade: <?php echo $relConvite; ?>
+                                                        <?php if ($desabilitadoConvite): ?> • Já está em <?php echo $aliancaAtualConvite; ?><?php endif; ?>
+                                                    </small>
+                                                </label>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
                                     </div>
 
                                 <?php endif; ?>
@@ -6467,6 +7873,156 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
 
                 <?php endif; ?>
 
+
+                <?php if ($fase == 'poder_curinga'): ?>
+                    <?php
+                    $poderAtual = obterPoderCuringaAtual();
+                    $catalogoCuringa = catalogoPoderesCuringa();
+                    $tipoCuringa = $poderAtual['tipo'] ?? '';
+                    $donoCuringa = $poderAtual['dono'] ?? '';
+                    $dadosCuringa = $catalogoCuringa[$tipoCuringa] ?? null;
+                    ?>
+
+                    <?php if ($poderAtual && $dadosCuringa): ?>
+                        <div class="curinga-box">
+                            <div class="curinga-topo">
+                                <div class="curinga-icone"><?php echo $dadosCuringa['emoji']; ?></div>
+                                <div>
+                                    <h3>☎️ Poder do Big Fone</h3>
+                                    <p><b><?php echo $dadosCuringa['nome']; ?></b></p>
+                                </div>
+                            </div>
+
+                            <p><?php echo $dadosCuringa['descricao']; ?></p>
+                            <span class="curinga-dono">Dono do poder: <?php echo $donoCuringa; ?></span>
+                        </div>
+
+                        <?php if (nomeIgual($donoCuringa, $meuNome)): ?>
+
+                            <form method="POST">
+
+                                <?php if (in_array($tipoCuringa, ['imunidade_extra', 'anular_voto', 'espiao'])): ?>
+                                    <div class="box">
+                                        <h3>🎯 Escolha o alvo do poder</h3>
+                                        <div class="participantes-escolha">
+                                            <?php foreach ($jogadores as $j): ?>
+                                                <?php
+                                                $nomeOpcao = $j['nome'] ?? '';
+
+                                                if ($nomeOpcao == '') continue;
+                                                if ($tipoCuringa != 'imunidade_extra' && nomeIgual($nomeOpcao, $meuNome)) continue;
+                                                if ($tipoCuringa == 'imunidade_extra' && !empty($j['status']['lider'])) continue;
+                                                ?>
+
+                                                <label class="participante-btn">
+                                                    <input type="radio" name="alvo_curinga" value="<?php echo $nomeOpcao; ?>" required>
+                                                    <?php echo $nomeOpcao; ?>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+
+                                <button class="btn" name="usar_poder_curinga">
+                                    ☎️ Usar Poder do Big Fone
+                                </button>
+                            </form>
+
+                        <?php else: ?>
+
+                            <div class="box">
+                                <p>Esse poder pertence a <b><?php echo $donoCuringa; ?></b>. Ao continuar, o jogo decide automaticamente como o NPC vai usar.</p>
+                                <form method="POST">
+                                    <button class="btn" name="pular_poder_curinga">
+                                        ⏭️ Continuar
+                                    </button>
+                                </form>
+                            </div>
+
+                        <?php endif; ?>
+                    <?php endif; ?>
+                <?php endif; ?>
+
+                <?php if ($fase == 'contra_golpe_curinga'): ?>
+                    <?php $candidatosContra = candidatosContraGolpeCuringa($jogadores, $_SESSION['paredao'] ?? []); ?>
+
+                    <div class="curinga-box">
+                        <div class="curinga-topo">
+                            <div class="curinga-icone">⚡</div>
+                            <div>
+                                <h3>Contra-Golpe do Big Fone</h3>
+                                <p>Você caiu no paredão e pode puxar alguém junto.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST">
+                        <div class="participantes-escolha">
+                            <?php foreach ($candidatosContra as $nomeCandidato): ?>
+                                <label class="participante-btn">
+                                    <input type="radio" name="alvo_contra_golpe" value="<?php echo $nomeCandidato; ?>" required>
+                                    <?php echo $nomeCandidato; ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <button class="btn" name="contra_golpe_curinga">
+                            ⚡ Confirmar Contra-Golpe
+                        </button>
+                    </form>
+                <?php endif; ?>
+
+                <?php if ($fase == 'troca_curinga'): ?>
+                    <?php
+                    $indicacaoLiderCuringa = $_SESSION['indicacao_lider'] ?? '';
+                    $paredaoAtualCuringa = $_SESSION['paredao'] ?? [];
+                    $saidasCuringa = array_values(array_filter($paredaoAtualCuringa, function ($nome) use ($indicacaoLiderCuringa) {
+                        return !nomeIgual($nome, $indicacaoLiderCuringa);
+                    }));
+                    $entradasCuringa = candidatosTrocaCuringaEntrada($jogadores, $paredaoAtualCuringa);
+                    ?>
+
+                    <div class="curinga-box">
+                        <div class="curinga-topo">
+                            <div class="curinga-icone">🔁</div>
+                            <div>
+                                <h3>Troca de Emparedado</h3>
+                                <p>Escolha quem sai do paredão e quem entra. A indicação do líder não pode ser retirada.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST">
+                        <div class="box">
+                            <h3>🚪 Quem sai do paredão?</h3>
+                            <div class="participantes-escolha">
+                                <?php foreach ($saidasCuringa as $nomeSaida): ?>
+                                    <label class="participante-btn">
+                                        <input type="radio" name="sair_paredao_curinga" value="<?php echo $nomeSaida; ?>" required>
+                                        <?php echo $nomeSaida; ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <div class="box">
+                            <h3>🚨 Quem entra no paredão?</h3>
+                            <div class="participantes-escolha">
+                                <?php foreach ($entradasCuringa as $nomeEntrada): ?>
+                                    <label class="participante-btn">
+                                        <input type="radio" name="entrar_paredao_curinga" value="<?php echo $nomeEntrada; ?>" required>
+                                        <?php echo $nomeEntrada; ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <button class="btn" name="trocar_emparedado_curinga">
+                            🔁 Confirmar Troca
+                        </button>
+                    </form>
+                <?php endif; ?>
+
                 <form method="POST">
 
                     <?php if ($fase == 'lider'): ?>
@@ -6494,6 +8050,86 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
                     <?php elseif ($fase == 'bigfone'): ?>
 
                         <button class="btn" name="avancar_fase">☎️ Momento Big Fone</button>
+
+                    <?php elseif ($fase == 'bate_volta'): ?>
+
+                        <?php
+                        $bateVoltaAtual = $_SESSION['bate_volta'] ?? [];
+                        $tipoBateVolta = $bateVoltaAtual['tipo'] ?? 'portas';
+                        $participantesBV = $bateVoltaAtual['participantes'] ?? [];
+                        ?>
+
+                        <div class="box">
+                            <h3>🚗 Prova Bate-Volta</h3>
+                            <p><b><?php echo nomeTipoBateVolta($tipoBateVolta); ?></b></p>
+                            <p><?php echo descricaoTipoBateVolta($tipoBateVolta); ?></p>
+                            <p><b>Jogam:</b> <?php echo implode(", ", $participantesBV); ?></p>
+                            <p>O vencedor escapa do paredão antes da eliminação.</p>
+                        </div>
+
+                        <?php if ($tipoBateVolta == 'portas'): ?>
+
+                            <div class="box">
+                                <h3>🚪 Escolha sua porta</h3>
+                                <div class="participantes-escolha">
+                                    <label class="participante-btn">
+                                        <input type="radio" name="escolha_bate_volta" value="1" required>
+                                        🚪 Porta 1
+                                    </label>
+
+                                    <label class="participante-btn">
+                                        <input type="radio" name="escolha_bate_volta" value="2" required>
+                                        🚪 Porta 2
+                                    </label>
+
+                                    <label class="participante-btn">
+                                        <input type="radio" name="escolha_bate_volta" value="3" required>
+                                        🚪 Porta 3
+                                    </label>
+                                </div>
+                            </div>
+
+                        <?php elseif ($tipoBateVolta == 'urna'): ?>
+
+                            <div class="box">
+                                <h3>🎲 Escolha um número da urna</h3>
+                                <div class="participantes-escolha">
+                                    <?php for ($nBV = 1; $nBV <= 5; $nBV++): ?>
+                                        <label class="participante-btn">
+                                            <input type="radio" name="escolha_bate_volta" value="<?php echo $nBV; ?>" required>
+                                            Número <?php echo $nBV; ?>
+                                        </label>
+                                    <?php endfor; ?>
+                                </div>
+                            </div>
+
+                        <?php else: ?>
+
+                            <div class="box">
+                                <h3>🎯 Aposte no dado</h3>
+                                <div class="participantes-escolha">
+                                    <label class="participante-btn">
+                                        <input type="radio" name="escolha_bate_volta" value="baixo" required>
+                                        Baixo: 1 ou 2
+                                    </label>
+
+                                    <label class="participante-btn">
+                                        <input type="radio" name="escolha_bate_volta" value="medio" required>
+                                        Médio: 3 ou 4
+                                    </label>
+
+                                    <label class="participante-btn">
+                                        <input type="radio" name="escolha_bate_volta" value="alto" required>
+                                        Alto: 5 ou 6
+                                    </label>
+                                </div>
+                            </div>
+
+                        <?php endif; ?>
+
+                        <button class="btn" name="jogar_bate_volta">
+                            🚗 Jogar Bate-Volta
+                        </button>
 
                     <?php elseif ($fase == 'discordia'): ?>
 
@@ -6729,14 +8365,54 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
             botao.classList.add("selecionado");
         }
 
+        function selecionarAlianca(botao, nome) {
+            const campo = document.getElementById("alianca_escolhida");
+
+            if (campo) {
+                campo.value = nome;
+            }
+
+            document.querySelectorAll(".grupo-alianca .participante-btn")
+                .forEach(btn => btn.classList.remove("selecionado"));
+
+            botao.classList.add("selecionado");
+        }
+
+        function limitarConvidadosAlianca(el) {
+            const max = 5;
+            const marcados = document.querySelectorAll('input[name="convidados_alianca[]"]:checked');
+
+            if (marcados.length > max) {
+                el.checked = false;
+                alert("Você pode convidar no máximo 5 participantes para a aliança.");
+            }
+        }
+
         function executarAcao() {
             const acao = "<?php echo $_SESSION['acao_selecionada'] ?? ''; ?>";
-            const alvo = document.getElementById("alvo").value;
-            const alvo2 = document.getElementById("alvo2").value;
+            const alvo = document.getElementById("alvo") ? document.getElementById("alvo").value : "";
+            const alvo2 = document.getElementById("alvo2") ? document.getElementById("alvo2").value : "";
+            const aliancaEscolhida = document.getElementById("alianca_escolhida") ? document.getElementById("alianca_escolhida").value : "";
 
-            if (acao !== "aproximar_lider" && !alvo) {
+            const acoesSemAlvo = ["aproximar_lider", "sair_alianca", "alianca", "entrar_alianca"];
+
+            if (!acoesSemAlvo.includes(acao) && !alvo) {
                 alert("Escolha um participante primeiro.");
                 return;
+            }
+
+            if (acao === "entrar_alianca" && !aliancaEscolhida) {
+                alert("Escolha uma aliança primeiro.");
+                return;
+            }
+
+            if (acao === "alianca") {
+                const convidados = document.querySelectorAll('input[name="convidados_alianca[]"]:checked');
+
+                if (convidados.length < 1) {
+                    alert("Escolha pelo menos 1 participante para convidar.");
+                    return;
+                }
             }
 
             if (acao === "intriga" && !alvo2) {
