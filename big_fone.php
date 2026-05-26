@@ -38,21 +38,68 @@ if($_SESSION['bigfone_tocou'] == false){
     exit;
 }
 
+/* Funções auxiliares do Big Fone */
+function nomeIgualBigfone($a, $b){
+    return mb_strtolower(trim((string)$a), 'UTF-8') === mb_strtolower(trim((string)$b), 'UTF-8');
+}
+
+function escolherParticipanteBigFone($jogadores, $bloqueados = []){
+    $opcoes = [];
+
+    foreach($jogadores as $j){
+        $nome = $j['nome'] ?? '';
+
+        if($nome == '') continue;
+        if(in_array($nome, $bloqueados)) continue;
+        if(!empty($j['status']['lider'])) continue;
+        if(!empty($j['status']['imune'])) continue;
+
+        $opcoes[] = $nome;
+    }
+
+    if(empty($opcoes)) return null;
+
+    return $opcoes[array_rand($opcoes)];
+}
+
+function registrarPoderBigFoneBase($atendente, $poder){
+    $_SESSION['bigfone_poder'] = $poder;
+    $_SESSION['bigfone_dono_poder'] = $atendente;
+}
+
 /* Função aplicar poder */
 function aplicarPoderBigFone(&$jogadores, $atendente){
 
-    $poderes = ["imunidade", "indicacao"];
-    $poder = $poderes[array_rand($poderes)];
+    $poderes = [
+        "imunidade",
+        "indicacao",
+        "voto_duplo",
+        "anular_voto",
+        "espiar_voto",
+        "contragolpe",
+        "trocar_emparedado"
+    ];
 
+    $poder = $poderes[array_rand($poderes)];
+    registrarPoderBigFoneBase($atendente, $poder);
+
+    $meuNome = $_SESSION['meu_nome'] ?? '';
     $texto = "";
 
     if($poder == "imunidade"){
 
         foreach($jogadores as &$j){
-            if($j['nome'] == $atendente){
+            if(nomeIgualBigfone(($j['nome'] ?? ''), $atendente)){
                 $j['status']['imune'] = true;
+
+                if(!isset($j['estatisticas'])){
+                    $j['estatisticas'] = [];
+                }
+
+                $j['estatisticas']['imune'] = ($j['estatisticas']['imune'] ?? 0) + 1;
             }
         }
+        unset($j);
 
         $texto = "🛡️ $atendente ganhou imunidade pelo Big Fone.";
     }
@@ -65,7 +112,76 @@ function aplicarPoderBigFone(&$jogadores, $atendente){
         $texto = "🎯 $atendente ganhou o poder de indicar alguém direto ao paredão.";
     }
 
-    $_SESSION['bigfone_poder'] = $poder;
+    if($poder == "voto_duplo"){
+
+        $_SESSION['curinga_voto_duplo_ativo'] = $atendente;
+
+        $texto = "🗳️ $atendente ganhou voto duplo na próxima votação da casa.";
+    }
+
+    if($poder == "anular_voto"){
+
+        if(nomeIgualBigfone($atendente, $meuNome)){
+            $_SESSION['bigfone_anular_voto_pendente'] = true;
+            $texto = "🚫 $atendente ganhou o poder de anular o voto de um participante na próxima votação.";
+        }else{
+            $alvo = escolherParticipanteBigFone($jogadores, [$atendente]);
+
+            if($alvo != null){
+                $_SESSION['curinga_anular_voto_de'] = $alvo;
+                $texto = "🚫 $atendente ganhou o poder de anular voto e escolheu anular o voto de $alvo.";
+            }else{
+                $texto = "🚫 $atendente ganhou o poder de anular voto, mas não havia alvo válido.";
+            }
+        }
+    }
+
+    if($poder == "espiar_voto"){
+
+        if(nomeIgualBigfone($atendente, $meuNome)){
+            $_SESSION['bigfone_espiar_voto_pendente'] = true;
+            $texto = "👁️ $atendente ganhou o poder de espiar o voto de um participante.";
+        }else{
+            $alvo = escolherParticipanteBigFone($jogadores, [$atendente]);
+
+            if($alvo != null){
+                $_SESSION['curinga_espiar_voto_de'] = $alvo;
+                $texto = "👁️ $atendente ganhou o poder de espiar voto e escolheu observar o voto de $alvo.";
+            }else{
+                $texto = "👁️ $atendente ganhou o poder de espiar voto, mas não havia alvo válido.";
+            }
+        }
+    }
+
+    if($poder == "contragolpe"){
+
+        $_SESSION['poder_curinga'] = [
+            "tipo" => "contra_golpe",
+            "dono" => $atendente,
+            "usado" => true,
+            "rodada" => $_SESSION['rodada'] ?? 1,
+            "origem" => "bigfone"
+        ];
+
+        $_SESSION['bigfone_contragolpe_pendente'] = $atendente;
+
+        $texto = "⚔️ $atendente ganhou o Contra-Golpe pelo Big Fone. Se cair no paredão, poderá puxar alguém.";
+    }
+
+    if($poder == "trocar_emparedado"){
+
+        $_SESSION['poder_curinga'] = [
+            "tipo" => "trocar_emparedado",
+            "dono" => $atendente,
+            "usado" => true,
+            "rodada" => $_SESSION['rodada'] ?? 1,
+            "origem" => "bigfone"
+        ];
+
+        $_SESSION['bigfone_troca_emparedado_pendente'] = $atendente;
+
+        $texto = "🔁 $atendente ganhou o poder de trocar um emparedado pelo Big Fone. A indicação do líder não pode ser trocada.";
+    }
 
     return $texto;
 }
