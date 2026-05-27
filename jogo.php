@@ -538,6 +538,125 @@ function definirFaseDepoisDaFormacaoDoParedao(&$jogadores)
 }
 
 
+
+/* =========================
+   🛡️ BLINDAGEM TOTAL DE IMUNIDADE
+   Quem está imune NÃO pode ir ao paredão por nenhum caminho:
+   voto da casa, indicação do Big Fone, contra-golpe, troca ou bugs antigos.
+========================= */
+
+function estaImune($jogadores, $nome)
+{
+    if ($nome == '') return false;
+
+    $fontesImunidade = [
+        $_SESSION['imune'] ?? '',
+        $_SESSION['imunidade_curinga'] ?? '',
+        $_SESSION['bigfone_imune'] ?? '',
+        $_SESSION['bigfone_imunizado'] ?? '',
+        $_SESSION['bigfone_imunidade'] ?? '',
+        (!empty($_SESSION['anjo_autoimune']) ? ($_SESSION['anjo'] ?? '') : ''),
+        (($_SESSION['bigfone_poder'] ?? '') == 'imunidade' ? ($_SESSION['bigfone_dono_poder'] ?? '') : '')
+    ];
+
+    foreach ($fontesImunidade as $imuneSessao) {
+        if ($imuneSessao != '' && nomeIgual($imuneSessao, $nome)) {
+            return true;
+        }
+    }
+
+    foreach ($jogadores as $j) {
+        if (nomeIgual(($j['nome'] ?? ''), $nome)) {
+            return !empty($j['status']['imune']);
+        }
+    }
+
+    return false;
+}
+
+function sincronizarImunidadesGlobais(&$jogadores)
+{
+    $imunes = [];
+
+    $fontes = [
+        $_SESSION['imune'] ?? '',
+        $_SESSION['imunidade_curinga'] ?? '',
+        $_SESSION['bigfone_imune'] ?? '',
+        $_SESSION['bigfone_imunizado'] ?? '',
+        $_SESSION['bigfone_imunidade'] ?? '',
+        (!empty($_SESSION['anjo_autoimune']) ? ($_SESSION['anjo'] ?? '') : ''),
+        (($_SESSION['bigfone_poder'] ?? '') == 'imunidade' ? ($_SESSION['bigfone_dono_poder'] ?? '') : '')
+    ];
+
+    foreach ($fontes as $nome) {
+        if (trim((string)$nome) != '') {
+            $imunes[] = trim((string)$nome);
+        }
+    }
+
+    foreach ($jogadores as $j) {
+        if (!empty($j['status']['imune']) && !empty($j['nome'])) {
+            $imunes[] = $j['nome'];
+        }
+    }
+
+    $imunes = array_values(array_unique($imunes));
+
+    if (!empty($imunes)) {
+        foreach ($jogadores as &$j) {
+            foreach ($imunes as $nomeImune) {
+                if (nomeIgual(($j['nome'] ?? ''), $nomeImune)) {
+                    $j['status']['imune'] = true;
+                    $_SESSION['imune'] = $j['nome'];
+                }
+            }
+        }
+        unset($j);
+    }
+}
+
+function blindarParedaoContraImunes(&$jogadores)
+{
+    if (!isset($_SESSION['paredao']) || !is_array($_SESSION['paredao'])) {
+        return;
+    }
+
+    $removidos = [];
+
+    $_SESSION['paredao'] = array_values(array_filter($_SESSION['paredao'], function ($nome) use ($jogadores, &$removidos) {
+        if (estaImune($jogadores, $nome)) {
+            $removidos[] = $nome;
+            return false;
+        }
+
+        return true;
+    }));
+
+    foreach (array_unique($removidos) as $nomeRemovido) {
+        $_SESSION['evento_extra'][] = "🛡️ $nomeRemovido estava imune e foi removido automaticamente do paredão.";
+    }
+}
+
+function adicionarAoParedaoSeValido(&$paredao, $jogadores, $nome, $motivo = '')
+{
+    if ($nome == '') return false;
+
+    if (estaImune($jogadores, $nome)) {
+        if ($motivo != '') {
+            $_SESSION['evento_extra'][] = "🛡️ $nome não pôde ir ao paredão por $motivo, pois estava imune.";
+        }
+        return false;
+    }
+
+    if (!in_array($nome, $paredao)) {
+        $paredao[] = $nome;
+        return true;
+    }
+
+    return false;
+}
+
+
 function calcularQtdVIP($total)
 {
     if ($total >= 18) return 8;
@@ -549,6 +668,9 @@ function calcularQtdVIP($total)
 }
 
 $qtdVIP = calcularQtdVIP(count($jogadores));
+
+sincronizarImunidadesGlobais($jogadores);
+$_SESSION['jogadores'] = $jogadores;
 
 /* =========================
    🤝 SISTEMA DE ALIANÇAS COMPATÍVEL COM LOGICA_JOGO.PHP
@@ -872,7 +994,7 @@ function escolherAlvoDoGrupo($jogadores, $alianca, $bloqueados = [])
             if (nomeIgual($nomeAlvo, ($membro['nome'] ?? ''))) continue;
             if (in_array($nomeAlvo, $bloqueados)) continue;
             if (!empty($alvo['status']['lider'])) continue;
-            if (!empty($alvo['status']['imune'])) continue;
+            if (estaImune($jogadores, $nomeAlvo)) continue;
 
             $rel = obterRelacaoCompleta($jogadores, $membro['nome'], $nomeAlvo, $_SESSION['meu_nome'] ?? '');
             $score = ($rel['rivalidade'] ?? 0) + (100 - ($rel['amizade'] ?? 0)) + rand(0, 10);
@@ -1312,6 +1434,7 @@ function aplicarImunidadeCuringa(&$jogadores, $alvo, $dono)
             }
 
             $j['status']['imune'] = true;
+            $_SESSION['imune'] = $alvo;
             $_SESSION['imunidade_curinga'] = $alvo;
             marcarPoderCuringaUsado();
 
@@ -1342,7 +1465,7 @@ function escolherAlvoValidoCuringa($jogadores, $bloqueados = [])
         if ($nome == '') continue;
         if (in_array($nome, $bloqueados)) continue;
         if (!empty($j['status']['lider'])) continue;
-        if (!empty($j['status']['imune'])) continue;
+        if (estaImune($jogadores, $j['nome'] ?? '')) continue;
 
         $opcoes[] = $nome;
     }
@@ -1471,7 +1594,7 @@ function candidatosContraGolpeCuringa($jogadores, $paredaoAtual)
         if ($nome == '') continue;
         if (in_array($nome, $bloqueados)) continue;
         if (!empty($j['status']['lider'])) continue;
-        if (!empty($j['status']['imune'])) continue;
+        if (estaImune($jogadores, $j['nome'] ?? '')) continue;
 
         $candidatos[] = $nome;
     }
@@ -1517,7 +1640,7 @@ function candidatosTrocaCuringaEntrada($jogadores, $paredaoAtual)
         if ($nome == '') continue;
         if (in_array($nome, $bloqueados)) continue;
         if (!empty($j['status']['lider'])) continue;
-        if (!empty($j['status']['imune'])) continue;
+        if (estaImune($jogadores, $j['nome'] ?? '')) continue;
 
         $candidatos[] = $nome;
     }
@@ -2793,15 +2916,22 @@ if ($fase == 'vip_xepa' && !isset($_SESSION['vip_definido'])) {
             $j['status']['vip'] = false;
             $j['status']['xepa'] = false;
 
+            if (!isset($j['estatisticas'])) {
+                $j['estatisticas'] = [];
+            }
+
             if ($j['nome'] == $lider) {
                 $j['status']['vip'] = true;
+                $j['estatisticas']['vip'] = ($j['estatisticas']['vip'] ?? 0) + 1;
                 continue;
             }
 
             if (in_array($j['nome'], $vipEscolhidos)) {
                 $j['status']['vip'] = true;
+                $j['estatisticas']['vip'] = ($j['estatisticas']['vip'] ?? 0) + 1;
             } else {
                 $j['status']['xepa'] = true;
+                $j['estatisticas']['xepa'] = ($j['estatisticas']['xepa'] ?? 0) + 1;
             }
         }
         unset($j);
@@ -4065,7 +4195,11 @@ if (isset($_POST['acao_festa']) && $fase == 'festa') {
             $_SESSION['jogadores'] = $jogadores;
         }
 
-        $_SESSION['fase_semana'] = 'imunizacao_anjo';
+        if (!empty($_SESSION['anjo_autoimune'])) {
+            $_SESSION['fase_semana'] = 'paredao';
+        } else {
+            $_SESSION['fase_semana'] = 'imunizacao_anjo';
+        }
         $_SESSION['acoes_festa'] = 2;
     }
 
@@ -4076,6 +4210,41 @@ if (isset($_POST['acao_festa']) && $fase == 'festa') {
 /* =========================
    😇 IMUNIZAÇÃO DO ANJO
 ========================= */
+
+if ($fase == 'imunizacao_anjo' && !empty($_SESSION['anjo_autoimune'])) {
+
+    $anjoAuto = $_SESSION['anjo'] ?? '';
+
+    foreach ($jogadores as &$j) {
+        if (($j['nome'] ?? '') == $anjoAuto) {
+
+            $j['status']['imune'] = true;
+
+            if (!isset($j['estatisticas'])) {
+                $j['estatisticas'] = [];
+            }
+
+            if (empty($_SESSION['anjo_autoimune_estat_contada'])) {
+                $j['estatisticas']['imune'] =
+                ($j['estatisticas']['imune'] ?? 0) + 1;
+            }
+        }
+    }
+    unset($j);
+
+    $_SESSION['anjo_autoimune_estat_contada'] = true;
+    $_SESSION['imune'] = $anjoAuto;
+    $_SESSION['imunizacao_anjo_feita'] = true;
+    $_SESSION['jogadores'] = $jogadores;
+
+    $_SESSION['evento_extra'][] =
+    "🛡️ O Anjo $anjoAuto é autoimune nesta semana e não imuniza outra pessoa.";
+
+    $_SESSION['fase_semana'] = 'paredao';
+
+    header("Location: jogo.php");
+    exit;
+}
 
 if (isset($_POST['definir_imunidade_anjo'])) {
 
@@ -4181,7 +4350,7 @@ function escolherAlvoInteligente($jogadores, $votante, $bloqueados = [])
         if ($alvo == '' || $alvo == $votante) continue;
         if (in_array($alvo, $bloqueados)) continue;
         if (!empty($j['status']['lider'])) continue;
-        if (!empty($j['status']['imune'])) continue;
+        if (estaImune($jogadores, $j['nome'] ?? '')) continue;
 
         $relacao = calcularRelacaoIA($jogadores, $votante, $alvo, $meuNome);
         $popularidade = $j['popularidade'] ?? 50;
@@ -4244,7 +4413,15 @@ function escolherAlvoInteligente($jogadores, $votante, $bloqueados = [])
 /* INDICAÇÃO DO LÍDER */
 if (isset($_POST['indicar_lider'])) {
 
-    $_SESSION['indicacao_lider'] = $_POST['indicado_lider'];
+    $indicadoLider = $_POST['indicado_lider'] ?? '';
+
+    if (estaImune($jogadores, $indicadoLider)) {
+        $_SESSION['evento_extra'][] = "🛡️ Indicação inválida: $indicadoLider está imune e não pode ir ao paredão.";
+        header("Location: jogo.php");
+        exit;
+    }
+
+    $_SESSION['indicacao_lider'] = $indicadoLider;
 
     $_SESSION['evento_extra'][] =
         "👑 O líder " . $_SESSION['lider'] . " indicou " . $_SESSION['indicacao_lider'] . " ao paredão.";
@@ -4261,7 +4438,8 @@ if (isset($_POST['indicar_bigfone'])) {
     if (
         $indicadoBigfone == ($_SESSION['lider'] ?? '') ||
         $indicadoBigfone == ($_SESSION['indicacao_lider'] ?? '') ||
-        $indicadoBigfone == $meuNome
+        $indicadoBigfone == $meuNome ||
+        estaImune($jogadores, $indicadoBigfone)
     ) {
         $_SESSION['evento_extra'][] = "⚠️ Indicação inválida do Big Fone.";
         header("Location: jogo.php");
@@ -4387,12 +4565,13 @@ if (isset($_POST['contra_golpe_curinga'])) {
             $_SESSION['paredao'] = [];
         }
 
-        if (!in_array($alvo, $_SESSION['paredao'])) {
-            $_SESSION['paredao'][] = $alvo;
+        if (estaImune($jogadores, $alvo)) {
+            $_SESSION['evento_extra'][] = "🛡️ $alvo está imune e não pode ser puxado pelo Contra-Golpe.";
+        } else {
+            adicionarAoParedaoSeValido($_SESSION['paredao'], $jogadores, $alvo, "contra-golpe do Big Fone");
+            $_SESSION['curinga_contra_golpe_usado'] = true;
+            $_SESSION['evento_extra'][] = "⚡ Pelo Contra-Golpe do Big Fone, $meuNome puxou <b>$alvo</b> para o paredão.";
         }
-
-        $_SESSION['curinga_contra_golpe_usado'] = true;
-        $_SESSION['evento_extra'][] = "⚡ Pelo Contra-Golpe do Big Fone, $meuNome puxou <b>$alvo</b> para o paredão.";
     }
 
     definirFaseDepoisDaFormacaoDoParedao($jogadores);
@@ -4412,6 +4591,8 @@ if (isset($_POST['trocar_emparedado_curinga'])) {
 
         if (nomeIgual($sair, $indicacaoLider)) {
             $_SESSION['evento_extra'][] = "⚠️ O Poder do Big Fone não pode tirar do paredão a pessoa indicada pelo líder.";
+        } elseif (estaImune($jogadores, $entrar)) {
+            $_SESSION['evento_extra'][] = "🛡️ $entrar está imune e não pode entrar no paredão pela troca.";
         } elseif ($sair != '' && $entrar != '' && isset($_SESSION['paredao'])) {
             foreach ($_SESSION['paredao'] as $i => $nome) {
                 if (nomeIgual($nome, $sair)) {
@@ -4421,6 +4602,7 @@ if (isset($_POST['trocar_emparedado_curinga'])) {
             }
 
             $_SESSION['paredao'] = array_values(array_unique($_SESSION['paredao']));
+            blindarParedaoContraImunes($jogadores);
             $_SESSION['curinga_troca_usada'] = true;
             $_SESSION['evento_extra'][] = "🔁 Pelo Poder do Big Fone, $meuNome tirou <b>$sair</b> do paredão e colocou <b>$entrar</b>. A indicação do líder foi preservada.";
         }
@@ -4488,7 +4670,8 @@ if (isset($_POST['votar_paredao'])) {
     if (
         $votoParedao == ($_SESSION['indicacao_lider'] ?? '') ||
         $votoParedao == ($_SESSION['indicacao_bigfone'] ?? '') ||
-        $votoParedao == ($_SESSION['lider'] ?? '')
+        $votoParedao == ($_SESSION['lider'] ?? '') ||
+        estaImune($jogadores, $votoParedao)
     ) {
         $_SESSION['evento_extra'][] = "⚠️ Voto inválido. Escolha outro participante.";
         header("Location: jogo.php");
@@ -4523,6 +4706,7 @@ if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
 
     $lider = $_SESSION['lider'] ?? '';
     reaplicarImunidadeCuringa($jogadores);
+    sincronizarImunidadesGlobais($jogadores);
     $_SESSION['jogadores'] = $jogadores;
 
     /* TOP 4: líder está salvo e os outros 3 vão direto ao paredão */
@@ -4531,12 +4715,15 @@ if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
         $paredaoTop4 = [];
 
         foreach ($jogadores as $j) {
-            if (($j['nome'] ?? '') != $lider) {
-                $paredaoTop4[] = $j['nome'];
+            $nomeTop4 = $j['nome'] ?? '';
+
+            if ($nomeTop4 != $lider && !estaImune($jogadores, $nomeTop4)) {
+                $paredaoTop4[] = $nomeTop4;
             }
         }
 
         $_SESSION['paredao'] = array_values($paredaoTop4);
+        blindarParedaoContraImunes($jogadores);
         $_SESSION['paredao_formado'] = true;
 
         unset($_SESSION['indicacao_lider']);
@@ -4642,7 +4829,8 @@ if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
             if (
                 $voto == ($_SESSION['indicacao_lider'] ?? '') ||
                 $voto == ($_SESSION['indicacao_bigfone'] ?? '') ||
-                $voto == $lider
+                $voto == $lider ||
+                estaImune($jogadores, $voto)
             ) {
                 continue;
             }
@@ -4714,17 +4902,15 @@ if ($fase == 'paredao' && !isset($_SESSION['paredao_formado'])) {
     $paredao = [];
 
     if (isset($_SESSION['indicacao_lider'])) {
-        $paredao[] = $_SESSION['indicacao_lider'];
+        adicionarAoParedaoSeValido($paredao, $jogadores, $_SESSION['indicacao_lider'], "indicação do líder");
     }
 
     if (isset($_SESSION['indicacao_bigfone'])) {
-        $paredao[] = $_SESSION['indicacao_bigfone'];
+        adicionarAoParedaoSeValido($paredao, $jogadores, $_SESSION['indicacao_bigfone'], "poder do Big Fone");
     }
 
     foreach ($maisVotados as $nome) {
-        if (!in_array($nome, $paredao)) {
-            $paredao[] = $nome;
-        }
+        adicionarAoParedaoSeValido($paredao, $jogadores, $nome, "votação da casa");
     }
 
     $limiteParedao = definirTamanhoParedao($jogadores);
@@ -4734,6 +4920,8 @@ $_SESSION['paredao'] = array_slice(
     0,
     $limiteParedao
 );
+
+    blindarParedaoContraImunes($jogadores);
 
     $eventoContraGolpeNPC = aplicarContraGolpeCuringaNPC($jogadores, $_SESSION['paredao']);
     if ($eventoContraGolpeNPC != "") {
@@ -4746,6 +4934,7 @@ $_SESSION['paredao'] = array_slice(
     }
 
     $_SESSION['paredao'] = array_values(array_unique($_SESSION['paredao']));
+    blindarParedaoContraImunes($jogadores);
     $_SESSION['paredao_formado'] = true;
 
     $_SESSION['evento_extra'][] = "🗳️ Resultado da Votação da Casa:";
@@ -4809,6 +4998,8 @@ if (isset($_POST['avancar_fase'])) {
             unset($_SESSION['monstro_definido']);
             unset($_SESSION['prova_anjo_finalizada']);
             unset($_SESSION['imunizacao_anjo_feita']);
+            unset($_SESSION['anjo_autoimune']);
+            unset($_SESSION['anjo_autoimune_estat_contada']);
             unset($_SESSION['paredao']);
             unset($_SESSION['paredao_formado']);
             unset($_SESSION['votos_paredao']);
@@ -4934,7 +5125,11 @@ if (isset($_POST['avancar_fase'])) {
 
     if ($fase == 'festa') {
         $_SESSION['evento_extra'][] = "🎉 A festa movimentou a casa com conversas, olhares, alianças e tensão.";
-        $_SESSION['fase_semana'] = 'imunizacao_anjo';
+        if (!empty($_SESSION['anjo_autoimune'])) {
+            $_SESSION['fase_semana'] = 'paredao';
+        } else {
+            $_SESSION['fase_semana'] = 'imunizacao_anjo';
+        }
         header("Location: jogo.php");
         exit;
     }
@@ -6875,7 +7070,367 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
             gap: 10px;
             margin-top: 14px;
         }
-    </style>
+    
+
+/* =========================================================
+   📱 LAYOUT RESPONSIVO PARA CELULAR
+   Mantém o layout do PC igual e reorganiza somente telas menores.
+========================================================= */
+
+@media (max-width: 900px){
+
+    html,
+    body{
+        width:100%;
+        max-width:100%;
+        overflow-x:hidden;
+    }
+
+    body{
+        padding:0;
+    }
+
+    .top-header{
+        padding:18px 14px;
+        margin-bottom:0;
+        position:relative;
+    }
+
+    .logo-area{
+        align-items:flex-start;
+        gap:12px;
+    }
+
+    .bbb-icon{
+        width:54px;
+        height:54px;
+        min-width:54px;
+        border-radius:18px;
+        font-size:26px;
+    }
+
+    .logo-area h1{
+        font-size:30px;
+        line-height:1.05;
+        word-break:break-word;
+    }
+
+    .sub-info{
+        flex-wrap:wrap;
+        gap:8px;
+        font-size:13px;
+        line-height:1.35;
+    }
+
+    .container{
+        display:flex;
+        flex-direction:column;
+        grid-template-columns:none;
+        gap:14px;
+        padding:12px;
+        width:100%;
+    }
+
+    .center{
+        order:1;
+        width:100%;
+    }
+
+    .left{
+        order:2;
+        width:100%;
+    }
+
+    .right{
+        order:3;
+        width:100%;
+    }
+
+    .left,
+    .center,
+    .right{
+        max-height:none;
+        overflow:visible;
+        border-radius:20px;
+        padding:14px;
+    }
+
+    h2{
+        font-size:22px;
+        margin-bottom:12px;
+    }
+
+    .box{
+        padding:13px;
+        border-radius:16px;
+        margin-bottom:12px;
+        line-height:1.55;
+    }
+
+    .box h3{
+        font-size:17px;
+    }
+
+    .btn,
+    .btn-confirmar-querido{
+        min-height:50px;
+        padding:13px 14px;
+        font-size:15px;
+        border-radius:14px;
+    }
+
+    .players-grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:10px;
+    }
+
+    .card{
+        min-height:auto;
+        padding:10px 8px;
+        border-radius:17px;
+    }
+
+    .card::before{
+        border-radius:19px;
+    }
+
+    .avatar{
+        width:42px;
+        height:42px;
+        margin-bottom:7px;
+    }
+
+    .card h3{
+        font-size:13px;
+        line-height:1.2;
+    }
+
+    .card p{
+        font-size:10.5px;
+        line-height:1.25;
+        overflow-wrap:anywhere;
+    }
+
+    .status{
+        font-size:10.5px;
+        gap:3px;
+    }
+
+    .participantes-box,
+    .queridometro-grid,
+    .resultado-querido-grid,
+    .log{
+        max-height:none;
+        overflow:visible;
+        padding-right:0;
+    }
+
+    .log p{
+        font-size:13px;
+        padding:12px;
+        border-radius:14px;
+    }
+
+    .interacoes-grid{
+        grid-template-columns:1fr;
+        gap:9px;
+    }
+
+    .participantes-escolha{
+        gap:8px;
+    }
+
+    .participante-btn{
+        font-size:13px;
+        padding:10px 12px;
+        border-radius:13px;
+        max-width:100%;
+        overflow-wrap:anywhere;
+    }
+
+    select,
+    input,
+    textarea{
+        max-width:100%;
+        font-size:16px;
+    }
+
+    .querido-header{
+        padding:14px;
+        border-radius:18px;
+    }
+
+    .querido-header h2{
+        font-size:23px;
+    }
+
+    .querido-header p{
+        font-size:13px;
+    }
+
+    .legenda-querido{
+        grid-template-columns:1fr;
+    }
+
+    .queridometro-grid,
+    .resultado-querido-grid{
+        grid-template-columns:1fr;
+    }
+
+    .emojis-grid{
+        grid-template-columns:repeat(4, 1fr);
+        gap:7px;
+    }
+
+    .emoji-btn{
+        height:44px;
+        font-size:22px;
+        border-radius:13px;
+    }
+
+    .topo-card-querido h3{
+        font-size:18px;
+    }
+
+    .valor-relacao{
+        min-width:38px;
+        height:38px;
+        font-size:13px;
+    }
+
+    .resultado-emoji-item{
+        grid-template-columns:32px 1fr 36px;
+    }
+
+    .popup-box{
+        width:100%;
+        padding:22px;
+        border-radius:22px;
+    }
+
+    .popup-box h3{
+        font-size:24px;
+    }
+
+    .popup-botoes{
+        flex-direction:column;
+    }
+
+    .estatisticas-finais-grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:10px;
+    }
+
+    .stat-final-card{
+        padding:13px;
+        border-radius:15px;
+    }
+
+    .stat-final-card strong{
+        font-size:23px;
+    }
+}
+
+@media (max-width: 520px){
+
+    .top-header{
+        padding:16px 12px;
+    }
+
+    .logo-area{
+        gap:10px;
+    }
+
+    .bbb-icon{
+        width:48px;
+        height:48px;
+        min-width:48px;
+        font-size:24px;
+    }
+
+    .logo-area h1{
+        font-size:26px;
+    }
+
+    .sub-info{
+        font-size:12px;
+    }
+
+    .container{
+        padding:10px;
+        gap:12px;
+    }
+
+    .left,
+    .center,
+    .right{
+        padding:12px;
+        border-radius:18px;
+    }
+
+    .players-grid{
+        grid-template-columns:1fr;
+    }
+
+    .card{
+        display:grid;
+        grid-template-columns:48px 1fr;
+        gap:8px 10px;
+        align-items:center;
+        text-align:left;
+    }
+
+    .card .avatar{
+        grid-row:1 / span 3;
+        margin:0;
+        width:46px;
+        height:46px;
+    }
+
+    .card h3{
+        text-align:left;
+        margin-bottom:2px;
+    }
+
+    .card p{
+        margin:2px 0;
+    }
+
+    .card .status{
+        grid-column:1 / -1;
+        margin-top:6px;
+    }
+
+    .afinidade-card,
+    .romance-card{
+        grid-column:1 / -1;
+    }
+
+    .emojis-grid{
+        grid-template-columns:repeat(3, 1fr);
+    }
+
+    .emoji-btn{
+        height:46px;
+    }
+
+    .participante-btn{
+        width:100%;
+        text-align:center;
+    }
+
+    .participantes-escolha{
+        display:grid;
+        grid-template-columns:1fr;
+    }
+
+    .estatisticas-finais-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+
+</style>
 </head>
 
 <body>
@@ -7193,7 +7748,7 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
 
                         <div class="participantes-escolha">
                             <?php foreach ($jogadores as $j): ?>
-                                <?php if ($j['nome'] != $meuNome && empty($j['status']['imune'])): ?>
+                                <?php if ($j['nome'] != $meuNome && !estaImune($jogadores, $j['nome'] ?? '')): ?>
 
                                     <label class="participante-btn">
                                         <input type="radio" name="indicado_lider" value="<?php echo $j['nome']; ?>" required>
@@ -7231,7 +7786,7 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
                                     $j['nome'] != ($_SESSION['lider'] ?? '') &&
                                     $j['nome'] != ($_SESSION['indicacao_lider'] ?? '') &&
                                     empty($j['status']['lider']) &&
-                                    empty($j['status']['imune'])
+                                    !estaImune($jogadores, $j['nome'] ?? '')
                                 ): ?>
 
                                     <label class="participante-btn">
@@ -7332,7 +7887,7 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
                                 <?php if (
                                     $j['nome'] != $meuNome &&
                                     empty($j['status']['lider']) &&
-                                    empty($j['status']['imune']) &&
+                                    !estaImune($jogadores, $j['nome'] ?? '') &&
                                     $j['nome'] != ($_SESSION['indicacao_lider'] ?? '') &&
                                     $j['nome'] != ($_SESSION['indicacao_bigfone'] ?? '')
                                 ): ?>
