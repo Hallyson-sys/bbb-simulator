@@ -266,23 +266,122 @@ button:hover{
 }
 
 @media(max-width:1000px){
-    body{
-        overflow:auto;
-    }
 
-    .container{
-        grid-template-columns:1fr;
-        padding:30px 20px;
-    }
+body{
+    overflow-y:auto;
+    overflow-x:hidden;
+    min-height:100vh;
+    padding:20px 0;
+}
 
-    .info{
-        display:none;
-    }
+body::before{
+    inset:-120%;
+}
 
-    .card{
-        width:100%;
-        max-width:420px;
-    }
+.container{
+
+    width:100%;
+    min-height:auto;
+
+    display:flex;
+    flex-direction:column;
+
+    justify-content:flex-start;
+    align-items:center;
+
+    gap:22px;
+
+    padding:20px 16px 40px;
+}
+
+/* CARDS LATERAIS */
+.info{
+
+    width:100%;
+    max-width:420px;
+
+    display:grid;
+    grid-template-columns:1fr 1fr;
+
+    gap:12px;
+}
+
+.info-card{
+
+    width:100%;
+    height:auto;
+
+    min-height:85px;
+
+    padding:14px;
+
+    font-size:12px;
+
+    border-radius:16px;
+}
+
+/* FORMULÁRIO */
+.card{
+
+    width:100%;
+    max-width:420px;
+
+    max-height:none;
+
+    overflow:visible;
+
+    padding:24px 18px;
+
+    border-radius:24px;
+}
+
+.titulo{
+    font-size:34px;
+    line-height:1.05;
+}
+
+.sub{
+    font-size:11px;
+    margin-bottom:20px;
+}
+
+input,
+select{
+
+    padding:15px;
+
+    font-size:16px;
+
+    border-radius:14px;
+
+    margin-bottom:12px;
+}
+
+button{
+
+    padding:16px;
+
+    font-size:16px;
+
+    border-radius:16px;
+}
+
+/* ANIMAÇÃO PORTA */
+.porta-container{
+
+    width:92vw;
+    height:260px;
+
+    border-radius:22px;
+}
+
+.texto-entrada h1{
+    font-size:28px;
+}
+
+.texto-entrada p{
+    font-size:16px;
+}
 }
 </style>
 </head>
