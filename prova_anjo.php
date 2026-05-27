@@ -138,15 +138,45 @@ $provasAnjo = [
    FUNÇÕES
 ================================= */
 
+
+function chanceAnjoAutoimune($totalJogadores)
+{
+    /* Top 10 em diante: o Anjo vira autoimune obrigatoriamente */
+    if ($totalJogadores <= 10) {
+        return 100;
+    }
+
+    /* Antes do Top 10: algumas semanas podem ter Anjo autoimune */
+    return 30;
+}
+
+function semanaAnjoAutoimune($totalJogadores)
+{
+    if (!isset($_SESSION['anjo_autoimune_sorteado_rodada'])) {
+        $_SESSION['anjo_autoimune_sorteado_rodada'] = $_SESSION['rodada'] ?? 1;
+        $_SESSION['anjo_autoimune'] = (rand(1, 100) <= chanceAnjoAutoimune($totalJogadores));
+    }
+
+    return !empty($_SESSION['anjo_autoimune']);
+}
+
+
 function finalizarProvaAnjo(&$jogadores, $campeaoNome, $lider)
 {
     if (!isset($_SESSION['evento_extra'])) {
         $_SESSION['evento_extra'] = [];
     }
 
+    $autoimune = semanaAnjoAutoimune(count($jogadores));
+
     foreach ($jogadores as &$j) {
         $j['status']['anjo'] = false;
-        $j['status']['imune'] = false;
+
+        /* Só limpa a imunidade comum se ela veio de um anjo anterior.
+           A imunidade final desta semana será definida abaixo. */
+        if (!empty($_SESSION['imune']) && ($j['nome'] ?? '') == $_SESSION['imune']) {
+            $j['status']['imune'] = false;
+        }
     }
     unset($j);
 
@@ -161,24 +191,45 @@ function finalizarProvaAnjo(&$jogadores, $campeaoNome, $lider)
 
             $j['estatisticas']['anjo'] =
             ($j['estatisticas']['anjo'] ?? 0) + 1;
+
+            if ($autoimune) {
+                $j['status']['imune'] = true;
+                $j['estatisticas']['imune'] =
+                ($j['estatisticas']['imune'] ?? 0) + 1;
+            }
         }
     }
     unset($j);
 
     $_SESSION['jogadores'] = $jogadores;
     $_SESSION['anjo'] = $campeaoNome;
-
-    unset($_SESSION['imune']);
-
     $_SESSION['prova_anjo_finalizada'] = true;
     $_SESSION['fase_semana'] = 'monstro';
 
-    $_SESSION['evento_extra'][] = "😇 " . $campeaoNome . " venceu a Prova do Anjo.";
+    if ($autoimune) {
+        $_SESSION['imune'] = $campeaoNome;
+        $_SESSION['anjo_autoimune'] = true;
+        $_SESSION['imunizacao_anjo_feita'] = true;
+        $_SESSION['anjo_autoimune_estat_contada'] = true;
+
+        $_SESSION['evento_extra'][] =
+        "😇 " . $campeaoNome . " venceu a Prova do Anjo e nesta semana o Anjo é autoimune.";
+
+        $_SESSION['evento_extra'][] =
+        "🛡️ " . $campeaoNome . " está imune e não precisará imunizar outra pessoa.";
+    } else {
+        $_SESSION['anjo_autoimune'] = false;
+        unset($_SESSION['imune']);
+
+        $_SESSION['evento_extra'][] =
+        "😇 " . $campeaoNome . " venceu a Prova do Anjo e poderá imunizar alguém antes do paredão.";
+    }
 
     unset($_SESSION['prova_anjo_tipo']);
     unset($_SESSION['caixa_certa']);
     unset($_SESSION['quiz_anjo']);
     unset($_SESSION['anjo_numero_certo']);
+    unset($_SESSION['anjo_autoimune_sorteado_rodada']);
 }
 
 function sortearNPCAnjo($participantes, $meuNome)
@@ -500,7 +551,7 @@ function textoBotaoAnjo($prova, $i)
         <h1>😇 Prova do Anjo</h1>
 
         <div class="sub">
-            O vencedor conquista o colar e imuniza alguém.
+            O vencedor conquista o colar. Em algumas semanas, o Anjo é autoimune.
         </div>
 
         <div class="alerta">
