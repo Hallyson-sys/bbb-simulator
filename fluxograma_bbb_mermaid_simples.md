@@ -1,0 +1,20 @@
+flowchart TD
+A[index] --> B[config]
+B --> C[jogo motor]
+C --> Q[Queridômetro]
+Q --> I1[Interações 1]
+I1 --> L[Prova do Líder]
+L --> V[VIP/Xepa]
+V --> A1[Prova do Anjo]
+A1 --> M[Monstro]
+M --> Bf[Big Fone]
+Bf --> F[Interações 2/Festa]
+F --> Im[Imunização]
+Im --> P[paredão]
+P --> D[discórdia]
+D --> I3[Interações 3]
+I3 --> E[Eliminação]
+E --> R{Continua?}
+R -- sim --> I1
+R -- não --> GF[Final]
+GF --> END[novo jogo]

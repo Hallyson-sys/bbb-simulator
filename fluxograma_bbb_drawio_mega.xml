@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-05-22T00:00:00.000Z" agent="BlackboxAI" version="24.7.8">
+  <diagram id="bbb_megaflux" name="BBB Simulator — Mega Flux (por arquivos)" >
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- =========================
+             Linha superior: Entrada e configurações
+        ========================== -->
+
+        <mxCell id="t_index" value="index.php\nForm de Entrada" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="t_config" value="config.php\nCria jogadores + relações" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="290" y="40" width="260" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="t_jogo" value="jogo.php\nMotor por fase_semana + UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="580" y="40" width="290" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_index_config" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="t_index" target="t_config">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_config_jogo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="t_config" target="t_jogo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- =========================
+             Provas principais
+        ========================== -->
+
+        <mxCell id="p_lider" value="prova_lider.php\nProva do Líder" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="p_anjo" value="prova_anjo.php\nProva do Anjo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="290" y="170" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="p_big" value="big_fone.php\nBig Fone (tocou + poder)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="540" y="170" width="310" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_jogo_lider" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="t_jogo" target="p_lider">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_lider_anjo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="p_lider" target="p_anjo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_anjo_big" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="p_anjo" target="p_big">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- =========================
+             Interações e Ao Vivo
+        ========================== -->
+
+        <mxCell id="i_interacoes" value="interacoes.php\nInterações (modelo simples)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="340" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="i_aoVivo" value="jogo.php\nAo Vivo: $_SESSION['evento_extra']" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="420" y="300" width="340" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_jogo_interacoes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="t_jogo" target="i_aoVivo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_interacoes_jogo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="i_interacoes" target="t_jogo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- =========================
+             Discórdia
+        ========================== -->
+
+        <mxCell id="disc" value="discordia.php\nJogo da Discórdia (tema + modos)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="395" width="360" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="disc_motor" value="includes/logica_jogo.php\nFunções IA + chances" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="420" y="395" width="360" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_jogo_disc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="t_jogo" target="disc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_disc_motor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="disc" target="disc_motor">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- =========================
+             Paredão / Eliminação / Final
+        ========================== -->
+
+        <mxCell id="paredao" value="jogo.php\nFormar Paredão (líder + bigfone + voto)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="505" width="470" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="res" value="resultado.php\nRevelar eliminado + ranking" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="540" y="520" width="290" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="final" value="final.php\nGrande Final + reveal do campeão" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="860" y="520" width="320" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_jogo_paredao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="t_jogo" target="paredao">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_paredao_res" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="paredao" target="res">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_res_final" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="res" target="final">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- =========================
+             Reset
+        ========================== -->
+
+        <mxCell id="reset" value="reset.php\nLimpa sessão e volta ao início" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="860" y="610" width="260" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_final_reset" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="final" target="reset">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- =========================
+             Ciclo de volta
+        ========================== -->
+
+        <mxCell id="volta" value="Volta para nova temporada\n→ index.php" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="860" y="40" width="260" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_final_volta" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="final" target="volta">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_volta_index" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="volta" target="t_index">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+
