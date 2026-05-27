@@ -78,6 +78,38 @@ function limitarResultado($valor, $min = 0, $max = 100){
     return max($min, min($max, $valor));
 }
 
+function registrarEstatisticaResultado(&$jogadores, $nome, $campo, $valor = 1){
+    foreach($jogadores as &$j){
+        if(nomeIgualResultado(($j['nome'] ?? ''), $nome)){
+            if(!isset($j['estatisticas']) || !is_array($j['estatisticas'])){
+                $j['estatisticas'] = [];
+            }
+
+            $j['estatisticas'][$campo] =
+            ($j['estatisticas'][$campo] ?? 0) + $valor;
+
+            break;
+        }
+    }
+    unset($j);
+}
+
+function contarParedaoResultadoUmaVez(&$jogadores, $paredao, $rodada){
+    $chave = 'estatisticas_paredao_contadas_rodada_'.$rodada;
+
+    if(isset($_SESSION[$chave])){
+        return;
+    }
+
+    foreach($paredao as $nome){
+        if(trim((string)$nome) == '') continue;
+        registrarEstatisticaResultado($jogadores, $nome, 'paredao', 1);
+    }
+
+    $_SESSION[$chave] = true;
+}
+
+
 
 /* ==========================
    📈 POPULARIDADE AVANÇADA NO PAREDÃO
@@ -243,6 +275,9 @@ if(isset($_POST['revelar'])){
         header("Location: jogo.php");
         exit;
     }
+
+    /* Conta paredão antes da eliminação para o snapshot final sair atualizado. */
+    contarParedaoResultadoUmaVez($jogadores, $paredao, $rodada);
 
     /* Agora o resultado é baseado em popularidade/rejeição pública */
     $ranking = gerarRankingEliminacaoPorPopularidade($jogadores, $paredao);
