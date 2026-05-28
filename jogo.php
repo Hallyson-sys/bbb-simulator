@@ -7429,6 +7429,167 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
     }
 }
 
+@media (max-width: 768px){
+
+body{
+    overflow-x: hidden;
+}
+
+.top-header{
+    padding: 18px 14px;
+}
+
+.logo-area{
+    gap: 10px;
+}
+
+.bbb-icon{
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    border-radius: 16px;
+}
+
+.logo-area h1{
+    font-size: 26px;
+}
+
+.sub-info{
+    font-size: 11px;
+    flex-wrap: wrap;
+}
+
+.container{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 12px;
+    gap: 16px;
+}
+
+.center{
+    order: 1;
+}
+
+.left{
+    order: 2;
+    max-height: none;
+}
+
+.right{
+    order: 3;
+    max-height: none;
+}
+
+.left,
+.center,
+.right{
+    width: 100%;
+    padding: 14px;
+    border-radius: 20px;
+}
+
+h2{
+    font-size: 24px;
+}
+
+.players-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.card{
+    min-height: 165px;
+    padding: 10px 8px;
+    border-radius: 16px;
+}
+
+.avatar{
+    width: 42px;
+    height: 42px;
+}
+
+.card h3{
+    font-size: 12px;
+}
+
+.card p,
+.status{
+    font-size: 10px;
+}
+
+.interacoes-grid{
+    grid-template-columns: 1fr;
+}
+
+.queridometro-grid,
+.resultado-querido-grid{
+    grid-template-columns: 1fr;
+    max-height: none;
+    overflow-y: visible;
+}
+
+.emojis-grid{
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.emoji-btn{
+    height: 44px;
+    font-size: 22px;
+}
+
+.legenda-querido{
+    grid-template-columns: 1fr 1fr;
+}
+
+.box{
+    padding: 14px;
+}
+
+.btn,
+.btn-confirmar-querido{
+    min-height: 52px;
+    font-size: 15px;
+}
+
+.log{
+    max-height: none;
+    overflow-y: visible;
+}
+
+.log p{
+    font-size: 13px;
+}
+}
+
+@media (max-width: 430px){
+
+.players-grid{
+    grid-template-columns: 1fr 1fr;
+}
+
+.legenda-querido{
+    grid-template-columns: 1fr;
+}
+
+.logo-area h1{
+    font-size: 23px;
+}
+
+.card h3{
+    font-size: 11px;
+}
+
+.card p,
+.status{
+    font-size: 9.5px;
+}
+
+.querido-header h2{
+    font-size: 22px;
+}
+}
+
 
 </style>
 </head>
