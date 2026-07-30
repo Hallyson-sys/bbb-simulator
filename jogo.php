@@ -202,6 +202,19 @@ if (!isset($_SESSION['evento_extra'])) {
     $_SESSION['evento_extra'] = [];
 }
 
+
+/* =========================
+   🪙 MOEDAS DO PÚBLICO
+   Sistema de recompensas estratégicas para desbloquear vantagens sem revelar
+   a popularidade nos cards.
+========================= */
+if (!isset($_SESSION['moedas_publico'])) {
+    $_SESSION['moedas_publico'] = 50;
+}
+
+$_SESSION['moedas_publico'] = max(0, (int)$_SESSION['moedas_publico']);
+
+
 /* Remove mensagens antigas do Confessionário do Ao Vivo.
    As falas ficam apenas na tela da fase "confessionario". */
 $_SESSION['evento_extra'] = array_values(array_filter($_SESSION['evento_extra'], function ($ev) {
@@ -220,6 +233,280 @@ if ($fase == 'interacoes_1' && !isset($_SESSION['queridometro_feito'])) {
 function limitar($valor, $min = 0, $max = 100)
 {
     return max($min, min($max, $valor));
+}
+
+
+function obterMoedasPublico()
+{
+    return max(0, (int)($_SESSION['moedas_publico'] ?? 0));
+}
+
+
+function lojaPublicoDisponivelRodada($rodadaAtual)
+{
+    $rodadaAtual = (int)$rodadaAtual;
+
+    if ($rodadaAtual < 2) {
+        $_SESSION['loja_publico_rodada_sorteada'] = $rodadaAtual;
+        $_SESSION['loja_publico_disponivel'] = false;
+        return false;
+    }
+
+    if (
+        !isset($_SESSION['loja_publico_rodada_sorteada']) ||
+        (int)$_SESSION['loja_publico_rodada_sorteada'] !== $rodadaAtual
+    ) {
+        $_SESSION['loja_publico_rodada_sorteada'] = $rodadaAtual;
+
+        /* A loja aparece em algumas semanas, sem mudar ao atualizar a página. */
+        $_SESSION['loja_publico_disponivel'] = (rand(1, 100) <= 45);
+    }
+
+    return !empty($_SESSION['loja_publico_disponivel']);
+}
+
+function adicionarMoedasPublico($qtd, $motivo = '')
+{
+    $qtd = (int)$qtd;
+
+    if ($qtd <= 0) return 0;
+
+    $_SESSION['moedas_publico'] = obterMoedasPublico() + $qtd;
+
+    if ($motivo != '') {
+        if (!isset($_SESSION['evento_extra'])) {
+            $_SESSION['evento_extra'] = [];
+        }
+
+        $_SESSION['evento_extra'][] = "🪙 Você ganhou <b>+$qtd Moedas do Público</b> por $motivo.";
+    }
+
+    return $_SESSION['moedas_publico'];
+}
+
+function gastarMoedasPublico($qtd)
+{
+    $qtd = (int)$qtd;
+
+    if ($qtd <= 0) return true;
+
+    if (obterMoedasPublico() < $qtd) {
+        return false;
+    }
+
+    $_SESSION['moedas_publico'] = obterMoedasPublico() - $qtd;
+    return true;
+}
+
+function obterMeuJogadorMoedas($jogadores)
+{
+    $meuNome = $_SESSION['meu_nome'] ?? '';
+
+    foreach ($jogadores as $j) {
+        if (nomeIgual(($j['nome'] ?? ''), $meuNome)) {
+            return $j;
+        }
+    }
+
+    return null;
+}
+
+function rankingPopularidadePublica($jogadores)
+{
+    $ranking = [];
+
+    foreach ($jogadores as $j) {
+        $nome = $j['nome'] ?? '';
+
+        if ($nome == '') continue;
+
+        $ranking[] = [
+            'nome' => $nome,
+            'popularidade' => limitar((int)($j['popularidade'] ?? 50), 0, 100)
+        ];
+    }
+
+    usort($ranking, function ($a, $b) {
+        return $b['popularidade'] <=> $a['popularidade'];
+    });
+
+    return $ranking;
+}
+
+function maiorRivalDoJogadorMoedas($jogadores)
+{
+    $meuNome = $_SESSION['meu_nome'] ?? '';
+    $relacoes = $_SESSION['relacoes_jogador'] ?? [];
+
+    $maiorRival = '';
+    $menorValor = 999;
+
+    foreach ($jogadores as $j) {
+        $nome = $j['nome'] ?? '';
+
+        if ($nome == '' || nomeIgual($nome, $meuNome)) continue;
+
+        $rel = $relacoes[$nome] ?? 0;
+
+        if ($rel < $menorValor) {
+            $menorValor = $rel;
+            $maiorRival = $nome;
+        }
+    }
+
+    if ($maiorRival != '') {
+        return $maiorRival;
+    }
+
+    $opcoes = [];
+
+    foreach ($jogadores as $j) {
+        $nome = $j['nome'] ?? '';
+        if ($nome != '' && !nomeIgual($nome, $meuNome)) {
+            $opcoes[] = $nome;
+        }
+    }
+
+    return empty($opcoes) ? '' : $opcoes[array_rand($opcoes)];
+}
+
+function descobrirAlvoDaCasaMoedas($jogadores)
+{
+    $meuNome = $_SESSION['meu_nome'] ?? '';
+    $pontuacao = [];
+
+    foreach ($jogadores as $votante) {
+        $nomeVotante = $votante['nome'] ?? '';
+
+        if ($nomeVotante == '') continue;
+
+        foreach ($jogadores as $alvo) {
+            $nomeAlvo = $alvo['nome'] ?? '';
+
+            if ($nomeAlvo == '' || nomeIgual($nomeAlvo, $nomeVotante)) continue;
+            if (!empty($alvo['status']['lider'])) continue;
+            if (estaImune($jogadores, $nomeAlvo)) continue;
+
+            $rel = obterRelacaoCompleta($jogadores, $nomeVotante, $nomeAlvo, $meuNome);
+
+            $score =
+                (($rel['rivalidade'] ?? 0) * 2) +
+                (100 - ($rel['amizade'] ?? 0)) +
+                rand(0, 15);
+
+            if (mesmaAliancaNomes($jogadores, $nomeVotante, $nomeAlvo)) {
+                $score -= 40;
+            }
+
+            $pontuacao[$nomeAlvo] = ($pontuacao[$nomeAlvo] ?? 0) + $score;
+        }
+    }
+
+    if (empty($pontuacao)) return '';
+
+    arsort($pontuacao);
+    return array_key_first($pontuacao);
+}
+
+function verificarBonusMarcosMoedas($jogadores)
+{
+    $total = count($jogadores);
+
+    if ($total <= 10 && empty($_SESSION['bonus_moedas_top10'])) {
+        $_SESSION['bonus_moedas_top10'] = true;
+        adicionarMoedasPublico(30, "chegar ao Top 10");
+    }
+
+    if ($total <= 5 && empty($_SESSION['bonus_moedas_top5'])) {
+        $_SESSION['bonus_moedas_top5'] = true;
+        adicionarMoedasPublico(50, "chegar ao Top 5");
+    }
+}
+
+function usarItemLojaPublico(&$jogadores, $item)
+{
+    $meuNome = $_SESSION['meu_nome'] ?? '';
+
+    if ($meuNome == '') {
+        return "⚠️ Jogador não encontrado.";
+    }
+
+    if ($item == 'radar') {
+        $custo = 50;
+
+        if (!gastarMoedasPublico($custo)) {
+            return "🪙 Moedas insuficientes. O Radar do Público custa $custo moedas.";
+        }
+
+        $_SESSION['radar_publico_liberado_rodada'] = $_SESSION['rodada'] ?? 1;
+        return "📊 Radar do Público liberado! A popularidade oculta dos participantes foi revelada nesta rodada.";
+    }
+
+    if ($item == 'mutirao') {
+        $custo = 100;
+
+        if (!gastarMoedasPublico($custo)) {
+            return "🪙 Moedas insuficientes. O Mutirão contra Rival custa $custo moedas.";
+        }
+
+        $rival = maiorRivalDoJogadorMoedas($jogadores);
+
+        if ($rival == '') {
+            $_SESSION['moedas_publico'] += $custo;
+            return "⚠️ Não foi possível encontrar um rival válido para o mutirão.";
+        }
+
+        alterarPopularidade($jogadores, $rival, -10);
+        $_SESSION['jogadores'] = $jogadores;
+
+        return "📉 Mutirão ativado! O público começou a pegar ranço de <b>$rival</b>. Popularidade dele caiu <b>-10</b>.";
+    }
+
+    if ($item == 'espionar_minha_popularidade') {
+        $custo = 75;
+
+        if (!gastarMoedasPublico($custo)) {
+            return "🪙 Moedas insuficientes. Espionar sua popularidade custa $custo moedas.";
+        }
+
+        $_SESSION['popularidade_propria_liberada_rodada'] = $_SESSION['rodada'] ?? 1;
+        return "🔍 Espionagem liberada! Sua popularidade aparece nesta rodada.";
+    }
+
+    if ($item == 'impulso_imagem') {
+        $custo = 120;
+
+        if (!gastarMoedasPublico($custo)) {
+            return "🪙 Moedas insuficientes. Impulsionar imagem custa $custo moedas.";
+        }
+
+        alterarPopularidade($jogadores, $meuNome, 8);
+        $_SESSION['jogadores'] = $jogadores;
+
+        return "🛡️ Impulso de Imagem ativado! Sua popularidade subiu <b>+8</b>.";
+    }
+
+    if ($item == 'alvo_casa') {
+        $custo = 90;
+
+        if (!gastarMoedasPublico($custo)) {
+            return "🪙 Moedas insuficientes. Descobrir o alvo da casa custa $custo moedas.";
+        }
+
+        $alvo = descobrirAlvoDaCasaMoedas($jogadores);
+
+        if ($alvo == '') {
+            $_SESSION['moedas_publico'] += $custo;
+            return "⚠️ Não foi possível calcular o alvo da casa nesta rodada.";
+        }
+
+        $_SESSION['alvo_casa_revelado_rodada'] = $_SESSION['rodada'] ?? 1;
+        $_SESSION['alvo_casa_revelado_nome'] = $alvo;
+
+        return "🎯 Informação vazada: a casa está se movimentando contra <b>$alvo</b>.";
+    }
+
+    return "⚠️ Item inválido na Loja do Público.";
 }
 
 function definirTamanhoParedao($jogadores)
@@ -493,7 +780,8 @@ function resolverBateVoltaJogador(&$jogadores, $escolha)
     $_SESSION['fase_semana'] = 'discordia';
 
     if (nomeIgual($vencedor, $meuNome)) {
-        alterarPopularidadePublica($jogadores, $meuNome, 3, 8, "venceu o Bate-Volta e escapou do paredão", true);
+        alterarPopularidadePublica($jogadores, $meuNome, 4, 6, "venceu o Bate-Volta e escapou do paredão", true);
+        adicionarMoedasPublico(15, "vencer o Bate-Volta");
         return "🏆 Você venceu o Bate-Volta e escapou do paredão! " . $resultadoJogador['detalhe'];
     }
 
@@ -671,6 +959,8 @@ $qtdVIP = calcularQtdVIP(count($jogadores));
 
 sincronizarImunidadesGlobais($jogadores);
 $_SESSION['jogadores'] = $jogadores;
+verificarBonusMarcosMoedas($jogadores);
+$mostrarLojaPublico = lojaPublicoDisponivelRodada($rodada);
 
 /* =========================
    🤝 SISTEMA DE ALIANÇAS COMPATÍVEL COM LOGICA_JOGO.PHP
@@ -2781,6 +3071,25 @@ if (isset($_POST['ir_final'])) {
     exit;
 }
 
+
+/* 🪙 USAR LOJA DO PÚBLICO */
+if (isset($_POST['usar_loja_publico'])) {
+    if (!lojaPublicoDisponivelRodada($_SESSION['rodada'] ?? 1)) {
+        $_SESSION['evento_extra'][] = "🪙 A Loja do Público não está disponível nesta rodada.";
+        header("Location: jogo.php");
+        exit;
+    }
+
+    $itemLoja = $_POST['usar_loja_publico'] ?? '';
+    $resultadoLoja = usarItemLojaPublico($jogadores, $itemLoja);
+
+    $_SESSION['evento_extra'][] = $resultadoLoja;
+    $_SESSION['jogadores'] = $jogadores;
+
+    header("Location: jogo.php");
+    exit;
+}
+
 /* LIMPAR AO VIVO */
 if (isset($_POST['limpar_log'])) {
     $_SESSION['evento_extra'] = [];
@@ -3759,6 +4068,274 @@ function prepararConfessionarioDaRodada(&$jogadores, $meuNome)
 }
 
 
+/* =========================
+   💬 FOFOCAS + 🎬 VTs AVANÇADOS
+   Movimenta afinidade, rivalidade, confiança, alianças e popularidade.
+========================= */
+
+function garantirHistoricoFofocasEVTs()
+{
+    if (!isset($_SESSION['historico_fofocas']) || !is_array($_SESSION['historico_fofocas'])) {
+        $_SESSION['historico_fofocas'] = [];
+    }
+
+    if (!isset($_SESSION['historico_vts']) || !is_array($_SESSION['historico_vts'])) {
+        $_SESSION['historico_vts'] = [];
+    }
+}
+
+function registrarHistoricoLimitado($chave, $item, $limite = 30)
+{
+    garantirHistoricoFofocasEVTs();
+
+    $_SESSION[$chave][] = $item;
+
+    if (count($_SESSION[$chave]) > $limite) {
+        $_SESSION[$chave] = array_slice($_SESSION[$chave], -$limite);
+    }
+}
+
+function escolherAlvoAleatorioValido($jogadores, $bloqueados = [])
+{
+    $opcoes = [];
+
+    foreach ($jogadores as $j) {
+        $nome = $j['nome'] ?? '';
+
+        if ($nome == '') continue;
+        if (in_array($nome, $bloqueados)) continue;
+
+        $opcoes[] = $nome;
+    }
+
+    if (empty($opcoes)) return '';
+
+    return $opcoes[array_rand($opcoes)];
+}
+
+function temaFofocaAleatorio($fofoqueiro, $alvo)
+{
+    $temas = [
+        "disse que $alvo está se escondendo no jogo",
+        "comentou que $alvo só aparece quando tem câmera por perto",
+        "espalhou que $alvo está combinando votos escondido",
+        "falou que $alvo está se aproximando do líder por interesse",
+        "disse que $alvo está usando amizades como estratégia",
+        "soltou que $alvo já tem alvo definido para o próximo paredão",
+        "comentou que $alvo está fazendo personagem para o público",
+        "disse que $alvo está se fazendo de vítima",
+        "falou que $alvo promete lealdade para todo mundo",
+        "espalhou que $alvo está jogando dos dois lados"
+    ];
+
+    return $temas[array_rand($temas)];
+}
+
+function resolverFofocaAvancada(&$jogadores, $fofoqueiro, $alvo, $meuNome = '')
+{
+    if ($fofoqueiro == '' || $alvo == '' || nomeIgual($fofoqueiro, $alvo)) {
+        return "⚠️ Escolha um participante válido para a fofoca.";
+    }
+
+    garantirHistoricoFofocasEVTs();
+
+    $tema = temaFofocaAleatorio($fofoqueiro, $alvo);
+    $chanceEspalhar = rand(45, 80);
+    $chanceDescobrir = rand(35, 70);
+    $fofocaPegou = rand(1, 100) <= $chanceEspalhar;
+    $alvoDescobriu = rand(1, 100) <= $chanceDescobrir;
+
+    $testemunhasAfetadas = [];
+
+    foreach ($jogadores as $j) {
+        $nome = $j['nome'] ?? '';
+
+        if ($nome == '' || nomeIgual($nome, $fofoqueiro) || nomeIgual($nome, $alvo)) {
+            continue;
+        }
+
+        if ($fofocaPegou && rand(1, 100) <= 55) {
+            alterarAfinidade($jogadores, $nome, $alvo, rand(-9, -3), rand(2, 7), rand(-8, -2));
+            $testemunhasAfetadas[] = $nome;
+        }
+
+        if ($alvoDescobriu && rand(1, 100) <= 35) {
+            alterarAfinidade($jogadores, $nome, $fofoqueiro, rand(-5, -1), rand(1, 5), rand(-6, -1));
+        }
+    }
+
+    if ($fofocaPegou) {
+        alterarAfinidade($jogadores, $fofoqueiro, $alvo, rand(-5, -2), rand(2, 6), rand(-5, -2));
+
+        if (nomeIgual($alvo, $meuNome)) {
+            ajustarRelacaoJogador($fofoqueiro, -8);
+        }
+
+        if (nomeIgual($fofoqueiro, $meuNome)) {
+            alterarPopularidadePublica($jogadores, $fofoqueiro, -4, 6, "movimentou a casa com uma fofoca", true);
+        } else {
+            impactoPopularidadePorPersonalidade($jogadores, $fofoqueiro, "fofoca", false);
+        }
+
+        $evento = "💬 A fofoca se espalhou: <b>$fofoqueiro</b> $tema.";
+    } else {
+        alterarAfinidade($jogadores, $alvo, $fofoqueiro, rand(-6, -2), rand(2, 7), rand(-8, -3));
+        alterarPopularidadePublica($jogadores, $fofoqueiro, -8, -3, "tentou espalhar fofoca, mas a casa não comprou", nomeIgual($fofoqueiro, $meuNome));
+        $evento = "🫢 <b>$fofoqueiro</b> tentou espalhar que $tema, mas a fofoca não pegou muito.";
+    }
+
+    if ($alvoDescobriu) {
+        alterarAfinidade($jogadores, $alvo, $fofoqueiro, rand(-12, -5), rand(5, 12), rand(-10, -4));
+        $evento .= " 😡 <b>$alvo</b> descobriu e ficou muito incomodado.";
+
+        if (mesmaAliancaNomes($jogadores, $fofoqueiro, $alvo) && rand(1, 100) <= 35) {
+            $rompimento = romperAlianca($jogadores, $alvo, "descobriu uma fofoca interna envolvendo $fofoqueiro");
+            if ($rompimento != '') {
+                $evento .= "<br>" . $rompimento;
+            }
+        }
+    }
+
+    registrarRelacaoMarcante($jogadores, $fofoqueiro, $alvo);
+    registrarRelacaoMarcante($jogadores, $alvo, $fofoqueiro);
+
+    registrarHistoricoLimitado('historico_fofocas', [
+        'rodada' => $_SESSION['rodada'] ?? 1,
+        'fofoqueiro' => $fofoqueiro,
+        'alvo' => $alvo,
+        'pegou' => $fofocaPegou,
+        'descobriu' => $alvoDescobriu,
+        'tema' => strip_tags($tema)
+    ]);
+
+    return $evento;
+}
+
+function resolverVTAvancado(&$jogadores, $nome, $meuNome = '')
+{
+    if ($nome == '') {
+        return "⚠️ Participante inválido para fazer VT.";
+    }
+
+    $modelos = [
+        [
+            'tipo' => 'emocionante',
+            'texto' => "🎬 <b>$nome</b> fez um VT emocionante falando sobre sua trajetória no jogo.",
+            'min' => 4,
+            'max' => 6
+        ],
+        [
+            'tipo' => 'engracado',
+            'texto' => "😂 <b>$nome</b> protagonizou um momento engraçado e virou assunto entre o público.",
+            'min' => 2,
+            'max' => 6
+        ],
+        [
+            'tipo' => 'forcado',
+            'texto' => "🙄 <b>$nome</b> tentou fazer VT, mas parte do público achou forçado.",
+            'min' => -5,
+            'max' => -3
+        ],
+        [
+            'tipo' => 'vilao',
+            'texto' => "🐍 <b>$nome</b> entregou um VT de vilão, movimentou o jogo e dividiu opiniões.",
+            'min' => -6,
+            'max' => 6
+        ],
+        [
+            'tipo' => 'vitima',
+            'texto' => "🥺 <b>$nome</b> fez um VT de vítima e o público ficou dividido.",
+            'min' => -2,
+            'max' => 5
+        ],
+        [
+            'tipo' => 'protagonista',
+            'texto' => "🌟 <b>$nome</b> roubou a cena e ganhou narrativa de protagonista na edição.",
+            'min' => 4,
+            'max' => 6
+        ]
+    ];
+
+    $modelo = $modelos[array_rand($modelos)];
+
+    $valor = alterarPopularidadePublica(
+        $jogadores,
+        $nome,
+        $modelo['min'],
+        $modelo['max'],
+        "VT " . $modelo['tipo'],
+        nomeIgual($nome, $meuNome)
+    );
+
+    if ($modelo['tipo'] == 'forcado') {
+        foreach ($jogadores as $j) {
+            $outro = $j['nome'] ?? '';
+            if ($outro != '' && !nomeIgual($outro, $nome) && rand(1, 100) <= 25) {
+                alterarAfinidade($jogadores, $outro, $nome, -3, 2, -2);
+            }
+        }
+    }
+
+    if ($modelo['tipo'] == 'protagonista' || $modelo['tipo'] == 'emocionante') {
+        foreach ($jogadores as $j) {
+            $outro = $j['nome'] ?? '';
+            if ($outro != '' && !nomeIgual($outro, $nome) && rand(1, 100) <= 20) {
+                alterarAfinidade($jogadores, $outro, $nome, 2, -1, 2);
+            }
+        }
+    }
+
+    registrarHistoricoLimitado('historico_vts', [
+        'rodada' => $_SESSION['rodada'] ?? 1,
+        'nome' => $nome,
+        'tipo' => $modelo['tipo'],
+        'popularidade' => $valor
+    ]);
+
+    if ($valor > 0) {
+        if (nomeIgual($nome, $meuNome) && in_array($modelo['tipo'], ['emocionante', 'protagonista', 'engracado'])) {
+            adicionarMoedasPublico(10, "fazer um VT que agradou o público");
+        }
+
+        return $modelo['texto'] . " 📈 Popularidade +" . $valor . ".";
+    }
+
+    if ($valor < 0) {
+        return $modelo['texto'] . " 📉 Popularidade " . $valor . ".";
+    }
+
+    return $modelo['texto'] . " ➖ O público ficou neutro.";
+}
+
+function gerarFofocasEVTsAutomaticos(&$jogadores, $meuNome, $quantidade = 3)
+{
+    $eventos = [];
+    $nomes = nomesJogadoresAtivos($jogadores);
+
+    if (count($nomes) < 2) return $eventos;
+
+    for ($i = 0; $i < $quantidade; $i++) {
+        $tipo = rand(1, 100);
+
+        if ($tipo <= 60) {
+            $fofoqueiro = $nomes[array_rand($nomes)];
+            $alvo = escolherAlvoAleatorioValido($jogadores, [$fofoqueiro]);
+
+            if ($alvo != '') {
+                $eventos[] = resolverFofocaAvancada($jogadores, $fofoqueiro, $alvo, $meuNome);
+            }
+        } else {
+            $nomeVT = $nomes[array_rand($nomes)];
+            $eventos[] = resolverVTAvancado($jogadores, $nomeVT, $meuNome);
+        }
+    }
+
+    $_SESSION['jogadores'] = $jogadores;
+
+    return $eventos;
+}
+
+
 /* PROCESSAR INTERAÇÃO */
 if (isset($_POST['acao']) && strpos($fase, 'interacoes') !== false && $_SESSION['acoes_restantes'] > 0) {
 
@@ -3779,24 +4356,7 @@ if (isset($_POST['acao']) && strpos($fase, 'interacoes') !== false && $_SESSION[
     }
 
     if ($acao == "fofoca" && $alvo) {
-        if (rand(1, 100) <= 60) {
-            foreach ($jogadores as $j) {
-                if ($j['nome'] != $meuNome && $j['nome'] != $alvo) {
-                    alterarAfinidade($jogadores, $j['nome'], $alvo, rand(-10, -3), rand(3, 8), rand(-8, -3));
-                }
-            }
-
-            if (rand(1, 100) <= 45) {
-                impactoPopularidadePorPersonalidade($jogadores, $meuNome, "fofoca", true);
-            } else {
-                alterarPopularidadePublica($jogadores, $meuNome, 1, 4, "movimentou o jogo com uma fofoca que o público comprou", true);
-            }
-
-            $evento = "🗣️ $meuNome espalhou uma fofoca sobre $alvo, e parte da casa acreditou.";
-        } else {
-            alterarPopularidadePublica($jogadores, $meuNome, -8, -3, "a casa não acreditou na fofoca", true);
-            $evento = "🗣️ $meuNome tentou fazer fofoca sobre $alvo, mas a casa não acreditou.";
-        }
+        $evento = resolverFofocaAvancada($jogadores, $meuNome, $alvo, $meuNome);
     }
 
     if ($acao == "intriga" && $alvo && $alvo2 && $alvo != $alvo2) {
@@ -3823,11 +4383,19 @@ if (isset($_POST['acao']) && strpos($fase, 'interacoes') !== false && $_SESSION[
             $nomeAliancaCriada,
             $convidadosAlianca
         );
+
+        if (mb_stripos($evento, 'criou a aliança', 0, 'UTF-8') !== false) {
+            adicionarMoedasPublico(15, "criar uma aliança aceita");
+        }
     }
 
     if ($acao == "entrar_alianca") {
         $aliancaEscolhida = $_POST['alianca_escolhida'] ?? '';
         $evento = jogadorEntrarEmAlianca($jogadores, $meuNome, $aliancaEscolhida);
+
+        if (mb_stripos($evento, 'entrou para a aliança', 0, 'UTF-8') !== false) {
+            adicionarMoedasPublico(5, "entrar em uma aliança");
+        }
     }
 
     if ($acao == "sair_alianca") {
@@ -3873,10 +4441,7 @@ if (isset($_POST['acao']) && strpos($fase, 'interacoes') !== false && $_SESSION[
     }
 
     if ($acao == "vt") {
-        $mudanca = impactoPopularidadePorPersonalidade($jogadores, $meuNome, "vt", true);
-        $evento = ($mudanca >= 0)
-            ? "📺 $meuNome fez VT e ganhou popularidade."
-            : "📺 $meuNome tentou fazer VT, mas o público achou forçado.";
+        $evento = resolverVTAvancado($jogadores, $meuNome, $meuNome);
     }
 
     if ($acao == "quieto") {
@@ -3898,6 +4463,11 @@ if (isset($_POST['acao']) && strpos($fase, 'interacoes') !== false && $_SESSION[
 
             $eventosAliancas = atualizarAliancasAutomaticas($jogadores, $meuNome);
             foreach ($eventosAliancas as $ev) {
+                $_SESSION['evento_extra'][] = $ev;
+            }
+
+            $eventosFofocasVTs = gerarFofocasEVTsAutomaticos($jogadores, $meuNome, rand(2, 4));
+            foreach ($eventosFofocasVTs as $ev) {
                 $_SESSION['evento_extra'][] = $ev;
             }
 
@@ -5738,7 +6308,7 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
             position: relative;
             overflow: hidden;
 
-            padding: 28px 35px;
+            padding: 15px 35px;
 
             background:
                 linear-gradient(135deg,
@@ -5833,6 +6403,21 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
             font-weight: 600;
 
             opacity: .92;
+        }
+
+
+        .brand-text{
+            min-width:0;
+        }
+
+        .brand-text h1{
+            white-space:nowrap;
+        }
+
+        .header-content{
+            display:flex;
+            align-items:center;
+            justify-content:flex-start;
         }
 
         .dot {
@@ -6211,40 +6796,58 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
             font-size: 13px;
         }
 
-        .log {
-            flex: 1;
-            max-height: 720px;
-            overflow-y: auto;
-            scrollbar-width: none;
-            padding-right: 2px;
+        .log{
+            min-height:420px;
+            max-height:420px;
+    overflow-y:auto;
         }
 
         .log::-webkit-scrollbar {
             display: none;
         }
 
-        .log p {
-            position: relative;
-            background: linear-gradient(180deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .04));
-            padding: 13px 13px 13px 16px;
-            border-radius: 16px;
-            margin-bottom: 11px;
-            line-height: 1.5;
-            font-size: 14px;
-            border: 1px solid rgba(255, 255, 255, .06);
-            box-shadow: 0 10px 22px rgba(0, 0, 0, .18);
-        }
+        .log p{
+    position: relative;
+    display: block;
+    width: 100%;
 
-        .log p::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 14px;
-            bottom: 14px;
-            width: 3px;
-            border-radius: 10px;
-            background: linear-gradient(var(--pink), var(--cyan));
-        }
+    background: rgba(255,255,255,.06);
+    border-radius: 18px;
+
+    padding: 18px 20px 18px 24px;
+    margin: 0 0 12px 0;
+
+    line-height: 1.7;
+    font-size: 1rem;
+
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.log p::before{
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 14px;
+    bottom: 14px;
+    width: 4px;
+    border-radius: 10px;
+    background: linear-gradient(var(--pink), var(--cyan));
+}
+
+.log{
+    display: block;
+    max-height: 650px;
+    overflow-y: auto;
+    padding: 0 8px 12px 0;
+}
 
         .popup-bg {
             position: fixed;
@@ -7097,8 +7700,15 @@ if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
     }
 
     .logo-area{
-        align-items:flex-start;
-        gap:12px;
+    display:flex;
+    align-items:center;
+    gap:22px;
+    }
+
+    .brand-text{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
     }
 
     .bbb-icon{
@@ -7591,6 +8201,749 @@ h2{
 }
 
 
+
+/* =========================
+   🪙 LOJA DO PÚBLICO
+========================= */
+.loja-publico-box{
+    margin-top:18px;
+    padding:16px;
+    border-radius:20px;
+    background:linear-gradient(135deg,rgba(255,204,0,.12),rgba(255,0,140,.08));
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 0 24px rgba(255,204,0,.12);
+}
+
+.loja-publico-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:14px;
+}
+
+.loja-publico-top h3{
+    font-size:18px;
+    margin-bottom:5px;
+}
+
+.loja-publico-top p{
+    font-size:12px;
+    color:#d8d8ee;
+    line-height:1.4;
+}
+
+.loja-publico-top strong{
+    white-space:nowrap;
+    padding:8px 10px;
+    border-radius:999px;
+    background:rgba(255,204,0,.16);
+    color:#ffe681;
+    font-size:13px;
+}
+
+.loja-publico-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+}
+
+.loja-publico-grid button{
+    min-height:62px;
+    border-radius:15px;
+    padding:10px;
+    font-size:13px;
+    line-height:1.25;
+    border:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(135deg,rgba(255,0,140,.22),rgba(0,217,255,.14));
+    color:#fff;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.loja-publico-grid button:hover{
+    transform:translateY(-2px);
+    box-shadow:0 0 18px rgba(255,204,0,.2);
+}
+
+.loja-publico-grid small{
+    color:#ffe681;
+    font-size:11px;
+}
+
+.loja-revelacao{
+    padding:11px 12px;
+    margin-bottom:12px;
+    border-radius:14px;
+    background:rgba(0,217,255,.10);
+    border:1px solid rgba(0,217,255,.20);
+    color:#eafcff;
+    font-size:13px;
+}
+
+.radar-publico{
+    margin:12px 0;
+    padding:12px;
+    border-radius:16px;
+    background:rgba(0,0,0,.20);
+    border:1px solid rgba(255,255,255,.10);
+}
+
+.radar-publico h4{
+    margin-bottom:10px;
+    font-size:15px;
+}
+
+.radar-linha{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    font-size:12px;
+    margin-top:8px;
+}
+
+.radar-barra{
+    height:8px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+    overflow:hidden;
+    margin-top:5px;
+}
+
+.radar-barra div{
+    height:100%;
+    border-radius:999px;
+    background:linear-gradient(90deg,#ffcc00,#ff008c,#00d9ff);
+}
+
+
+/* Loja posicionada na lateral direita para não alongar o Controle da Semana */
+.right .loja-publico-box{
+    margin-top:0;
+    margin-bottom:16px;
+}
+
+.right .loja-publico-top{
+    align-items:center;
+}
+
+.right .loja-publico-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width:768px){
+    .header-content{
+        justify-content:flex-start;
+    }
+
+    .logo-area{
+        flex-direction:row;
+        flex-wrap:nowrap;
+        align-items:center;
+    }
+
+    .brand-text h1{
+        font-size:28px;
+        line-height:1;
+    }
+
+    .sub-info{
+        gap:7px;
+    }
+
+    .right .loja-publico-box{
+        margin-bottom:14px;
+    }
+}
+
+@media (max-width:430px){
+    .brand-text h1{
+        font-size:24px;
+        letter-spacing:.5px;
+    }
+
+    .bbb-icon{
+        width:52px;
+        height:52px;
+        min-width:52px;
+    }
+
+    .right .loja-publico-grid{
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+    }
+
+    .right .loja-publico-grid button{
+        min-height:58px;
+        font-size:12px;
+    }
+}
+
+
+/* =========================
+   ✅ CORREÇÕES FINAIS — HEADER, AO VIVO E LOJA
+   Mantém a Loja abaixo do Ao Vivo e evita corte nas mensagens.
+========================= */
+
+.header-content{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    width:100% !important;
+}
+
+.logo-area{
+    display:inline-flex !important;
+    flex-direction:row !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    gap:18px !important;
+    width:auto !important;
+    max-width:100% !important;
+    text-align:left !important;
+}
+
+.bbb-icon{
+    flex:0 0 auto !important;
+}
+
+.brand-text{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:flex-start !important;
+    justify-content:center !important;
+    min-width:0 !important;
+    text-align:left !important;
+}
+
+.brand-text h1,
+.logo-area h1{
+    margin:0 !important;
+    text-align:left !important;
+    white-space:nowrap !important;
+    line-height:1.05 !important;
+}
+
+.sub-info{
+    justify-content:flex-start !important;
+    text-align:left !important;
+}
+
+/* A coluna da direita pode rolar inteira se a Loja + Ao Vivo ficarem grandes */
+.right{
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    scrollbar-width:thin;
+    scrollbar-color:#ff00c8 rgba(10,8,30,.75);
+}
+
+/* Ao Vivo com altura confortável e mensagens sem corte */
+.log{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:12px !important;
+
+    min-height:420px !important;
+    max-height:520px !important;
+
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+
+    padding:0 10px 8px 0 !important;
+    box-sizing:border-box !important;
+}
+
+.log p{
+    position:relative !important;
+    display:block !important;
+    width:100% !important;
+    box-sizing:border-box !important;
+
+    min-height:auto !important;
+    height:auto !important;
+    max-height:none !important;
+
+    margin:0 0 12px 0 !important;
+    padding:10px 10px 10px 14px !important;
+
+    white-space:normal !important;
+    overflow:visible !important;
+    overflow-wrap:anywhere !important;
+    word-break:normal !important;
+
+    line-height:1.58 !important;
+    font-size:16px !important;
+}
+
+/* Loja fica como card separado abaixo do Ao Vivo */
+.loja-publico-box{
+    margin-top:20px !important;
+    flex:0 0 auto !important;
+}
+
+/* Mobile: não cortar nada e deixar o conteúdo respirar */
+@media (max-width:900px){
+    .header-content{
+        justify-content:flex-start !important;
+    }
+
+    .logo-area{
+        gap:12px !important;
+    }
+
+    .brand-text h1,
+    .logo-area h1{
+        font-size:28px !important;
+        white-space:nowrap !important;
+    }
+
+    .sub-info{
+        flex-wrap:wrap !important;
+    }
+
+    .right{
+        max-height:none !important;
+        overflow:visible !important;
+    }
+
+    .log{
+        min-height:auto !important;
+        max-height:none !important;
+        overflow:visible !important;
+        padding-right:0 !important;
+    }
+
+    .log p{
+        font-size:14px !important;
+        line-height:1.55 !important;
+        padding:14px 14px 14px 18px !important;
+    }
+}
+
+@media (max-width:430px){
+    .brand-text h1,
+    .logo-area h1{
+        font-size:23px !important;
+        letter-spacing:.4px !important;
+    }
+
+    .logo-area{
+        gap:10px !important;
+    }
+
+    .bbb-icon{
+        width:50px !important;
+        height:50px !important;
+        min-width:50px !important;
+    }
+}
+
+
+/* =========================
+   ✅ CORREÇÃO FINAL: AO VIVO E LOJA SEPARADOS
+   A coluna direita agora é apenas um empilhador de cards.
+========================= */
+.right{
+    position:relative !important;
+    display:flex !important;
+    flex-direction:column !important;
+    gap:18px !important;
+
+    padding:0 !important;
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+    backdrop-filter:none !important;
+    overflow:visible !important;
+}
+
+.right::before{
+    display:none !important;
+}
+
+.ao-vivo-card,
+.loja-publico-card{
+    position:relative !important;
+    overflow:hidden !important;
+
+    background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.035)) !important;
+    border:1px solid var(--stroke) !important;
+    padding:18px !important;
+    border-radius:24px !important;
+    box-shadow:0 18px 45px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.08) !important;
+    backdrop-filter:blur(18px) !important;
+}
+
+.ao-vivo-card::before,
+.loja-publico-card::before{
+    content:"";
+    position:absolute;
+    inset:0 0 auto 0;
+    height:4px;
+    background:linear-gradient(90deg, var(--pink), var(--purple), var(--cyan), var(--gold));
+    opacity:.95;
+}
+
+.ao-vivo-card h2,
+.loja-publico-card h2{
+    position:relative;
+    z-index:2;
+}
+
+.ao-vivo-card form,
+.ao-vivo-card .log,
+.loja-publico-card .loja-publico-box{
+    position:relative;
+    z-index:2;
+}
+
+/* A loja não fica como card dentro do card: o card externo é .loja-publico-card */
+.loja-publico-card .loja-publico-box{
+    margin:0 !important;
+    padding:0 !important;
+    border:none !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+}
+
+.log{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:12px !important;
+
+    min-height:430px !important;
+    max-height:560px !important;
+
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+
+    padding:0 10px 8px 0 !important;
+    box-sizing:border-box !important;
+}
+
+.log p{
+    position:relative !important;
+    display:block !important;
+    width:100% !important;
+    box-sizing:border-box !important;
+
+    min-height:auto !important;
+    height:auto !important;
+    max-height:none !important;
+
+    margin:0 !important;
+    padding:18px 18px 18px 22px !important;
+
+    white-space:normal !important;
+    overflow:visible !important;
+    overflow-wrap:anywhere !important;
+    word-break:normal !important;
+
+    line-height:1.62 !important;
+    font-size:16px !important;
+}
+
+/* Header: ícone e título lado a lado */
+.header-content,
+.logo-area{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+}
+
+.logo-area{
+    flex-direction:row !important;
+    gap:18px !important;
+}
+
+.brand-text{
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:center !important;
+    min-width:0 !important;
+}
+
+.brand-text h1,
+.logo-area h1{
+    margin:0 !important;
+    white-space:nowrap !important;
+}
+
+.bbb-icon{
+    flex:0 0 auto !important;
+}
+
+@media(max-width:768px){
+    .right{
+        gap:16px !important;
+    }
+
+    .ao-vivo-card,
+    .loja-publico-card{
+        padding:14px !important;
+        border-radius:20px !important;
+    }
+
+    .log{
+        min-height:auto !important;
+        max-height:none !important;
+        overflow:visible !important;
+        padding-right:0 !important;
+    }
+
+    .log p{
+        font-size:14px !important;
+        line-height:1.55 !important;
+        padding:14px 14px 14px 18px !important;
+    }
+
+    .loja-publico-grid{
+        grid-template-columns:1fr !important;
+    }
+}
+
+
+/* =========================================================
+   ✅ CORREÇÃO DEFINITIVA DO AO VIVO
+   - A coluna direita NÃO pode ter altura máxima herdada.
+   - O card do Ao Vivo NÃO corta os eventos.
+   - A rolagem acontece dentro da .log, sem cortar o último card.
+========================================================= */
+.right{
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    overflow:visible !important;
+    display:flex !important;
+    flex-direction:column !important;
+    gap:18px !important;
+}
+
+.ao-vivo-card{
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    overflow:visible !important;
+    display:block !important;
+}
+
+.loja-publico-card{
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    overflow:visible !important;
+    display:block !important;
+}
+
+.ao-vivo-card .log{
+    position:relative !important;
+    z-index:2 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    gap:14px !important;
+
+    height:auto !important;
+    min-height:220px !important;
+    max-height:520px !important;
+
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+
+    padding:0 10px 18px 0 !important;
+    margin:0 !important;
+    box-sizing:border-box !important;
+}
+
+.ao-vivo-card .log p{
+    position:relative !important;
+    display:block !important;
+    flex:0 0 auto !important;
+
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+
+    overflow:visible !important;
+    box-sizing:border-box !important;
+
+    margin:0 !important;
+    padding:18px 20px 18px 24px !important;
+
+    background:rgba(255,255,255,.06) !important;
+    border-radius:18px !important;
+
+    color:#fff !important;
+    line-height:1.65 !important;
+    font-size:16px !important;
+
+    white-space:normal !important;
+    word-break:normal !important;
+    overflow-wrap:anywhere !important;
+}
+
+.ao-vivo-card .log p::before{
+    content:"" !important;
+    position:absolute !important;
+    left:0 !important;
+    top:14px !important;
+    bottom:14px !important;
+    width:4px !important;
+    border-radius:10px !important;
+    background:linear-gradient(var(--pink), var(--cyan)) !important;
+}
+
+@media(max-width:768px){
+    .right{
+        max-height:none !important;
+        overflow:visible !important;
+    }
+
+    .ao-vivo-card,
+    .loja-publico-card{
+        overflow:visible !important;
+    }
+
+    .ao-vivo-card .log{
+        min-height:0 !important;
+        max-height:none !important;
+        overflow:visible !important;
+        padding:0 0 14px 0 !important;
+    }
+
+    .ao-vivo-card .log p{
+        font-size:14px !important;
+        line-height:1.55 !important;
+        padding:14px 14px 14px 18px !important;
+    }
+}
+
+
+/* =========================================================
+   ✅ AJUSTE FINAL: ALTURA DO AO VIVO IGUAL AOS PARTICIPANTES
+   - O card do Ao Vivo fica com a mesma altura visual da coluna Participantes.
+   - Só a lista de acontecimentos rola por dentro.
+   - As mensagens não cortam texto.
+========================================================= */
+
+@media (min-width: 769px){
+    .left{
+        height: 540px !important;
+        max-height: 540px !important;
+        overflow-y: auto !important;
+    }
+
+    .right{
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+    }
+
+    .ao-vivo-card{
+        height: 540px !important;
+        max-height: 540px !important;
+        min-height: 540px !important;
+
+        display: flex !important;
+        flex-direction: column !important;
+
+        overflow: hidden !important;
+    }
+
+    .ao-vivo-card h2{
+        flex: 0 0 auto !important;
+        margin-bottom: 14px !important;
+    }
+
+    .ao-vivo-card form{
+        flex: 0 0 auto !important;
+        margin-bottom: 12px !important;
+    }
+
+    .ao-vivo-card .log{
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        height: auto !important;
+        max-height: none !important;
+
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+
+        padding: 0 8px 10px 0 !important;
+        margin: 0 !important;
+    }
+
+    .loja-publico-card{
+        flex: 0 0 auto !important;
+        margin-top: 0 !important;
+    }
+}
+
+/* Cards das mensagens do Ao Vivo */
+.ao-vivo-card .log p,
+.log p{
+    position: relative !important;
+    display: block !important;
+
+    width: 100% !important;
+    box-sizing: border-box !important;
+
+    background: rgba(255,255,255,.06) !important;
+    border-radius: 18px !important;
+
+    padding: 18px 20px 18px 24px !important;
+    margin: 0 0 12px 0 !important;
+
+    line-height: 1.55 !important;
+    font-size: 1rem !important;
+
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.ao-vivo-card .log p::before,
+.log p::before{
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 14px !important;
+    bottom: 14px !important;
+    width: 4px !important;
+    border-radius: 10px !important;
+    background: linear-gradient(var(--pink), var(--cyan)) !important;
+}
+
+/* Mobile: não trava altura no celular */
+@media (max-width: 768px){
+    .left,
+    .ao-vivo-card,
+    .right{
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .ao-vivo-card .log{
+        max-height: 520px !important;
+        overflow-y: auto !important;
+    }
+}
+
 </style>
 </head>
 
@@ -7605,13 +8958,15 @@ h2{
             <div class="logo-area">
                 <div class="bbb-icon">🎥</div>
 
-                <div>
+                <div class="brand-text">
                     <h1>BBB Simulator</h1>
 
                     <div class="sub-info">
                         <span>🔥 Rodada <?php echo $rodada; ?></span>
                         <span class="dot"></span>
                         <span>👥 <?php echo count($jogadores); ?> participantes restantes</span>
+                        <span class="dot"></span>
+                        <span>🪙 <?php echo obterMoedasPublico(); ?> moedas</span>
                     </div>
                 </div>
             </div>
@@ -8412,6 +9767,7 @@ h2{
 
                                 $acoes[] = ["aproximar_lider", "👑 Aproximar do Líder"];
                                 $acoes[] = ["discutir", "😡 Discutir"];
+                                $acoes[] = ["vt", "🎬 Fazer VT"];
                                 ?>
 
                                 <?php foreach ($acoes as $a): ?>
@@ -8434,7 +9790,7 @@ h2{
                                 <input type="hidden" name="alvo2" id="alvo2">
                                 <input type="hidden" name="alianca_escolhida" id="alianca_escolhida">
 
-                                <?php if (!in_array($acaoSelecionada, ["aproximar_lider", "sair_alianca", "entrar_alianca", "alianca"])): ?>
+                                <?php if (!in_array($acaoSelecionada, ["aproximar_lider", "sair_alianca", "entrar_alianca", "alianca", "vt"])): ?>
 
                                     <div class="box">
                                         <h3>
@@ -8534,6 +9890,15 @@ h2{
                                     <div class="box">
                                         <h3>💥 Sair da Aliança</h3>
                                         <p>Você está prestes a romper com sua aliança atual. Isso pode afetar confiança, afinidade e votos futuros.</p>
+                                    </div>
+
+                                <?php endif; ?>
+
+                                <?php if ($acaoSelecionada == "vt"): ?>
+
+                                    <div class="box">
+                                        <h3>🎬 Fazer VT</h3>
+                                        <p>Você vai tentar criar um momento marcante para o público. Pode virar VT emocionante, engraçado, protagonista, forçado ou até dividir opiniões.</p>
                                     </div>
 
                                 <?php endif; ?>
@@ -8975,27 +10340,108 @@ h2{
         </div>
 
         <div class="right">
-            <h2>📢 Ao Vivo</h2>
 
-            <form method="POST">
-                <button class="btn novo" name="limpar_log">
-                    🧹 Limpar Ao Vivo
-                </button>
-            </form>
+            <div class="ao-vivo-card">
+                <h2>📢 Ao Vivo</h2>
 
-            <div class="log" id="aoVivoLog">
+                <form method="POST">
+                    <button class="btn novo" name="limpar_log">
+                        🧹 Limpar Ao Vivo
+                    </button>
+                </form>
+
+                <div class="log" id="aoVivoLog">
+
+                    <?php
+                    if (!empty($_SESSION['evento_extra'])) {
+                        foreach ($_SESSION['evento_extra'] as $ev) {
+                            echo "<p>$ev</p>";
+                        }
+                    } else {
+                        echo "<p>📡 Nenhum acontecimento ainda.</p>";
+                    }
+                    ?>
+
+                </div>
+            </div>
+
+            <?php if (!empty($mostrarLojaPublico)): ?>
+                <div class="loja-publico-card">
+                    <div class="loja-publico-box">
+                <div class="loja-publico-top">
+                    <div>
+                        <h3>🪙 Loja do Público</h3>
+                        <p>Use moedas para desbloquear vantagens estratégicas sem mostrar a popularidade nos cards.</p>
+                    </div>
+
+                    <strong><?php echo obterMoedasPublico(); ?> moedas</strong>
+                </div>
 
                 <?php
-                if (!empty($_SESSION['evento_extra'])) {
-                    foreach ($_SESSION['evento_extra'] as $ev) {
-                        echo "<p>$ev</p>";
+                    $minhaPopularidadeAtual = 50;
+                    $meuJogadorMoedas = obterMeuJogadorMoedas($jogadores);
+
+                    if ($meuJogadorMoedas != null) {
+                        $minhaPopularidadeAtual = limitar($meuJogadorMoedas['popularidade'] ?? 50, 0, 100);
                     }
-                } else {
-                    echo "<p>📡 Nenhum acontecimento ainda.</p>";
-                }
                 ?>
 
+                <?php if (($_SESSION['popularidade_propria_liberada_rodada'] ?? 0) == $rodada): ?>
+                    <div class="loja-revelacao">
+                        🔍 Sua popularidade atual: <b><?php echo $minhaPopularidadeAtual; ?>/100</b>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (($_SESSION['alvo_casa_revelado_rodada'] ?? 0) == $rodada && !empty($_SESSION['alvo_casa_revelado_nome'])): ?>
+                    <div class="loja-revelacao">
+                        🎯 Alvo provável da casa: <b><?php echo $_SESSION['alvo_casa_revelado_nome']; ?></b>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (($_SESSION['radar_publico_liberado_rodada'] ?? 0) == $rodada): ?>
+                    <div class="radar-publico">
+                        <h4>📊 Radar do Público</h4>
+
+                        <?php foreach (rankingPopularidadePublica($jogadores) as $pos => $rank): ?>
+                            <div class="radar-linha">
+                                <span><?php echo ($pos + 1); ?>º <?php echo $rank['nome']; ?></span>
+                                <strong><?php echo $rank['popularidade']; ?>/100</strong>
+                            </div>
+
+                            <div class="radar-barra">
+                                <div style="width: <?php echo $rank['popularidade']; ?>%;"></div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (empty($_SESSION['jogador_eliminado'])): ?>
+                    <form method="POST" class="loja-publico-grid">
+                        <button type="submit" name="usar_loja_publico" value="radar">
+                            📊 Radar<br><small>50 moedas</small>
+                        </button>
+
+                        <button type="submit" name="usar_loja_publico" value="mutirao">
+                            📉 Mutirão Rival<br><small>100 moedas</small>
+                        </button>
+
+                        <button type="submit" name="usar_loja_publico" value="espionar_minha_popularidade">
+                            🔍 Minha Popularidade<br><small>75 moedas</small>
+                        </button>
+
+                        <button type="submit" name="usar_loja_publico" value="impulso_imagem">
+                            🛡️ Impulsionar<br><small>120 moedas</small>
+                        </button>
+
+                        <button type="submit" name="usar_loja_publico" value="alvo_casa">
+                            🎯 Alvo da Casa<br><small>90 moedas</small>
+                        </button>
+                    </form>
+                <?php endif; ?>
             </div>
+                </div>
+            <?php endif; ?>
+
         </div>
 
     </div>
@@ -9110,7 +10556,7 @@ h2{
             const alvo2 = document.getElementById("alvo2") ? document.getElementById("alvo2").value : "";
             const aliancaEscolhida = document.getElementById("alianca_escolhida") ? document.getElementById("alianca_escolhida").value : "";
 
-            const acoesSemAlvo = ["aproximar_lider", "sair_alianca", "alianca", "entrar_alianca"];
+            const acoesSemAlvo = ["aproximar_lider", "sair_alianca", "alianca", "entrar_alianca", "vt"];
 
             if (!acoesSemAlvo.includes(acao) && !alvo) {
                 alert("Escolha um participante primeiro.");
