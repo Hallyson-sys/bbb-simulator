@@ -4,9 +4,15 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 session_start();
-require_once 'includes/logica_jogo.php';
 
-if(!isset($_SESSION['jogadores']) || !isset($_SESSION['paredao'])){
+require_once __DIR__ . '/includes/logica/eliminacao.php';
+require_once __DIR__ . '/includes/logica/relacoes.php';
+require_once __DIR__ . '/includes/logica/paredao_falso.php';
+
+if (
+    !isset($_SESSION['jogadores']) ||
+    !isset($_SESSION['paredao'])
+) {
     header("Location: jogo.php");
     exit;
 }
@@ -21,382 +27,102 @@ $eliminado = "";
 $ranking = [];
 $fuiEliminado = false;
 $meuJogadorEliminado = $_SESSION['meu_jogador_snapshot'] ?? null;
+$ehParedaoFalso = !empty($_SESSION['paredao_falso_ativo']);
 
 /* ==========================
    FUNÇÕES VISUAIS
 ========================== */
-
-function e($texto){
-    return htmlspecialchars((string)$texto, ENT_QUOTES, 'UTF-8');
-}
-
-function nomeIgualResultado($a, $b){
-    return mb_strtolower(trim((string)$a), 'UTF-8') === mb_strtolower(trim((string)$b), 'UTF-8');
-}
-
-function buscarJogadorResultado($jogadores, $nome){
-    foreach($jogadores as $j){
-        if(nomeIgualResultado(($j['nome'] ?? ''), $nome)){
-            return $j;
-        }
-    }
-
-    return null;
-}
-
-function resumoParticipanteResultado($jogador){
-    if(!$jogador) return "Participante";
-
-    $partes = [];
-
-    if(!empty($jogador['personalidade'])){
-        $partes[] = "🎭 ".$jogador['personalidade'];
-    }
-
-    if(!empty($jogador['estado'])){
-        $partes[] = "📍 ".$jogador['estado'];
-    }
-
-    if(!empty($jogador['profissao'])){
-        $partes[] = "💼 ".$jogador['profissao'];
-    }
-
-    return empty($partes) ? "Participante" : implode(" • ", $partes);
-}
-
-function corPorcentagem($pct){
-    if($pct >= 60) return "perigo";
-    if($pct >= 35) return "alerta";
-    return "safe";
-}
-
-function estatResultado($jogador, $campo){
-    return $jogador['estatisticas'][$campo] ?? 0;
-}
-
-function limitarResultado($valor, $min = 0, $max = 100){
-    return max($min, min($max, $valor));
-}
-
-function registrarEstatisticaResultado(&$jogadores, $nome, $campo, $valor = 1){
-    foreach($jogadores as &$j){
-        if(nomeIgualResultado(($j['nome'] ?? ''), $nome)){
-            if(!isset($j['estatisticas']) || !is_array($j['estatisticas'])){
-                $j['estatisticas'] = [];
-            }
-
-            $j['estatisticas'][$campo] =
-            ($j['estatisticas'][$campo] ?? 0) + $valor;
-
-            break;
-        }
-    }
-    unset($j);
-}
-
-function contarParedaoResultadoUmaVez(&$jogadores, $paredao, $rodada){
-    $chave = 'estatisticas_paredao_contadas_rodada_'.$rodada;
-
-    if(isset($_SESSION[$chave])){
-        return;
-    }
-
-    foreach($paredao as $nome){
-        if(trim((string)$nome) == '') continue;
-        registrarEstatisticaResultado($jogadores, $nome, 'paredao', 1);
-    }
-
-    $_SESSION[$chave] = true;
+function e($texto)
+{
+    return htmlspecialchars(
+        (string)$texto,
+        ENT_QUOTES,
+        'UTF-8'
+    );
 }
 
 
+/* =========================================================
+   🎮 ACTIONS DA ELIMINAÇÃO
+   ========================================================= */
+require_once __DIR__ . '/includes/actions/eliminacao.php';
 
-/* ==========================
-   📈 POPULARIDADE AVANÇADA NO PAREDÃO
-   Quanto menor a popularidade, maior a rejeição do público.
-   Líder e Anjo NÃO ganham popularidade aqui.
-========================== */
 
-function popularidadeJogadorResultado($jogadores, $nome){
-    $jogador = buscarJogadorResultado($jogadores, $nome);
-    if(!$jogador) return 50;
+/* =========================================================
+   🔄 RECARREGAR ESTADO APÓS ACTION
+   ========================================================= */
+$jogadores = $_SESSION['jogadores'] ?? $jogadores;
+$ehParedaoFalso = !empty($_SESSION['paredao_falso_ativo']);
 
-    return limitarResultado((int)($jogador['popularidade'] ?? 50), 0, 100);
-}
 
-function statusPopularidadeResultado($popularidade){
-    if($popularidade >= 90) return "Favorito absoluto";
-    if($popularidade >= 75) return "Muito querido";
-    if($popularidade >= 60) return "Bem aceito";
-    if($popularidade >= 45) return "Dividido pelo público";
-    if($popularidade >= 30) return "Mal visto";
-    return "Cancelado";
-}
-
-function calcularRejeicaoPublicaResultado($jogador){
-    $popularidade = limitarResultado((int)($jogador['popularidade'] ?? 50), 0, 100);
-
-    /* Base principal: baixa popularidade vira alta rejeição */
-    $rejeicao = 105 - $popularidade;
-
-    $personalidade = $jogador['personalidade'] ?? 'Neutro';
-
-    /* Personalidade influencia como o público costuma reagir */
-    if($personalidade == 'Planta'){
-        $rejeicao += rand(3, 9);
-    }
-
-    if($personalidade == 'Barraqueiro' || $personalidade == 'Explosivo'){
-        $rejeicao += rand(-8, 10);
-    }
-
-    if($personalidade == 'Influencer'){
-        $rejeicao += rand(-7, 4);
-    }
-
-    if($personalidade == 'Fofo'){
-        $rejeicao -= rand(2, 8);
-    }
-
-    if($personalidade == 'Manipulador' || $personalidade == 'Falso'){
-        $rejeicao += rand(2, 10);
-    }
-
-    /* Status da semana também pesa um pouco */
-    if(!empty($jogador['status']['monstro'])){
-        $rejeicao += rand(2, 6);
-    }
-
-    if(!empty($jogador['status']['xepa'])){
-        $rejeicao += rand(0, 3);
-    }
-
-    if(!empty($jogador['status']['vip'])){
-        $rejeicao -= rand(0, 3);
-    }
-
-    /* Histórico: quem cai muito no paredão pode saturar o público */
-    $paredoes = $jogador['estatisticas']['paredao'] ?? 0;
-    if($paredoes >= 2){
-        $rejeicao += min(8, $paredoes * 2);
-    }
-
-    /* Pequeno ruído para não ficar matemático demais */
-    $rejeicao += rand(-5, 5);
-
-    return max(5, $rejeicao);
-}
-
-function gerarRankingEliminacaoPorPopularidade($jogadores, $paredao){
-    $pesos = [];
-    $total = 0;
-
-    foreach($paredao as $nome){
-        $jogador = buscarJogadorResultado($jogadores, $nome);
-        if(!$jogador) continue;
-
-        $peso = calcularRejeicaoPublicaResultado($jogador);
-        $pesos[$nome] = $peso;
-        $total += $peso;
-    }
-
-    if(empty($pesos) || $total <= 0){
-        return [];
-    }
-
-    $ranking = [];
-    $nomes = array_keys($pesos);
-    $acumulado = 0;
-
-    foreach($nomes as $i => $nome){
-        if($i == count($nomes) - 1){
-            $pct = round(100 - $acumulado, 2);
-        }else{
-            $pct = round(($pesos[$nome] / $total) * 100, 2);
-            $acumulado += $pct;
-        }
-
-        $ranking[$nome] = max(0.01, $pct);
-    }
-
-    arsort($ranking);
-
-    return $ranking;
-}
-
-function ajustarPopularidadePosParedaoResultado(&$jogadores, $ranking, $eliminado){
-    foreach($jogadores as &$j){
-        $nome = $j['nome'] ?? '';
-
-        if($nome == '' || !isset($ranking[$nome])) continue;
-
-        if(!isset($j['popularidade'])){
-            $j['popularidade'] = 50;
-        }
-
-        if(nomeIgualResultado($nome, $eliminado)){
-            continue;
-        }
-
-        /* Sobreviver ao paredão costuma fortalecer a imagem pública */
-        $ganho = rand(3, 7);
-
-        /* Sobreviver com baixa rejeição aumenta ainda mais */
-        if(($ranking[$nome] ?? 100) < 20){
-            $ganho += rand(2, 5);
-        }
-
-        $j['popularidade'] = limitarResultado($j['popularidade'] + $ganho, 0, 100);
-    }
-    unset($j);
-}
-
-/* Se já revelou e voltou por refresh, mantém informação */
-if(isset($_SESSION['ultimo_ranking_eliminacao']) && isset($_SESSION['eliminado'])){
+/* Se já revelou e voltou por refresh, mantém informação. */
+if (isset($_SESSION['ultimo_ranking_eliminacao'])) {
     $ranking = $_SESSION['ultimo_ranking_eliminacao'];
-    $eliminado = $_SESSION['eliminado'];
+
+    if ($ehParedaoFalso) {
+        $eliminado = $_SESSION['falso_eliminado'] ?? '';
+    } else {
+        $eliminado = $_SESSION['eliminado'] ?? '';
+    }
+
+    if ($eliminado !== '') {
+        $mostrarResultado = true;
+    }
 }
 
-/* ==========================
-   REVELAR ELIMINADO
-========================== */
 
-if(isset($_POST['revelar'])){
-
-    /* Segurança: líder nunca deve aparecer no paredão */
-    $liderAtual = $_SESSION['lider'] ?? '';
-
-    $paredao = array_values(array_filter($paredao, function($nome) use ($liderAtual){
-        return !nomeIgualResultado($nome, $liderAtual);
-    }));
-
-    if(count($paredao) < 2){
-        $_SESSION['evento_extra'][] = "⚠️ Erro ao formar paredão: participantes insuficientes.";
-        header("Location: jogo.php");
-        exit;
-    }
-
-    /* Conta paredão antes da eliminação para o snapshot final sair atualizado. */
-    contarParedaoResultadoUmaVez($jogadores, $paredao, $rodada);
-
-    /* Agora o resultado é baseado em popularidade/rejeição pública */
-    $ranking = gerarRankingEliminacaoPorPopularidade($jogadores, $paredao);
-
-    if(empty($ranking)){
-        $_SESSION['evento_extra'][] = "⚠️ Erro ao calcular resultado do paredão.";
-        header("Location: jogo.php");
-        exit;
-    }
-
-    $eliminado = array_key_first($ranking);
-
-    /* Quem sobrevive ganha popularidade. Líder e Anjo não ganham nada por prova. */
-    ajustarPopularidadePosParedaoResultado($jogadores, $ranking, $eliminado);
-
-    foreach($jogadores as $k => $j){
-
-        if(nomeIgualResultado(($j['nome'] ?? ''), $eliminado)){
-
-            if(nomeIgualResultado($eliminado, $meuNome)){
-                $fuiEliminado = true;
-                $meuJogadorEliminado = $j;
-
-                $_SESSION['jogador_eliminado'] = true;
-                $_SESSION['fase_semana'] = 'jogador_eliminado';
-                $_SESSION['meu_jogador_snapshot'] = $j;
-                $_SESSION['minha_popularidade_final'] = $j['popularidade'] ?? 50;
-                $_SESSION['minha_colocacao_final'] = count($jogadores);
-            }
-
-            unset($jogadores[$k]);
-        }
-    }
-
-    $_SESSION['jogadores'] = array_values($jogadores);
-    $_SESSION['eliminado'] = $eliminado;
-    $_SESSION['ultimo_ranking_eliminacao'] = $ranking;
-
-    $mostrarResultado = true;
-}
-
-/* ==========================
-   CONTINUAR
-========================== */
-
-if(isset($_POST['continuar'])){
-
-    $eliminadoSessao = $_SESSION['eliminado'] ?? '';
-
-    if(nomeIgualResultado($eliminadoSessao, $meuNome) || isset($_SESSION['jogador_eliminado'])){
-        $_SESSION['jogador_eliminado'] = true;
-        $_SESSION['fase_semana'] = 'jogador_eliminado';
-        header("Location: jogo.php");
-        exit;
-    }
-
-    if(count($_SESSION['jogadores']) <= 3){
-        header("Location: final.php");
-        exit;
-    }
-
-    $_SESSION['rodada'] = ($_SESSION['rodada'] ?? 1) + 1;
-    $_SESSION['fase_semana'] = 'interacoes_1';
-    $_SESSION['acoes_restantes'] = 3;
-
-    unset($_SESSION['paredao']);
-    unset($_SESSION['eliminado']);
-    unset($_SESSION['ultimo_ranking_eliminacao']);
-    unset($_SESSION['paredao_formado']);
-    unset($_SESSION['votos_paredao']);
-    unset($_SESSION['dedo_duro']);
-    unset($_SESSION['indicacao_lider']);
-    unset($_SESSION['indicacao_bigfone']);
-    unset($_SESSION['bigfone_indicacao_pendente']);
-    unset($_SESSION['bigfone_dono_poder']);
-    unset($_SESSION['vip_definido']);
-    unset($_SESSION['monstro_definido']);
-    unset($_SESSION['bigfone_feito']);
-    unset($_SESSION['queridometro_feito']);
-    unset($_SESSION['queridometro_resultado']);
-    unset($_SESSION['npc_festa_feita']);
-
-    foreach($_SESSION['jogadores'] as &$j){
-        $j['status']['lider'] = false;
-        $j['status']['anjo'] = false;
-        $j['status']['imune'] = false;
-        $j['status']['vip'] = false;
-        $j['status']['xepa'] = false;
-        $j['status']['monstro'] = false;
-    }
-    unset($j);
-
-    header("Location: jogo.php");
-    exit;
-}
-
-/* NOVA TEMPORADA */
-if(isset($_POST['novo_jogo'])){
-    session_unset();
-    session_destroy();
-    header("Location: index.php");
-    exit;
-}
-
-if(nomeIgualResultado($eliminado, $meuNome)){
+/*
+ * No Paredão Falso, mesmo se o próprio jogador for o nome
+ * mais votado, ele NÃO foi eliminado da temporada.
+ */
+if (
+    !$ehParedaoFalso &&
+    nomeIgual($eliminado, $meuNome)
+) {
     $fuiEliminado = true;
-    if(!$meuJogadorEliminado){
-        $meuJogadorEliminado = $_SESSION['meu_jogador_snapshot'] ?? [];
+
+    if (!$meuJogadorEliminado) {
+        $meuJogadorEliminado =
+            $_SESSION['meu_jogador_snapshot'] ?? [];
     }
 }
 
 ?>
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <title>Noite de Eliminação</title>
 <link rel="stylesheet" href="assets/css/resultado.css">
+<style>
+.paredao-falso-alerta{
+    margin-top:22px;
+    padding:22px;
+    border:1px solid rgba(255,0,204,.35);
+    border-radius:18px;
+    background:linear-gradient(135deg,rgba(255,0,102,.12),rgba(95,0,180,.13));
+    box-shadow:0 0 30px rgba(255,0,180,.16);
+    text-align:center;
+}
+.paredao-falso-alerta .falso-badge{
+    display:inline-block;
+    margin-bottom:10px;
+    padding:7px 13px;
+    border-radius:30px;
+    background:linear-gradient(135deg,#ff0066,#8f00ff);
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:1.5px;
+}
+.paredao-falso-alerta h3{
+    margin-bottom:8px;
+    font-size:22px;
+}
+.paredao-falso-alerta p{
+    line-height:1.6;
+    opacity:.88;
+}
+</style>
 </head>
 
 <body>
@@ -452,7 +178,7 @@ if(nomeIgualResultado($eliminado, $meuNome)){
 
                 <form method="POST">
                     <button class="btn" name="revelar">
-                        📺 Revelar Eliminado
+                        📺 Revelar Resultado
                     </button>
                 </form>
 
@@ -471,17 +197,36 @@ if(nomeIgualResultado($eliminado, $meuNome)){
                 <?php echo e($eliminado); ?>
             </div>
 
-            <p class="eliminado-sub">
-                ❌ Eliminado do BBB Simulator
-            </p>
+            <?php if($ehParedaoFalso): ?>
 
-            <div class="glass-alert">
-                <?php if($fuiEliminado): ?>
-                    Sua trajetória chegou ao fim. Agora é hora de ver seu desempenho na temporada.
-                <?php else: ?>
-                    A casa sente o impacto. Agora, quem ficou precisa seguir o jogo.
-                <?php endif; ?>
-            </div>
+                <p class="eliminado-sub">
+                    🚨 Mas essa eliminação não é o que parece...
+                </p>
+
+                <div class="paredao-falso-alerta">
+                    <div class="falso-badge">🚨 PAREDÃO FALSO</div>
+                    <h3><?php echo e($eliminado); ?> NÃO está fora do jogo!</h3>
+                    <p>
+                        O participante foi enviado para o <b>Quarto Secreto</b>.
+                        A casa acredita que houve uma eliminação, mas a temporada ainda guarda uma surpresa.
+                    </p>
+                </div>
+
+            <?php else: ?>
+
+                <p class="eliminado-sub">
+                    ❌ Eliminado do BBB Simulator
+                </p>
+
+                <div class="glass-alert">
+                    <?php if($fuiEliminado): ?>
+                        Sua trajetória chegou ao fim. Agora é hora de ver seu desempenho na temporada.
+                    <?php else: ?>
+                        A casa sente o impacto. Agora, quem ficou precisa seguir o jogo.
+                    <?php endif; ?>
+                </div>
+
+            <?php endif; ?>
 
         </div>
 
@@ -518,11 +263,29 @@ if(nomeIgualResultado($eliminado, $meuNome)){
 
         </div>
 
-        <?php if($fuiEliminado): ?>
+        <?php if($ehParedaoFalso): ?>
+
+            <div class="box">
+                <form action="quarto_secreto.php" method="GET">
+                    <button class="btn" type="submit">
+                        🚪 Ir para o Quarto Secreto
+                    </button>
+                </form>
+            </div>
+
+        <?php elseif($fuiEliminado): ?>
 
             <?php
-                $popularidadeFinal = limitarResultado($meuJogadorEliminado['popularidade'] ?? ($_SESSION['minha_popularidade_final'] ?? 50), 0, 100);
-                $colocacaoFinal = $_SESSION['minha_colocacao_final'] ?? (count($_SESSION['jogadores']) + 1);
+                $popularidadeFinal = limitar(
+                    $meuJogadorEliminado['popularidade'] ??
+                    ($_SESSION['minha_popularidade_final'] ?? 50),
+                    0,
+                    100
+                );
+
+                $colocacaoFinal =
+                    $_SESSION['minha_colocacao_final'] ??
+                    (count($_SESSION['jogadores']) + 1);
             ?>
 
             <div class="box">

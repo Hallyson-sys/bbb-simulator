@@ -1,0 +1,377 @@
+/* 
+Remove os espaçamentos padrões do navegador
+e define o cálculo correto do tamanho dos elementos.
+*/
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+
+
+
+/*
+Estilização principal da página.
+Define fonte, fundo, alinhamento e tamanho mínimo.
+*/
+body{
+
+
+/* Define a fonte utilizada no sistema */
+font-family:Arial,sans-serif;
+
+
+/*
+Cria um fundo com efeitos de gradiente radial.
+Foi utilizado para deixar a interface com aparência mais próxima
+de um programa de reality show.
+*/
+background:
+
+radial-gradient(circle at top left, rgba(255,0,120,.22), transparent 35%),
+
+radial-gradient(circle at top right, rgba(255,204,0,.18), transparent 35%),
+
+radial-gradient(circle at bottom, #1b1438, #050510 75%);
+
+
+
+/* Define a cor padrão dos textos como branca */
+color:white;
+
+
+
+/* Garante que a página ocupe toda a altura da tela */
+min-height:100vh;
+
+
+
+/*
+Utiliza flexbox para centralizar o conteúdo
+horizontalmente e verticalmente.
+*/
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+
+
+/* Cria um espaço interno para evitar que o conteúdo encoste nas bordas */
+padding:30px;
+
+}
+
+
+
+
+
+/*
+Classe responsável pelo card principal da prova.
+Dentro dela ficam título, descrição e botões.
+*/
+.box{
+
+
+/* Define largura máxima da área principal */
+width:760px;
+
+
+
+/* Permite que o elemento diminua em telas menores */
+max-width:100%;
+
+
+
+/* Cria um fundo transparente para dar efeito de vidro */
+background:rgba(255,255,255,.06);
+
+
+
+/* Adiciona uma borda discreta ao redor do card */
+border:1px solid rgba(255,255,255,.12);
+
+
+
+/* Arredonda os cantos do card */
+border-radius:28px;
+
+
+
+/* Cria espaço interno entre o conteúdo e a borda */
+padding:36px;
+
+
+
+/* Adiciona sombra para dar profundidade ao elemento */
+box-shadow:0 0 40px rgba(0,0,0,.48);
+
+
+
+/* Centraliza todos os textos e elementos internos */
+text-align:center;
+
+
+
+/*
+Cria um efeito de desfoque no fundo,
+dando aparência de vidro.
+*/
+backdrop-filter:blur(14px);
+
+}
+
+
+
+
+
+/*
+Estilização do título principal da prova.
+*/
+h1{
+
+
+/* Define o tamanho da fonte */
+font-size:38px;
+
+
+
+/* Espaço inferior antes do próximo elemento */
+margin-bottom:15px;
+
+
+
+/*
+Cria um degradê colorido no texto.
+*/
+background:linear-gradient(
+90deg,
+#ff0077,
+#ffcc00,
+#00d9ff
+);
+
+
+
+/*
+Faz o degradê aparecer somente dentro do texto.
+*/
+-webkit-background-clip:text;
+
+background-clip:text;
+
+
+
+/* Deixa a cor do texto transparente para mostrar o degradê */
+-webkit-text-fill-color:transparent;
+
+color:transparent;
+
+}
+
+
+
+
+/*
+Estilização dos textos de descrição da prova.
+*/
+p{
+
+
+/* Tamanho do texto */
+font-size:18px;
+
+
+
+/* Deixa o texto levemente transparente */
+opacity:.92;
+
+
+
+/* Espaçamento inferior */
+margin-bottom:25px;
+
+
+
+/* Melhora a leitura em textos maiores */
+line-height:1.6;
+
+}
+
+
+
+
+/*
+Área onde ficam os botões das escolhas.
+Utiliza CSS Grid para organizar automaticamente.
+*/
+.grid{
+
+
+/* Ativa o sistema de grade */
+display:grid;
+
+
+
+/*
+Cria três colunas de mesmo tamanho.
+*/
+grid-template-columns:repeat(3,1fr);
+
+
+
+/* Espaçamento entre os botões */
+gap:14px;
+
+
+
+/* Espaço acima da grade */
+margin-top:15px;
+
+}
+
+
+
+
+/*
+Estilo dos botões de escolha da prova.
+*/
+button{
+
+
+/* Espaço interno do botão */
+padding:18px;
+
+
+
+/* Remove a borda padrão */
+border:none;
+
+
+
+/* Arredonda os cantos */
+border-radius:16px;
+
+
+
+/* Tamanho do texto */
+font-size:18px;
+
+
+
+/* Deixa o texto em negrito */
+font-weight:bold;
+
+
+
+/* Mostra o cursor de clique */
+cursor:pointer;
+
+
+
+/* Cor do texto */
+color:white;
+
+
+
+/*
+Cria um degradê no fundo dos botões.
+*/
+background:linear-gradient(
+135deg,
+#ff0066,
+#6a00ff
+);
+
+
+
+/*
+Cria uma animação suave quando o botão muda.
+*/
+transition:.25s;
+
+
+
+/* Define uma altura mínima para manter todos iguais */
+min-height:62px;
+
+}
+
+
+
+
+
+/*
+Efeito aplicado quando o mouse passa sobre o botão.
+*/
+button:hover{
+
+
+/*
+Move o botão levemente para cima
+e aumenta um pouco o tamanho.
+*/
+transform:translateY(-3px) scale(1.02);
+
+
+
+/*
+Adiciona brilho ao redor do botão.
+*/
+box-shadow:0 0 22px rgba(255,0,140,.38);
+
+}
+
+
+
+
+
+/*
+Área inferior com informações da prova.
+*/
+.info{
+
+
+/* Espaço acima do texto */
+margin-top:22px;
+
+
+
+/* Tamanho menor para informações secundárias */
+font-size:14px;
+
+
+
+/* Deixa o texto menos destacado */
+opacity:.76;
+
+
+
+/* Melhora organização das linhas */
+line-height:1.5;
+
+}
+
+
+
+
+
+/*
+Responsividade:
+quando a tela tiver menos de 700px,
+os botões passam a ocupar uma coluna.
+*/
+@media(max-width:700px){
+
+
+.grid{
+
+
+/* Altera a grade para uma coluna em celulares */
+grid-template-columns:1fr;
+
+}
+
+}

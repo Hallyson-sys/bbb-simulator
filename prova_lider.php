@@ -1,1179 +1,703 @@
 <?php
-
-// Ativa a exibição de erros do PHP para facilitar a identificação de problemas durante o desenvolvimento.
-// Essa configuração ajuda na fase de testes do sistema.
 ini_set('display_errors',1);
 error_reporting(E_ALL);
-
-
-// Inicia a sessão para conseguir acessar e salvar informações do jogador durante o jogo.
 session_start();
 
+require_once __DIR__ . '/includes/logica/prova_lider.php';
 
-
-/* ===============================
-   VERIFICA SESSÃO
-================================= */
-
-
-// Verifica se existe uma lista de jogadores criada na sessão.
-// Caso não exista, significa que o usuário tentou acessar essa página sem iniciar uma partida.
 if(!isset($_SESSION['jogadores'])){
-
-    // Redireciona o usuário novamente para a página inicial.
     header("Location: index.php");
-
-    // Encerra a execução do código para evitar que continue carregando a página.
     exit;
 }
 
-
-// Recupera os jogadores que foram criados no arquivo de configuração.
-$jogadores = $_SESSION['jogadores'];
-
-
-// Recupera o nome do jogador principal.
-// Caso não exista, define "Jogador" como valor padrão.
-$meuNome = $_SESSION['meu_nome'] ?? 'Jogador';
-
-
-
-
-/* ===============================
-   LISTA DE PROVAS
-================================= */
-
-
-// Array que guarda todas as provas possíveis da liderança.
-// Cada prova possui título, descrição, quantidade de opções e um tipo,
-// permitindo que o sistema escolha diferentes formas de desafio.
-$provas = [
-
-
-
-    // Primeira prova disponível
-    1 => [
-
-        // Nome que será exibido para o jogador
-        'titulo' => '🎯 Mira do Líder',
-
-        // Explicação de como funciona a prova
-        'texto'  => 'Escolha um número entre 1 e 5. Quem chegar mais perto vence.',
-
-        // Quantidade máxima de escolhas disponíveis
-        'max'    => 5,
-
-        // Identifica o tipo de prova para o sistema saber como executar
-        'tipo'   => 'numero'
-    ],
-
-
-
-    // Segunda prova disponível
-    2 => [
-
-        'titulo' => '⚡ Reflexo BBB',
-
-        'texto'  => 'Escolha rapidamente uma opção secreta.',
-
-        'max'    => 3,
-
-        'tipo'   => 'numero'
-    ],
-
-
-
-    // Terceira prova disponível
-    3 => [
-
-        'titulo' => '🧩 Memória da Casa',
-
-        'texto'  => 'Escolha uma porta de 1 a 3.',
-
-        'max'    => 3,
-
-        'tipo'   => 'numero'
-    ],
-
-
-
-    // As próximas provas seguem a mesma estrutura,
-    // mudando apenas o tema visual e a quantidade de escolhas.
-    4 => [
-
-        'titulo' => '🎲 Dado da Sorte',
-
-        'texto'  => 'Escolha um número de 1 a 6. Se seu número for o sorteado, você vence.',
-
-        'max'    => 6,
-
-        'tipo'   => 'numero'
-    ],
-
-
-
-    5 => [
-
-        'titulo' => '🏹 Alvo Premiado',
-
-        'texto'  => 'Escolha um alvo. Um deles esconde a liderança.',
-
-        'max'    => 5,
-
-        'tipo'   => 'alvo'
-    ],
-
-
-
-    6 => [
-
-        'titulo' => '💎 Cofre Misterioso',
-
-        'texto'  => 'Escolha um cofre. Apenas um guarda a chave do quarto do Líder.',
-
-        'max'    => 4,
-
-        'tipo'   => 'cofre'
-    ],
-
-
-
-    7 => [
-
-        'titulo' => '🚀 Decolagem BBB',
-
-        'texto'  => 'Escolha uma nave. A nave certa dispara rumo à liderança.',
-
-        'max'    => 3,
-
-        'tipo'   => 'nave'
-    ],
-
-
-
-    8 => [
-
-        'titulo' => '🎰 Slot da Sorte',
-
-        'texto'  => 'Escolha um símbolo. Se ele aparecer no sorteio, você vence.',
-
-        'max'    => 4,
-
-        'tipo'   => 'simbolo'
-    ],
-
-
-
-    9 => [
-
-        'titulo' => '📦 Caixa Surpresa',
-
-        'texto'  => 'Escolha uma caixa. Uma delas contém o poder da liderança.',
-
-        'max'    => 5,
-
-        'tipo'   => 'caixa'
-    ],
-
-
-
-    10 => [
-
-        'titulo' => '🌪️ Giro da Liderança',
-
-        'texto'  => 'Escolha uma cor. A roleta vai decidir quem leva a liderança.',
-
-        'max'    => 4,
-
-        'tipo'   => 'cor'
-    ],
-
-
-
-    11 => [
-
-        'titulo' => '🔥 Totem do Líder',
-
-        'texto'  => 'Escolha um totem. O totem correto acende e garante a liderança.',
-
-        'max'    => 5,
-
-        'tipo'   => 'totem'
-    ]
-
-];
-
-
-
-
-/* ===============================
-   ESCOLHE PROVA DA SEMANA
-================================= */
-
-
-// Verifica se ainda não existe uma prova escolhida.
-// Isso impede que a prova mude toda vez que a página for atualizada.
-if(!isset($_SESSION['prova_tipo'])){
-
-
-    // Sorteia uma prova entre as 11 disponíveis.
-    $_SESSION['prova_tipo'] = rand(1,11);
+$jogadores=$_SESSION['jogadores'];
+$meuNome=$_SESSION['meu_nome']??'Jogador';
+
+$dadosProva=prepararProvaLider();
+$tipoProva=$dadosProva['tipo'];
+$prova=$dadosProva['prova'];
+
+require_once __DIR__ . '/includes/actions/prova_lider.php';
+
+$sequenciaMemoria=[];
+$questoesLogica=[];
+$questaoDesempateLogica=null;
+$desempateLogicaPendente=false;
+$npcsDesempateLogica=[];
+$estadoEstrategia=null;
+$opcoesEstrategia=[];
+
+if((int)$tipoProva===3){
+    $sequenciaMemoria=prepararMemoriaLider();
 }
 
-
-// Guarda o número da prova atual.
-$tipoProva = $_SESSION['prova_tipo'];
-
-
-// Busca os dados da prova escolhida.
-// Caso aconteça algum erro, utiliza a primeira prova como padrão.
-$prova = $provas[$tipoProva] ?? $provas[1];
-
-/* ===============================
-   FUNÇÕES
-================================= */
-
-
-// Função responsável por criar uma lista apenas com os participantes NPCs.
-// Ela remove o jogador principal da lista para que ele não possa competir contra ele mesmo.
-function nomesNPCsProva($jogadores, $meuNome){
-
-
-    // Cria um array vazio que receberá somente os nomes dos NPCs.
-    $npcs = [];
-
-
-    // Percorre todos os jogadores existentes na partida.
-    foreach($jogadores as $j){
-
-
-        // Verifica se o jogador atual não é o usuário principal.
-        if(($j['nome'] ?? '') != $meuNome){
-
-
-            // Adiciona o nome do NPC dentro da lista.
-            $npcs[] = $j['nome'];
-        }
-    }
-
-
-    // Retorna a lista final contendo apenas NPCs.
-    return $npcs;
-}
-
-
-
-
-// Função que escolhe aleatoriamente um NPC vencedor.
-// Ela é utilizada quando a prova depende apenas de sorte.
-function sortearNPCVencedor($jogadores, $meuNome){
-
-
-    // Busca todos os NPCs participantes da prova.
-    $npcs = nomesNPCsProva($jogadores, $meuNome);
-
-
-    // Caso não existam NPCs disponíveis, retorna o próprio jogador.
-    if(empty($npcs)){
-
-        return $meuNome;
-    }
-
-
-    // Escolhe aleatoriamente um NPC da lista.
-    return $npcs[array_rand($npcs)];
-}
-
-
-
-
-// Função utilizada nas provas que funcionam através de sorte.
-// O jogador escolhe uma opção e o sistema sorteia uma opção secreta.
-function disputaPorSorte($jogadores, $meuNome, $escolha, $maximo){
-
-
-    // Sorteia um número secreto de acordo com a quantidade máxima da prova.
-    $segredo = rand(1, $maximo);
-
-
-
-    // Compara a escolha do jogador com o número sorteado.
-    if((int)$escolha === $segredo){
-
-
-        // Caso acerte, o próprio jogador vence.
-        return $meuNome;
-    }
-
-
-
-    // Caso erre, um NPC é escolhido como vencedor.
-    return sortearNPCVencedor($jogadores, $meuNome);
-}
-
-
-
-
-
-
-/* ===============================
-   PROCESSAR JOGADA
-================================= */
-
-
-// Verifica se o jogador clicou em uma opção da prova.
-if(isset($_POST['jogar'])){
-
-
-    // Cria uma variável inicialmente vazia para armazenar o vencedor.
-    $lider = null;
-
-
-    // Recebe a escolha enviada pelo botão do formulário.
-    // Caso não exista nenhuma escolha, deixa vazio.
-    $escolha = $_POST['escolha'] ?? '';
-
-
-
-
-    /* ===========================
-       PROVA 1 - MIRA
-    =========================== */
-
-
-    // A primeira prova possui uma lógica diferente,
-    // pois compara qual participante chegou mais perto do número sorteado.
-    if($tipoProva == 1){
-
-
-        // Define um número secreto que representa o alvo.
-        $alvo = rand(1,5);
-
-
-        // Converte a escolha do jogador para número inteiro.
-        $escolhaNumero = (int)$escolha;
-
-
-
-        // Calcula a distância entre a escolha do jogador e o alvo.
-        // Quanto menor a distância, melhor o resultado.
-        $distPlayer = abs($alvo - $escolhaNumero);
-
-
-
-        // Guarda inicialmente a maior distância possível.
-        // Ela será substituída quando encontrar um NPC melhor.
-        $melhorNpc = 99;
-
-
-        // Variável que armazenará o nome do NPC vencedor.
-        $npcNome = '';
-
-
-
-        // Percorre todos os jogadores para comparar os resultados.
-        foreach($jogadores as $j){
-
-
-            // Ignora o próprio jogador na comparação.
-            if(($j['nome'] ?? '') == $meuNome) continue;
-
-
-
-            // Cada NPC recebe uma escolha aleatória.
-            $npcEscolha = rand(1,5);
-
-
-
-            // Calcula a distância do NPC até o alvo.
-            $distNpc = abs($alvo - $npcEscolha);
-
-
-
-            // Verifica se esse NPC teve um resultado melhor.
-            if($distNpc < $melhorNpc){
-
-
-                // Atualiza a menor distância encontrada.
-                $melhorNpc = $distNpc;
-
-
-                // Guarda o nome do NPC vencedor.
-                $npcNome = $j['nome'];
-            }
-        }
-
-
-
-        // Compara o resultado do jogador com o melhor NPC.
-        // Caso o jogador tenha chegado mais perto ou empatado, ele vence.
-        $lider = ($distPlayer <= $melhorNpc) ? $meuNome : $npcNome;
-    }
-
-
-
-
-    /* ===========================
-       PROVAS DE SORTE SIMPLES
-    =========================== */
-
-
-    // As provas 2 até 11 utilizam a função de sorte.
-    if($tipoProva >= 2 && $tipoProva <= 11){
-
-
-        // Realiza a disputa e retorna o vencedor.
-        $lider = disputaPorSorte(
-            $jogadores,
-            $meuNome,
-            $escolha,
-            $prova['max']
-        );
-    }
-
-
-
-
-    // Caso por algum motivo nenhum vencedor seja definido,
-    // escolhe automaticamente um NPC para evitar erro no sistema.
-    if($lider == null || $lider == ''){
-
-        $lider = sortearNPCVencedor($jogadores, $meuNome);
-    }
-
-/* ===============================
-   SALVAR LÍDER
-================================= */
-
-
-// Salva na sessão o nome do participante que venceu a Prova do Líder.
-// Essa informação será utilizada em outras páginas do jogo,
-// como na formação do paredão e exibição do líder atual.
-$_SESSION['lider'] = $lider;
-
-
-
-// Percorre todos os jogadores da partida para atualizar quem possui a liderança.
-foreach($_SESSION['jogadores'] as &$j){
-
-
-    // Primeiro remove a liderança de todos os participantes.
-    // Isso garante que exista apenas um líder por rodada.
-    $j['status']['lider'] = false;
-
-
-
-    // Verifica se o jogador atual é o vencedor da prova.
-    if(($j['nome'] ?? '') == $lider){
-
-
-        // Define o participante vencedor como líder.
-        $j['status']['lider'] = true;
-
-
-
-        // Verifica se o jogador já possui um espaço para guardar estatísticas.
-        if(!isset($j['estatisticas'])){
-
-            // Caso não exista, cria um novo array de estatísticas.
-            $j['estatisticas'] = [];
-        }
-
-
-
-        // Adiciona uma vitória na Prova do Líder para esse participante.
-        // O operador ?? garante que, caso seja a primeira vitória,
-        // o valor inicial será 0.
-        $j['estatisticas']['lider'] =
-        ($j['estatisticas']['lider'] ?? 0) + 1;
+if((int)$tipoProva===12){
+    $questoesLogica=prepararSequenciaLogicaLider();
+
+    $desempateLogicaPendente=
+        !empty($_SESSION['lider_logica_desempate_pendente']);
+
+    if($desempateLogicaPendente){
+        $questaoDesempateLogica=
+            prepararQuestaoDesempateLogicaLider();
+
+        $npcsDesempateLogica=
+            $_SESSION['lider_logica_desempate_npcs']
+            ?? [];
     }
 }
 
-
-// Remove a referência criada pelo foreach.
-// Isso evita problemas caso a variável $j seja usada novamente depois.
-unset($j);
-
-
-
-
-// Cria uma mensagem que será exibida no jogo informando o vencedor.
-// O operador ternário permite escolher entre duas mensagens diferentes.
-$_SESSION['mensagem_lider'] =
-
-($lider == $meuNome)
-
-
-// Caso o próprio jogador vença a prova.
-? "🏆 Você venceu a Prova do Líder!"
-
-// Caso um NPC vença a prova.
-: "👑 $lider venceu a Prova do Líder!";
-
-
-
-
-// Remove a prova atual da sessão.
-// Assim, quando uma nova rodada começar,
-// uma nova prova poderá ser sorteada.
-unset($_SESSION['prova_tipo']);
-
-
-
-
-// Verifica se a área de eventos extras já foi criada.
-if(!isset($_SESSION['evento_extra'])){
-
-
-    // Cria um array vazio para armazenar mensagens dos acontecimentos.
-    $_SESSION['evento_extra'] = [];
+if((int)$tipoProva===13){
+    $estadoEstrategia=prepararCaminhoEstrategicoLider();
+    $opcoesEstrategia=opcoesCaminhoEstrategicoLider(
+        (int)($estadoEstrategia['etapa']??1)
+    );
 }
 
-
-
-
-// Adiciona um evento informando quem ganhou a liderança.
-$_SESSION['evento_extra'][] =
-"👑 ".$lider." venceu a Prova do Líder.";
-
-
-
-
-// Adiciona uma mensagem de ambientação para deixar o jogo mais parecido
-// com uma temporada real de reality show.
-$_SESSION['evento_extra'][] =
-"🗣️ \"Parabéns! O reinado começou.\"";
-
-
-
-
-// Depois que todas as informações são salvas,
-// o jogador retorna para a página principal do jogo.
-header("Location: jogo.php");
-
-
-// Finaliza o código para evitar que continue executando.
-exit;
+function eLider($t){
+    return htmlspecialchars((string)$t,ENT_QUOTES,'UTF-8');
 }
-
-
-
-
-
-
-// Função responsável por criar os textos que aparecem nos botões das provas.
-// Como existem vários tipos de provas, cada uma possui uma identificação diferente.
-function textoBotaoProva($tipo, $i){
-
-
-
-    // Retorna o nome do botão caso a prova seja de escolher um alvo.
-    if($tipo == 'alvo') return "🎯 Alvo $i";
-
-
-
-    // Retorna o nome do botão caso a prova seja de escolher um cofre.
-    if($tipo == 'cofre') return "💎 Cofre $i";
-
-
-
-    // Caso seja uma prova de nave, transforma os números em letras.
-    if($tipo == 'nave'){
-
-
-        // Lista de letras que serão usadas nas naves.
-        $letras = ["A","B","C","D","E"];
-
-
-        // Retorna a letra correspondente ao botão escolhido.
-        return "🚀 Nave ".$letras[$i-1];
-    }
-
-
-
-    // Caso seja uma prova de símbolos,
-    // cria opções visuais para o jogador escolher.
-    if($tipo == 'simbolo'){
-
-        $simbolos = ["🍒","⭐","💎","🎯"];
-
-
-        // Retorna o símbolo correspondente.
-        // Caso não exista, mostra um texto padrão.
-        return $simbolos[$i-1] ?? "Símbolo $i";
-    }
-
-
-
-    // Botões da prova de caixas.
-    if($tipo == 'caixa') return "📦 Caixa $i";
-
-
-
-    // Caso seja uma prova de cores.
-    if($tipo == 'cor'){
-
-        // Lista de cores disponíveis.
-        $cores = ["Rosa","Azul","Dourado","Roxo"];
-
-
-        // Retorna a cor correspondente.
-        return "🌪️ ".$cores[$i-1];
-    }
-
-
-
-    // Botões da prova de totens.
-    if($tipo == 'totem') return "🔥 Totem $i";
-
-
-
-    // Caso seja uma prova numérica simples,
-    // retorna apenas o número da opção.
-    return (string)$i;
-}
-
 ?>
-
 <!DOCTYPE html>
-
-<!-- Define que o documento utiliza a versão HTML5 -->
 <html lang="pt-br">
-
-<!-- Define que o idioma principal da página é português brasileiro -->
 <head>
-
-
-<!-- Define a codificação dos caracteres para aceitar acentos e emojis -->
 <meta charset="UTF-8">
-
-
-<!-- Título que aparece na aba do navegador -->
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Prova do Líder</title>
-
-
+<link rel="stylesheet" href="assets/css/prova_lider.css">
+<link rel="stylesheet" href="assets/css/provas_interativas.css?v=2">
+<link rel="stylesheet" href="assets/css/provas_interativas_premium.css?v=20260917">
 
 <style>
+/* =========================================================
+   🔢 PREMIUM INLINE — SEQUÊNCIA LÓGICA
+   Carregado dentro da própria página para evitar cache/path.
+   ========================================================= */
 
-/* 
-Remove os espaçamentos padrões do navegador
-e define o cálculo correto do tamanho dos elementos.
-*/
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
+body .logica-area{
+    margin:26px 0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    gap:20px !important;
 }
 
-
-
-
-/*
-Estilização principal da página.
-Define fonte, fundo, alinhamento e tamanho mínimo.
-*/
-body{
-
-
-/* Define a fonte utilizada no sistema */
-font-family:Arial,sans-serif;
-
-
-/*
-Cria um fundo com efeitos de gradiente radial.
-Foi utilizado para deixar a interface com aparência mais próxima
-de um programa de reality show.
-*/
-background:
-
-radial-gradient(circle at top left, rgba(255,0,120,.22), transparent 35%),
-
-radial-gradient(circle at top right, rgba(255,204,0,.18), transparent 35%),
-
-radial-gradient(circle at bottom, #1b1438, #050510 75%);
-
-
-
-/* Define a cor padrão dos textos como branca */
-color:white;
-
-
-
-/* Garante que a página ocupe toda a altura da tela */
-min-height:100vh;
-
-
-
-/*
-Utiliza flexbox para centralizar o conteúdo
-horizontalmente e verticalmente.
-*/
-display:flex;
-
-justify-content:center;
-
-align-items:center;
-
-
-
-/* Cria um espaço interno para evitar que o conteúdo encoste nas bordas */
-padding:30px;
-
+body .logica-intro.premium{
+    display:flex !important;
+    justify-content:space-between !important;
+    align-items:center !important;
+    gap:18px !important;
+    padding:18px 20px !important;
+    margin-bottom:0 !important;
+    border-radius:22px !important;
+    background:linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,255,255,.025)) !important;
+    border:1px solid rgba(255,255,255,.13) !important;
+    box-shadow:0 12px 30px rgba(0,0,0,.20),inset 0 0 20px rgba(255,255,255,.02) !important;
+    text-align:left !important;
 }
 
-
-
-
-
-/*
-Classe responsável pelo card principal da prova.
-Dentro dela ficam título, descrição e botões.
-*/
-.box{
-
-
-/* Define largura máxima da área principal */
-width:760px;
-
-
-
-/* Permite que o elemento diminua em telas menores */
-max-width:100%;
-
-
-
-/* Cria um fundo transparente para dar efeito de vidro */
-background:rgba(255,255,255,.06);
-
-
-
-/* Adiciona uma borda discreta ao redor do card */
-border:1px solid rgba(255,255,255,.12);
-
-
-
-/* Arredonda os cantos do card */
-border-radius:28px;
-
-
-
-/* Cria espaço interno entre o conteúdo e a borda */
-padding:36px;
-
-
-
-/* Adiciona sombra para dar profundidade ao elemento */
-box-shadow:0 0 40px rgba(0,0,0,.48);
-
-
-
-/* Centraliza todos os textos e elementos internos */
-text-align:center;
-
-
-
-/*
-Cria um efeito de desfoque no fundo,
-dando aparência de vidro.
-*/
-backdrop-filter:blur(14px);
-
+body .logica-intro.premium strong{
+    display:block !important;
+    margin-bottom:7px !important;
+    font-size:20px !important;
+    color:#ffd86b !important;
 }
 
-
-
-
-
-/*
-Estilização do título principal da prova.
-*/
-h1{
-
-
-/* Define o tamanho da fonte */
-font-size:38px;
-
-
-
-/* Espaço inferior antes do próximo elemento */
-margin-bottom:15px;
-
-
-
-/*
-Cria um degradê colorido no texto.
-*/
-background:linear-gradient(
-90deg,
-#ff0077,
-#ffcc00,
-#00d9ff
-);
-
-
-
-/*
-Faz o degradê aparecer somente dentro do texto.
-*/
--webkit-background-clip:text;
-
-background-clip:text;
-
-
-
-/* Deixa a cor do texto transparente para mostrar o degradê */
--webkit-text-fill-color:transparent;
-
-color:transparent;
-
+body .logica-intro.premium span{
+    display:block !important;
+    max-width:500px !important;
+    font-size:13px !important;
+    line-height:1.6 !important;
+    color:rgba(255,255,255,.78) !important;
 }
 
-
-
-
-/*
-Estilização dos textos de descrição da prova.
-*/
-p{
-
-
-/* Tamanho do texto */
-font-size:18px;
-
-
-
-/* Deixa o texto levemente transparente */
-opacity:.92;
-
-
-
-/* Espaçamento inferior */
-margin-bottom:25px;
-
-
-
-/* Melhora a leitura em textos maiores */
-line-height:1.6;
-
+body .logica-resumo-premium{
+    flex:0 0 auto !important;
+    min-width:88px !important;
+    padding:14px !important;
+    border-radius:18px !important;
+    text-align:center !important;
+    background:linear-gradient(135deg,rgba(255,0,153,.20),rgba(0,210,255,.12)) !important;
+    border:1px solid rgba(255,255,255,.14) !important;
+    box-shadow:0 0 22px rgba(255,0,153,.10) !important;
 }
 
-
-
-
-/*
-Área onde ficam os botões das escolhas.
-Utiliza CSS Grid para organizar automaticamente.
-*/
-.grid{
-
-
-/* Ativa o sistema de grade */
-display:grid;
-
-
-
-/*
-Cria três colunas de mesmo tamanho.
-*/
-grid-template-columns:repeat(3,1fr);
-
-
-
-/* Espaçamento entre os botões */
-gap:14px;
-
-
-
-/* Espaço acima da grade */
-margin-top:15px;
-
+body .logica-resumo-premium b{
+    display:block !important;
+    font-size:30px !important;
+    line-height:1 !important;
+    color:#fff !important;
 }
 
-
-
-
-/*
-Estilo dos botões de escolha da prova.
-*/
-button{
-
-
-/* Espaço interno do botão */
-padding:18px;
-
-
-
-/* Remove a borda padrão */
-border:none;
-
-
-
-/* Arredonda os cantos */
-border-radius:16px;
-
-
-
-/* Tamanho do texto */
-font-size:18px;
-
-
-
-/* Deixa o texto em negrito */
-font-weight:bold;
-
-
-
-/* Mostra o cursor de clique */
-cursor:pointer;
-
-
-
-/* Cor do texto */
-color:white;
-
-
-
-/*
-Cria um degradê no fundo dos botões.
-*/
-background:linear-gradient(
-135deg,
-#ff0066,
-#6a00ff
-);
-
-
-
-/*
-Cria uma animação suave quando o botão muda.
-*/
-transition:.25s;
-
-
-
-/* Define uma altura mínima para manter todos iguais */
-min-height:62px;
-
+body .logica-resumo-premium small{
+    display:block !important;
+    margin-top:5px !important;
+    font-size:10px !important;
+    letter-spacing:1px !important;
+    text-transform:uppercase !important;
+    color:rgba(255,255,255,.68) !important;
 }
 
-
-
-
-
-/*
-Efeito aplicado quando o mouse passa sobre o botão.
-*/
-button:hover{
-
-
-/*
-Move o botão levemente para cima
-e aumenta um pouco o tamanho.
-*/
-transform:translateY(-3px) scale(1.02);
-
-
-
-/*
-Adiciona brilho ao redor do botão.
-*/
-box-shadow:0 0 22px rgba(255,0,140,.38);
-
+body .form-logica{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:18px !important;
 }
 
-
-
-
-
-/*
-Área inferior com informações da prova.
-*/
-.info{
-
-
-/* Espaço acima do texto */
-margin-top:22px;
-
-
-
-/* Tamanho menor para informações secundárias */
-font-size:14px;
-
-
-
-/* Deixa o texto menos destacado */
-opacity:.76;
-
-
-
-/* Melhora organização das linhas */
-line-height:1.5;
-
+body .logica-card{
+    position:relative !important;
+    overflow:hidden !important;
+    display:block !important;
+    padding:22px !important;
+    margin:0 !important;
+    border-radius:24px !important;
+    text-align:left !important;
+    background:
+        radial-gradient(circle at top right,rgba(0,210,255,.07),transparent 37%),
+        radial-gradient(circle at bottom left,rgba(255,0,170,.08),transparent 38%),
+        linear-gradient(160deg,rgba(15,16,38,.98),rgba(14,9,30,.98)) !important;
+    border:1px solid rgba(255,255,255,.10) !important;
+    box-shadow:0 12px 34px rgba(0,0,0,.30),0 0 24px rgba(255,0,170,.06) !important;
 }
 
+body .logica-card-topo{
+    display:flex !important;
+    justify-content:space-between !important;
+    align-items:center !important;
+    gap:10px !important;
+    margin-bottom:14px !important;
+}
 
+body .logica-numero{
+    display:inline-flex !important;
+    width:auto !important;
+    margin:0 !important;
+    padding:7px 12px !important;
+    border-radius:999px !important;
+    font-size:10px !important;
+    font-weight:900 !important;
+    letter-spacing:1.1px !important;
+    opacity:1 !important;
+    color:#fff !important;
+    background:linear-gradient(135deg,rgba(255,0,150,.24),rgba(0,185,255,.20)) !important;
+    border:1px solid rgba(255,255,255,.12) !important;
+}
 
+body .logica-badge-questao{
+    display:inline-flex !important;
+    align-items:center !important;
+    padding:7px 11px !important;
+    border-radius:999px !important;
+    font-size:10px !important;
+    font-weight:900 !important;
+    color:#ffd86b !important;
+    background:rgba(255,255,255,.055) !important;
+    border:1px solid rgba(255,255,255,.10) !important;
+}
 
+body .logica-barra-progresso{
+    display:grid !important;
+    grid-template-columns:repeat(3,1fr) !important;
+    gap:7px !important;
+    margin:0 0 16px !important;
+}
 
-/*
-Responsividade:
-quando a tela tiver menos de 700px,
-os botões passam a ocupar uma coluna.
-*/
+body .logica-barra-progresso span{
+    display:block !important;
+    height:6px !important;
+    border-radius:999px !important;
+    background:rgba(255,255,255,.08) !important;
+}
+
+body .logica-barra-progresso span.ativo{
+    background:linear-gradient(90deg,#ff2aaa,#00dfff,#ffd75e) !important;
+    box-shadow:0 0 12px rgba(255,40,170,.18) !important;
+}
+
+body .logica-padrao-bloco{
+    display:block !important;
+    margin:0 0 18px !important;
+    padding:18px !important;
+    border-radius:19px !important;
+    text-align:center !important;
+    background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
+    border:1px solid rgba(255,255,255,.075) !important;
+}
+
+body .logica-label-padrao{
+    margin-bottom:10px !important;
+    font-size:10px !important;
+    font-weight:900 !important;
+    letter-spacing:1.4px !important;
+    color:rgba(255,255,255,.55) !important;
+}
+
+body .logica-padrao{
+    display:block !important;
+    margin:0 0 9px !important;
+    font-size:30px !important;
+    line-height:1.45 !important;
+    font-weight:900 !important;
+    letter-spacing:1.1px !important;
+    text-align:center !important;
+    color:#fff !important;
+    background:linear-gradient(90deg,#ff9b62,#ff4ccd,#68e7ff,#ffe068) !important;
+    -webkit-background-clip:text !important;
+    background-clip:text !important;
+    -webkit-text-fill-color:transparent !important;
+}
+
+body .logica-dica{
+    display:block !important;
+    font-size:12px !important;
+    line-height:1.5 !important;
+    text-align:center !important;
+    color:rgba(255,255,255,.66) !important;
+}
+
+body .logica-opcoes{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:12px !important;
+}
+
+body .logica-opcao{
+    position:relative !important;
+    display:block !important;
+    margin:0 !important;
+    cursor:pointer !important;
+}
+
+body .logica-opcao input{
+    position:absolute !important;
+    opacity:0 !important;
+    width:1px !important;
+    height:1px !important;
+    pointer-events:none !important;
+}
+
+body .logica-opcao span{
+    box-sizing:border-box !important;
+    width:100% !important;
+    min-height:64px !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:3px !important;
+    padding:12px !important;
+    border-radius:16px !important;
+    color:#fff !important;
+    background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.02)) !important;
+    border:1px solid rgba(255,255,255,.11) !important;
+    transition:.2s ease !important;
+}
+
+body .logica-opcao span small{
+    display:block !important;
+    font-size:9px !important;
+    font-weight:800 !important;
+    letter-spacing:1px !important;
+    text-transform:uppercase !important;
+    color:rgba(255,255,255,.50) !important;
+}
+
+body .logica-opcao span strong{
+    display:block !important;
+    font-size:18px !important;
+    color:#fff !important;
+}
+
+body .logica-opcao:hover span{
+    transform:translateY(-2px) !important;
+    border-color:rgba(255,50,180,.40) !important;
+    background:linear-gradient(135deg,rgba(255,0,160,.11),rgba(0,210,255,.08)) !important;
+    box-shadow:0 8px 20px rgba(0,0,0,.20),0 0 16px rgba(255,0,160,.12) !important;
+}
+
+body .logica-opcao input:checked + span{
+    transform:translateY(-1px) !important;
+    border-color:rgba(255,210,80,.60) !important;
+    background:linear-gradient(135deg,rgba(255,170,0,.25),rgba(255,0,140,.18)) !important;
+    box-shadow:0 0 18px rgba(255,170,0,.18),0 0 20px rgba(255,0,140,.13) !important;
+}
+
+body .btn-confirmar-logica{
+    width:100% !important;
+    min-height:58px !important;
+    margin-top:2px !important;
+    padding:15px 18px !important;
+    border:none !important;
+    border-radius:18px !important;
+    color:#fff !important;
+    font-size:15px !important;
+    font-weight:900 !important;
+    cursor:pointer !important;
+    background:linear-gradient(135deg,#ff8500,#ff28ae,#6959ff) !important;
+    box-shadow:0 10px 24px rgba(0,0,0,.24),0 0 20px rgba(255,40,174,.20) !important;
+}
+
+body .desempate-logica-cabecalho{
+    padding:20px !important;
+    margin-bottom:0 !important;
+    border-radius:22px !important;
+    text-align:left !important;
+    background:linear-gradient(135deg,rgba(255,190,40,.13),rgba(255,70,125,.08)) !important;
+    border:1px solid rgba(255,210,90,.24) !important;
+    box-shadow:0 0 24px rgba(255,190,40,.08) !important;
+}
+
+body .desempate-logica-cabecalho > span{
+    display:inline-block !important;
+    margin-bottom:9px !important;
+    padding:7px 11px !important;
+    border-radius:999px !important;
+    color:#ffd76a !important;
+    background:rgba(255,210,90,.12) !important;
+    font-size:10px !important;
+    font-weight:900 !important;
+    letter-spacing:1px !important;
+}
+
+body .desempate-logica-cabecalho h2{
+    margin:0 0 8px !important;
+    font-size:25px !important;
+}
+
+body .desempate-logica-cabecalho p{
+    margin:0 0 7px !important;
+    line-height:1.55 !important;
+}
+
+body .desempate-logica-cabecalho small{
+    opacity:.66 !important;
+}
+
 @media(max-width:700px){
+    body .logica-intro.premium{
+        flex-direction:column !important;
+        align-items:stretch !important;
+    }
 
+    body .logica-resumo-premium{
+        width:100% !important;
+    }
 
-.grid{
-
-
-/* Altera a grade para uma coluna em celulares */
-grid-template-columns:1fr;
-
+    body .logica-opcoes{
+        grid-template-columns:1fr !important;
+    }
 }
 
+@media(max-width:500px){
+    body .logica-card{
+        padding:17px !important;
+        border-radius:18px !important;
+    }
+
+    body .logica-card-topo{
+        align-items:flex-start !important;
+        flex-direction:column !important;
+    }
+
+    body .logica-padrao{
+        font-size:23px !important;
+    }
 }
-
-
 </style>
 
 </head>
-
-
-
 <body>
 
+<div class="box prova-interativa-box">
 
-<!--
-Div principal que engloba toda a tela da prova.
--->
-<div class="box">
+<div class="prova-meta">
+    <span class="prova-categoria"><?= eLider($prova['categoria']??'🎮 Prova') ?></span>
+    <span class="prova-dificuldade">
+        Dificuldade:
+        <?php
+        $nivel=(int)($prova['dificuldade']??1);
+        echo str_repeat('★',$nivel).str_repeat('☆',max(0,5-$nivel));
+        ?>
+    </span>
+</div>
 
+<h1><?= eLider($prova['titulo']??'Prova do Líder') ?></h1>
+<p class="prova-descricao"><?= eLider($prova['texto']??'') ?></p>
 
+<?php if((int)$tipoProva===2): ?>
 
-<!--
-Exibe o título da prova.
-O PHP substitui automaticamente pelo nome da prova escolhida.
--->
-<h1>
+<div class="reflexo-area">
+    <div class="reflexo-status aguardando" id="reflexoStatus">PREPARE-SE</div>
+    <p class="reflexo-instrucao" id="reflexoInstrucao">
+        Não clique antes do sinal. O botão será liberado automaticamente.
+    </p>
+    <form method="POST" id="formReflexo">
+        <input type="hidden" name="jogar" value="1">
+        <input type="hidden" name="tempo_reacao_ms" id="tempoReacaoMs" value="">
+        <button type="button" class="btn-reflexo" id="btnReflexo" disabled>⏳ AGUARDE...</button>
+    </form>
+</div>
 
-<?php echo $prova['titulo']; ?>
+<?php elseif((int)$tipoProva===3): ?>
 
-</h1>
+<div class="memoria-area">
+    <div class="memoria-fase" id="memoriaFase">MEMORIZE A SEQUÊNCIA</div>
+    <div class="memoria-sequencia" id="memoriaSequencia">
+        <?php foreach($sequenciaMemoria as $simbolo): ?>
+            <span class="memoria-emoji"><?= eLider($simbolo['emoji']??'') ?></span>
+        <?php endforeach; ?>
+    </div>
+    <div class="memoria-contador" id="memoriaContador">5</div>
 
+    <form method="POST" id="formMemoria" class="form-memoria escondido" autocomplete="off">
+        <input type="hidden" name="jogar" value="1">
+        <p class="memoria-ajuda">
+            Escreva o <b>nome</b> de cada emoji na ordem em que apareceu.
+            Não precisa digitar o emoji.
+        </p>
+        <div class="memoria-campos">
+            <?php foreach($sequenciaMemoria as $i=>$simbolo): ?>
+                <label class="memoria-campo">
+                    <span><?= $i+1 ?>º símbolo</span>
+                    <input type="text" name="memoria[<?= $i ?>]" placeholder="Ex.: estrela" required spellcheck="false">
+                </label>
+            <?php endforeach; ?>
+        </div>
+        <button type="submit" class="btn-confirmar-memoria">🧠 CONFIRMAR SEQUÊNCIA</button>
+    </form>
+</div>
 
+<?php elseif((int)$tipoProva===12): ?>
 
+<div class="logica-area">
 
-<!--
-Mostra a descrição da prova escolhida.
--->
-<p>
+    <?php if($desempateLogicaPendente && is_array($questaoDesempateLogica)): ?>
 
-<?php echo $prova['texto']; ?>
+        <div class="desempate-logica-cabecalho">
+            <span>⚡ DESEMPATE</span>
+            <h2>Empate no topo!</h2>
 
-</p>
+            <p>
+                Você terminou empatado com
+                <b><?= eLider(implode(', ',$npcsDesempateLogica)) ?></b>.
+                Uma quarta questão vai decidir a liderança.
+            </p>
 
+            <small>
+                Acerte para garantir a liderança. Se errar, um dos NPCs empatados vence.
+            </small>
+        </div>
 
+        <form method="POST" class="form-logica">
+            <input
+                type="hidden"
+                name="jogar_desempate_logica"
+                value="1"
+            >
 
+            <section class="logica-card desempate-card">
+                <div class="logica-card-topo">
+                    <div class="logica-numero">
+                        ⚡ QUESTÃO EXTRA
+                    </div>
 
-<!--
-Formulário responsável por enviar a escolha do jogador
-para o processamento PHP.
--->
-<form method="POST">
+                    <div class="logica-badge-questao destaque">
+                        Valendo a liderança
+                    </div>
+                </div>
 
+                <div class="logica-padrao-bloco destaque-bloco">
+                    <div class="logica-label-padrao">SEQUÊNCIA</div>
+                    <div class="logica-padrao">
+                        <?= eLider($questaoDesempateLogica['texto']??'') ?>
+                    </div>
+                    <div class="logica-dica">
+                        Observe o padrão numérico e escolha a próxima resposta correta.
+                    </div>
+                </div>
 
+                <div class="logica-opcoes">
+                    <?php foreach(($questaoDesempateLogica['opcoes']??[]) as $opcao): ?>
+                        <label class="logica-opcao">
+                            <input
+                                type="radio"
+                                name="resposta_desempate_logica"
+                                value="<?= eLider($opcao) ?>"
+                                required
+                            >
+                            <span>
+                                <small>Resposta</small>
+                                <strong><?= eLider($opcao) ?></strong>
+                            </span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            </section>
 
-<!--
-Container que organiza os botões das escolhas.
--->
-<div class="grid">
+            <button
+                type="submit"
+                class="btn-confirmar-logica btn-desempate-logica"
+            >
+                ⚡ RESPONDER DESEMPATE
+            </button>
+        </form>
 
+    <?php else: ?>
 
+        <div class="logica-intro premium">
+            <div>
+                <strong>🔢 Sequência Lógica Premium</strong>
+                <span>
+                    Resolva 3 padrões. Cada acerto vale 1 ponto e, se houver empate no topo,
+                    uma questão extra define o novo Líder.
+                </span>
+            </div>
 
+            <div class="logica-resumo-premium">
+                <b>3</b>
+                <small>questões</small>
+            </div>
+        </div>
 
-<!--
-Laço PHP que cria os botões automaticamente.
+        <form method="POST" class="form-logica">
+            <input type="hidden" name="jogar" value="1">
 
-A quantidade de botões depende do valor máximo
-definido na prova.
--->
-<?php for($i=1;$i<=$prova['max'];$i++): ?>
+            <?php foreach($questoesLogica as $i=>$questao): ?>
+                <section class="logica-card">
+                    <div class="logica-card-topo">
+                        <div class="logica-numero">QUESTÃO <?= $i+1 ?> DE <?= count($questoesLogica) ?></div>
+                        <div class="logica-badge-questao">+1 ponto</div>
+                    </div>
 
+                    <div class="logica-barra-progresso">
+                        <?php for($passo=1;$passo<=count($questoesLogica);$passo++): ?>
+                            <span class="<?= $passo <= ($i+1) ? 'ativo' : '' ?>"></span>
+                        <?php endfor; ?>
+                    </div>
 
+                    <div class="logica-padrao-bloco">
+                        <div class="logica-label-padrao">PADRÃO</div>
+                        <div class="logica-padrao"><?= eLider($questao['texto']??'') ?></div>
+                        <div class="logica-dica">
+                            Analise a ordem dos números antes de marcar sua resposta.
+                        </div>
+                    </div>
 
-<!--
-Botão responsável por enviar a escolha do jogador.
+                    <div class="logica-opcoes">
+                        <?php foreach(($questao['opcoes']??[]) as $opcao): ?>
+                            <label class="logica-opcao">
+                                <input
+                                    type="radio"
+                                    name="logica[<?= $i ?>]"
+                                    value="<?= eLider($opcao) ?>"
+                                    required
+                                >
+                                <span>
+                                    <small>Opção</small>
+                                    <strong><?= eLider($opcao) ?></strong>
+                                </span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+            <?php endforeach; ?>
 
-O value guarda o número escolhido.
--->
-<button 
-type="submit" 
-name="escolha" 
-value="<?php echo $i; ?>"
->
+            <button type="submit" class="btn-confirmar-logica">
+                🔢 CONFIRMAR RESPOSTAS
+            </button>
+        </form>
 
-
-<!--
-Chama a função PHP que define o texto do botão.
-Exemplo:
-Alvo 1, Cofre 2, Nave A, etc.
--->
-<?php echo textoBotaoProva($prova['tipo'], $i); ?>
-
-
-</button>
-
-
-
-<!-- Finaliza o laço de criação dos botões -->
-<?php endfor; ?>
-
-
+    <?php endif; ?>
 
 </div>
 
+<?php elseif((int)$tipoProva===13 && is_array($estadoEstrategia)): ?>
 
+<?php
+$etapaEstrategia=(int)($estadoEstrategia['etapa']??1);
+$pontosEstrategia=(int)($estadoEstrategia['pontos']??50);
+$feedbackEstrategia=(string)($estadoEstrategia['feedback']??'');
+$historicoEstrategia=$estadoEstrategia['historico']??[];
+?>
 
+<div class="estrategia-area">
 
-<!--
-Campo invisível utilizado para avisar ao PHP
-que uma jogada foi realizada.
--->
-<input 
-type="hidden" 
-name="jogar" 
-value="1"
->
+    <div class="estrategia-topo">
+        <div>
+            <span class="estrategia-label">ETAPA <?= $etapaEstrategia ?> DE 3</span>
+            <div class="estrategia-progresso">
+                <?php for($passo=1;$passo<=3;$passo++): ?>
+                    <span class="estrategia-ponto <?= $passo <= $etapaEstrategia ? 'ativo' : '' ?>"></span>
+                <?php endfor; ?>
+            </div>
+        </div>
 
+        <div class="estrategia-score">
+            <small>SEUS PONTOS</small>
+            <strong><?= $pontosEstrategia ?></strong>
+        </div>
+    </div>
 
+    <?php if($feedbackEstrategia!==''): ?>
+        <div class="estrategia-feedback">
+            <?= eLider($feedbackEstrategia) ?>
+        </div>
+    <?php endif; ?>
 
+    <form method="POST" class="estrategia-form">
+        <input type="hidden" name="jogar_estrategia" value="1">
+
+        <div class="estrategia-opcoes">
+            <?php foreach($opcoesEstrategia as $chave=>$opcao): ?>
+                <button
+                    type="submit"
+                    name="escolha_estrategia"
+                    value="<?= eLider($chave) ?>"
+                    class="estrategia-card risco-<?= eLider($opcao['risco']??'baixo') ?>"
+                >
+                    <span class="estrategia-emoji"><?= eLider($opcao['emoji']??'🎯') ?></span>
+                    <strong><?= eLider($opcao['titulo']??'Escolha') ?></strong>
+                    <small><?= eLider($opcao['descricao']??'') ?></small>
+                    <em>Risco: <?= eLider(strtoupper($opcao['risco']??'baixo')) ?></em>
+                </button>
+            <?php endforeach; ?>
+        </div>
+    </form>
+
+    <?php if(!empty($historicoEstrategia)): ?>
+        <div class="estrategia-historico">
+            <h3>📋 Sua trajetória</h3>
+            <?php foreach($historicoEstrategia as $item): ?>
+                <p><?= eLider($item['texto']??'') ?></p>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+</div>
+
+<?php else: ?>
+
+<form method="POST">
+    <div class="grid">
+        <?php $maxOpcoes=(int)($prova['max']??0); ?>
+        <?php for($i=1;$i<=$maxOpcoes;$i++): ?>
+            <button type="submit" name="escolha" value="<?= $i ?>">
+                <?= eLider(textoBotaoProvaLider($prova['tipo']??'numero',$i)) ?>
+            </button>
+        <?php endfor; ?>
+    </div>
+    <input type="hidden" name="jogar" value="1">
 </form>
 
+<?php endif; ?>
 
-
-
-
-<!--
-Área de explicação das regras básicas da prova.
--->
 <div class="info">
-
-
-👑 O vencedor assume a liderança da rodada.
-
-<br>
-
-
-🎲 Algumas provas são de sorte, outras comparam sua escolha com a dos participantes.
-
+👑 O vencedor assume a liderança da rodada.<br>
+🪙 Se você vencer, recebe +15 Moedas do Público.<br>
+🎮 Há provas de sorte, memória, agilidade, raciocínio e estratégia.
+</div>
 
 </div>
 
-
-
-</div>
-
-
+<script src="assets/js/provas_interativas.js"></script>
 </body>
-
 </html>

@@ -31,7 +31,7 @@ body {
     color: white;
     overflow-x: hidden;
     background:
-        radial-gradient(circle at 12% 4%, rgba(163, 40, 99, 0.3), transparent 28%),
+        radial-gradient(circle at 12% 4%, rgba(255, 0, 122, .30), transparent 28%),
         radial-gradient(circle at 90% 18%, rgba(0, 229, 255, .18), transparent 28%),
         radial-gradient(circle at 50% 100%, rgba(122, 0, 255, .22), transparent 34%),
         linear-gradient(135deg, #050512, #09091f 48%, #03030a);

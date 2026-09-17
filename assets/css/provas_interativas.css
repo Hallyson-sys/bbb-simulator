@@ -1,0 +1,25 @@
+.prova-interativa-box{width:min(720px,92vw)}
+.prova-meta{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.prova-categoria,.prova-dificuldade{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);font-size:12px}
+.prova-dificuldade{color:#ffd76a}.prova-descricao{line-height:1.6}
+.reflexo-area,.memoria-area{margin:26px 0;padding:26px;border-radius:22px;background:radial-gradient(circle at top,rgba(115,0,255,.16),rgba(0,0,0,.20));border:1px solid rgba(255,255,255,.12)}
+.reflexo-status{min-height:82px;display:flex;align-items:center;justify-content:center;border-radius:18px;margin-bottom:14px;font-size:24px;font-weight:900;letter-spacing:1.5px;transition:.25s}
+.reflexo-status.aguardando{background:rgba(255,190,0,.10);border:1px solid rgba(255,190,0,.28)}
+.reflexo-status.liberado{background:rgba(0,255,145,.13);border:1px solid rgba(0,255,145,.38);box-shadow:0 0 28px rgba(0,255,145,.17);transform:scale(1.02)}
+.reflexo-status.finalizado{background:rgba(0,198,255,.12);border:1px solid rgba(0,198,255,.32)}
+.reflexo-instrucao{opacity:.82;margin-bottom:18px}
+.btn-reflexo{width:100%;min-height:82px;border:none;border-radius:20px;font-size:22px;font-weight:900;cursor:pointer;transition:.18s}
+.btn-reflexo:disabled{cursor:not-allowed;opacity:.72}
+.memoria-fase{font-size:13px;font-weight:900;letter-spacing:1.5px;opacity:.9;margin-bottom:18px}
+.memoria-sequencia{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:14px;min-height:96px;transition:.35s}
+.memoria-sequencia.sumiu{opacity:0;transform:scale(.88);height:0;min-height:0;overflow:hidden;margin:0}
+.memoria-emoji{width:72px;height:72px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);font-size:38px}
+.memoria-contador{margin-top:15px;font-size:28px;font-weight:900}.form-memoria{margin-top:10px}.escondido{display:none!important}
+.memoria-ajuda{margin-bottom:18px;line-height:1.55;opacity:.9}
+.memoria-campos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.memoria-campo{display:flex;flex-direction:column;align-items:flex-start;gap:7px;text-align:left}
+.memoria-campo span{font-size:11px;opacity:.75}
+.memoria-campo input{width:100%;padding:13px 14px;border:none;outline:none;border-radius:13px;background:rgba(0,0,0,.35);color:white;border:1px solid rgba(255,255,255,.10);font-size:15px}
+.memoria-campo input:focus{border-color:rgba(0,220,255,.55);box-shadow:0 0 16px rgba(0,220,255,.13)}
+.btn-confirmar-memoria{width:100%;min-height:54px;border:none;border-radius:16px;font-size:15px;font-weight:900;cursor:pointer}
+@media(max-width:600px){.reflexo-area,.memoria-area{padding:18px}.memoria-campos{grid-template-columns:1fr}.memoria-emoji{width:54px;height:54px;font-size:29px}.reflexo-status{font-size:19px}.btn-reflexo{min-height:70px;font-size:18px}}

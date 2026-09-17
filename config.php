@@ -1,336 +1,526 @@
 <?php
 
-// Inicia uma sessão PHP para permitir o armazenamento de informações do jogador durante o jogo
 session_start();
 
 
-// Verifica se o formulário enviou um nome.
-// Caso exista um novo nome, remove dados antigos da sessão para iniciar uma nova partida.
-if(isset($_POST['nome'])){
+/* =========================================================
+   🧹 NOVA PARTIDA
+   ========================================================= */
+
+if (isset($_POST['nome'])) {
     session_unset();
 }
 
 
-/* ==================================
-   RECEBER DADOS DO FORM
-================================== */
+/* =========================================================
+   📥 RECEBER DADOS DO FORMULÁRIO
+   ========================================================= */
 
-// Recebe o nome informado pelo usuário e remove espaços desnecessários no início e no final
-$nomeUser = trim($_POST['nome']);
+$nomeUser = trim($_POST['nome'] ?? '');
 
-// Recebe a idade enviada pelo formulário e transforma o valor para inteiro
-$idade = (int) $_POST['idade'];
+$idade = (int) ($_POST['idade'] ?? 18);
 
-// Armazena a profissão escolhida pelo usuário
-$profissao = $_POST['profissao'];
+$profissao = trim($_POST['profissao'] ?? '');
 
-// Armazena o estado escolhido pelo usuário
-$estado = $_POST['estado'];
+$estado = trim($_POST['estado'] ?? '');
 
-// Armazena a personalidade escolhida pelo usuário
-$personalidadeUser = $_POST['personalidade'];
+$personalidadeUser = trim(
+    $_POST['personalidade'] ?? 'Neutro'
+);
 
-// Define a quantidade de participantes da partida.
-// Caso nenhuma quantidade seja enviada, o sistema utiliza 20 jogadores como padrão.
 $qtd = (int) ($_POST['qtd'] ?? 20);
 
+$tipoElenco = $_POST['tipo_elenco'] ?? 'automatico';
 
 
-/* ==================================
-   NOMES DISPONÍVEIS
-================================== */
+/* =========================================================
+   🛡️ VALIDAR QUANTIDADE
+   ========================================================= */
 
-// Array contendo os nomes que podem ser utilizados pelos NPCs (personagens controlados pelo sistema)
-$nomes = [
-"Ana","Carlos","Julia","Lucas","Marina",
-"Pedro","Fernanda","Rafael","Bianca","Gustavo",
-"Camila","Bruno","Larissa","Diego","Aline",
-"Igor","Vanessa","Renan","Beatriz","Felipe",
-"Alberto","Yago","Nicole","Débora","Rayssa",
-"Giulia","Nathan","Allan","Samira","Theo",
-"Mariana","Luiza","Henrique","Paula","Vinicius",
-"Eduarda","Leandro","Vitória","Matheus","Amanda",
-"Caio","Murilo","Talita","Raissa","Brenda",
-"Maria Eduarda","Thiago","Yasmin","Malu","João",
-"Francisca","Isabelly","Carolina","Zoe","Matteo",
-"Gabriel","Otto","Clara","Zeca","Patrick","Camilo",
-"Tainá","Helena","Heitor","Priscila","Henry","Rauanny"
+$quantidadesPermitidas = [10, 15, 20];
+
+if (!in_array($qtd, $quantidadesPermitidas, true)) {
+    $qtd = 20;
+}
+
+
+/* =========================================================
+   🧑 CRIAR JOGADOR PRINCIPAL
+   ========================================================= */
+
+$meuJogador = [
+
+    'nome' => $nomeUser,
+
+    'idade' => $idade,
+
+    'profissao' => $profissao,
+
+    'estado' => $estado,
+
+    'personalidade' => $personalidadeUser,
+
+    'popularidade' => rand(60, 80),
+
+    'humor' => 60,
+
+    'status' => [
+
+        'lider' => false,
+
+        'anjo' => false,
+
+        'imune' => false,
+
+        'vip' => false,
+
+        'xepa' => true
+    ],
+
+    'relacoes' => [],
+
+    'romances' => [],
+
+    'confessionarios' => []
 ];
 
 
-// Remove da lista de NPCs o nome escolhido pelo jogador,
-// evitando que exista outro participante com o mesmo nome.
-$nomes = array_filter($nomes, function($nome) use ($nomeUser){
+/* =========================================================
+   💾 DADOS PRINCIPAIS DA TEMPORADA
+   ========================================================= */
 
-    // Compara os nomes ignorando diferença entre letras maiúsculas e minúsculas
-    return mb_strtolower($nome) != mb_strtolower($nomeUser);
-});
+$_SESSION['meu_nome'] = $nomeUser;
+
+$_SESSION['meu_jogador_snapshot'] = $meuJogador;
+
+$_SESSION['qtd_participantes'] = $qtd;
+
+$_SESSION['tipo_elenco'] = $tipoElenco;
 
 
-// Reorganiza os índices do array após remover um nome
+/* =========================================================
+   ✏️ ELENCO PERSONALIZADO
+   ========================================================= */
+
+if ($tipoElenco === 'personalizado') {
+
+    /*
+     * O elenco começa apenas com o jogador.
+     * Os demais participantes serão adicionados
+     * na tela montar_elenco.php.
+     */
+
+    $_SESSION['elenco_personalizado'] = [
+        $meuJogador
+    ];
+
+    $_SESSION['jogadores'] = [
+        $meuJogador
+    ];
+
+    header('Location: montar_elenco.php');
+    exit;
+}
+
+
+/* =========================================================
+   🎲 ELENCO AUTOMÁTICO
+   ========================================================= */
+
+
+/* =========================================================
+   👤 NOMES DOS NPCs
+   ========================================================= */
+
+$nomes = [
+
+    'Ana',
+    'Carlos',
+    'Julia',
+    'Lucas',
+    'Marina',
+
+    'Pedro',
+    'Fernanda',
+    'Rafael',
+    'Bianca',
+    'Gustavo',
+
+    'Camila',
+    'Bruno',
+    'Larissa',
+    'Diego',
+    'Aline',
+
+    'Igor',
+    'Vanessa',
+    'Renan',
+    'Beatriz',
+    'Felipe',
+
+    'Alberto',
+    'Yago',
+    'Nicole',
+    'Débora',
+    'Rayssa',
+
+    'Giulia',
+    'Nathan',
+    'Allan',
+    'Samira',
+    'Theo',
+
+    'Mariana',
+    'Luiza',
+    'Henrique',
+    'Paula',
+    'Vinicius',
+
+    'Eduarda',
+    'Leandro',
+    'Vitória',
+    'Matheus',
+    'Amanda',
+
+    'Caio',
+    'Murilo',
+    'Talita',
+    'Raissa',
+    'Brenda',
+
+    'Maria Eduarda',
+    'Thiago',
+    'Yasmin',
+    'Malu',
+    'João',
+
+    'Francisca',
+    'Isabelly',
+    'Carolina',
+    'Zoe',
+    'Matteo',
+
+    'Gabriel',
+    'Otto',
+    'Clara',
+    'Zeca',
+    'Patrick',
+
+    'Camilo',
+    'Tainá',
+    'Helena',
+    'Heitor',
+    'Priscila',
+
+    'Henry',
+    'Rauanny'
+];
+
+
+/* =========================================================
+   🚫 REMOVER NOME DO JOGADOR
+   ========================================================= */
+
+$nomes = array_filter(
+    $nomes,
+    function ($nome) use ($nomeUser) {
+
+        return mb_strtolower(
+            trim($nome),
+            'UTF-8'
+        ) !== mb_strtolower(
+            trim($nomeUser),
+            'UTF-8'
+        );
+    }
+);
+
 $nomes = array_values($nomes);
 
-// Mistura a ordem dos nomes para gerar participantes diferentes em cada partida
 shuffle($nomes);
 
 
+/* =========================================================
+   🧠 PERSONALIDADES
+   ========================================================= */
 
-/* ==================================
-   PERSONALIDADES
-================================== */
-
-// Lista das personalidades possíveis para os participantes do jogo
-// Cada personalidade influencia o comportamento e eventos durante a simulação.
 $personalidades = [
-"Estrategista",
-"Explosivo",
-"Planta",
-"Manipulador",
-"Emocional",
-"Barraqueiro",
-"Fofo",
-"Líder Nato",
-"Influencer",
-"Falso",
-"Neutro"
+
+    'Estrategista',
+
+    'Explosivo',
+
+    'Planta',
+
+    'Manipulador',
+
+    'Emocional',
+
+    'Barraqueiro',
+
+    'Fofo',
+
+    'Líder Nato',
+
+    'Influencer',
+
+    'Falso',
+
+    'Neutro'
 ];
 
 
+/* =========================================================
+   💼 PROFISSÕES
+   ========================================================= */
 
-/* ==================================
-   PROFISSÕES
-================================== */
-
-// Lista de profissões utilizadas para gerar personagens automaticamente (NPCs)
 $profissoesNPC = [
-"Influencer",
-"Professor(a)",
-"Youtuber",
-"Advogado(a)",
-"Policial",
-"Médico(a)",
-"Enfermeiro(a)",
-"Balconista",
-"Desempregado",
-"DJ",
-"Terapeuta",
-"Ator/Atriz",
-"Bombeiro(a)",
-"Personal Trainer",
-"Maquiador(a)",
-"Motorista de Aplicativo",
-"Nutricionista",
-"Barbeiro(a)",
-"Cabeleleiro(a)",
-"Cantor(a)",
-"Modelo",
-"Vendedor(a)",
-"Engenheiro(a)",
-"Arquiteto(a)",
-"Empresário",
-"Psicólogo",
-"Tatuador(a)",
-"Veterinário(a)",
-"Streamer",
-"Fotógrafo(a)",
-"Comissário(a) de Bordo",
-"Assistente Social",
-"Esteticista",
-"Radialista"
+
+    'Influencer',
+
+    'Professor(a)',
+
+    'Youtuber',
+
+    'Advogado(a)',
+
+    'Policial',
+
+    'Médico(a)',
+
+    'Enfermeiro(a)',
+
+    'Balconista',
+
+    'Desempregado',
+
+    'DJ',
+
+    'Terapeuta',
+
+    'Ator/Atriz',
+
+    'Bombeiro(a)',
+
+    'Personal Trainer',
+
+    'Maquiador(a)',
+
+    'Motorista de Aplicativo',
+
+    'Nutricionista',
+
+    'Barbeiro(a)',
+
+    'Cabeleireiro(a)',
+
+    'Cantor(a)',
+
+    'Modelo',
+
+    'Vendedor(a)',
+
+    'Engenheiro(a)',
+
+    'Arquiteto(a)',
+
+    'Empresário',
+
+    'Psicólogo',
+
+    'Tatuador(a)',
+
+    'Veterinário(a)',
+
+    'Streamer',
+
+    'Fotógrafo(a)',
+
+    'Comissário(a) de Bordo',
+
+    'Assistente Social',
+
+    'Esteticista',
+
+    'Radialista'
 ];
 
 
+/* =========================================================
+   🇧🇷 ESTADOS
+   ========================================================= */
 
-/* ==================================
-   ESTADOS
-================================== */
-
-// Lista dos estados brasileiros que podem ser sorteados para os NPCs
 $estados = [
-"SP","RJ","MG","BA","RS","SC","PR","PE","CE","GO",
-"DF","ES","PA","AM","MT","MS","RN","PB","AL","SE",
-"MA","PI","TO","RO","AC","AP","RR"
+
+    'SP',
+    'RJ',
+    'MG',
+    'BA',
+    'RS',
+
+    'SC',
+    'PR',
+    'PE',
+    'CE',
+    'GO',
+
+    'DF',
+    'ES',
+    'PA',
+    'AM',
+    'MT',
+
+    'MS',
+    'RN',
+    'PB',
+    'AL',
+    'SE',
+
+    'MA',
+    'PI',
+    'TO',
+    'RO',
+    'AC',
+
+    'AP',
+    'RR'
 ];
 
-/* ==================================
-   CRIAR JOGADORES
-================================== */
 
-// Cria um array vazio que armazenará todos os participantes da partida
+/* =========================================================
+   👥 CRIAR ELENCO
+   ========================================================= */
+
 $jogadores = [];
 
 
+/* =========================================================
+   🤖 CRIAR NPCs
+   ========================================================= */
 
-/* NPCS */
+for ($i = 0; $i < $qtd - 1; $i++) {
 
-// Laço responsável por criar os personagens controlados pelo sistema.
-// O "-1" é utilizado porque o último participante será o próprio usuário.
-for($i = 0; $i < $qtd - 1; $i++){
+    if (isset($nomes[$i])) {
 
-
-    // Verifica se ainda existem nomes disponíveis na lista.
-    // Caso acabem os nomes, cria um nome genérico para o participante.
-    if(!isset($nomes[$i])){
-
-        $nomeAleatorio = "Participante".($i+1);
-
-    }else{
-
-        // Utiliza um nome disponível da lista para o NPC
         $nomeAleatorio = $nomes[$i];
+
+    } else {
+
+        $nomeAleatorio =
+            'Participante ' . ($i + 1);
     }
 
 
-    // Adiciona um novo participante no array de jogadores
     $jogadores[] = [
 
-        // Define o nome sorteado para o NPC
-        "nome" => $nomeAleatorio,
+        'nome' => $nomeAleatorio,
 
-        // Gera uma idade aleatória entre 18 e 55 anos para o personagem
-        "idade" => rand(18,55),
+        'idade' => rand(18, 55),
 
-        // Escolhe uma profissão aleatória da lista de profissões disponíveis
-        "profissao" => $profissoesNPC[array_rand($profissoesNPC)],
+        'profissao' =>
+            $profissoesNPC[
+                array_rand($profissoesNPC)
+            ],
 
-        // Escolhe um estado aleatório para representar a origem do participante
-        "estado" => $estados[array_rand($estados)],
+        'estado' =>
+            $estados[
+                array_rand($estados)
+            ],
 
-        // Define uma personalidade aleatória para o comportamento do NPC
-        "personalidade" => $personalidades[array_rand($personalidades)],
+        'personalidade' =>
+            $personalidades[
+                array_rand($personalidades)
+            ],
 
+        'popularidade' => rand(40, 60),
 
-        // Define valores iniciais de popularidade e humor.
-        // Esses valores podem mudar durante a evolução do jogo.
-        "popularidade" => rand(40,60),
-        "humor" => rand(40,60),
+        'humor' => rand(40, 60),
 
+        'status' => [
 
+            'lider' => false,
 
-        // Guarda características especiais do participante
-        "status" => [
+            'anjo' => false,
 
-            // Indica se o jogador possui o poder de liderança
-            "lider" => false,
+            'imune' => false,
 
-            // Indica se o jogador possui proteção de anjo
-            "anjo" => false,
+            'vip' => false,
 
-            // Indica se o jogador está protegido contra eliminação
-            "imune" => false,
-
-            // Indica se o jogador possui benefício VIP
-            "vip" => false,
-
-            // Define se o jogador está na área menos privilegiada da casa
-            "xepa" => true
+            'xepa' => true
         ],
 
+        'relacoes' => [],
 
-        // Cria arrays vazios para armazenar informações futuras
-        // como amizades, romances e depoimentos.
-        "relacoes" => [],
-        "romances" => [],
-        "confessionarios" => []
+        'romances' => [],
+
+        'confessionarios' => []
     ];
 }
 
 
+/* =========================================================
+   🙋 ADICIONAR JOGADOR
+   ========================================================= */
 
-/* VOCÊ */
-
-// Adiciona o jogador real dentro do elenco da partida
-$jogadores[] = [
-
-    // Utiliza os dados informados pelo usuário no formulário
-    "nome" => $nomeUser,
-    "idade" => $idade,
-    "profissao" => $profissao,
-    "estado" => $estado,
-    "personalidade" => $personalidadeUser,
+$jogadores[] = $meuJogador;
 
 
-    // O jogador começa com uma popularidade maior que os NPCs
-    // para representar a participação ativa do usuário.
-    "popularidade" => rand(60,80),
+/* =========================================================
+   🔀 EMBARALHAR ELENCO
+   ========================================================= */
 
-    // O humor inicial do jogador começa em 60 pontos
-    "humor" => 60,
-
-
-    // Define os status iniciais do jogador
-    "status" => [
-
-        // No início da partida nenhum benefício está ativo
-        "lider" => false,
-        "anjo" => false,
-        "imune" => false,
-        "vip" => false,
-
-        // Todos começam na condição inicial da casa
-        "xepa" => true
-    ],
-
-
-    // Arrays preparados para receber interações durante o jogo
-    "relacoes" => [],
-    "romances" => [],
-    "confessionarios" => []
-];
-
-
-
-// Mistura a ordem dos participantes para que o jogador não fique sempre
-// na mesma posição dentro do elenco.
 shuffle($jogadores);
 
 
+/* =========================================================
+   ❤️ CRIAR RELAÇÕES ENTRE PARTICIPANTES
+   ========================================================= */
+
+foreach ($jogadores as &$j1) {
+
+    foreach ($jogadores as $j2) {
+
+        if (
+            mb_strtolower(
+                $j1['nome'],
+                'UTF-8'
+            ) ===
+            mb_strtolower(
+                $j2['nome'],
+                'UTF-8'
+            )
+        ) {
+            continue;
+        }
 
 
-/* ==================================
-   RELAÇÕES ENTRE TODOS
-================================== */
-
-// Cria relações individuais entre todos os participantes da casa.
-// O foreach utiliza referência (&) para permitir alterar diretamente os jogadores.
-foreach($jogadores as &$j1){
-
-
-    // Percorre novamente todos os jogadores para criar uma relação entre cada dupla
-    foreach($jogadores as $j2){
-
-        unset($j1);
-
-/* ==================================
-   INICIAR PARTIDA
-================================== */
-
-$_SESSION['jogadores'] = $jogadores;
-
-$_SESSION['meu_nome'] = $nomeUser;
-
-$_SESSION['rodada'] = 1;
-
-header("Location: jogo.php");
-exit;
-
-
-        // Impede que o jogador crie uma relação consigo mesmo
-        if($j1['nome'] == $j2['nome']) continue;
-
-
-
-        // Cria uma relação inicial aleatória entre dois participantes
         $j1['relacoes'][$j2['nome']] = [
 
-            // Nível de amizade entre 20 e 80 pontos
-            "amizade" => rand(20,80),
+            'amizade' => rand(20, 80),
 
-            // Nível de rivalidade entre 0 e 50 pontos
-            "rivalidade" => rand(0,50),
+            'rivalidade' => rand(0, 50),
 
-            // Nível de confiança entre os participantes
-            "confianca" => rand(20,80)
+            'confianca' => rand(20, 80)
         ];
     }
 }
+
+unset($j1);
+
+
+/* =========================================================
+   🎬 INICIAR PARTIDA
+   ========================================================= */
+
+$_SESSION['jogadores'] = $jogadores;
+
+$_SESSION['rodada'] = 1;
+
+
+/*
+ * Ainda não iniciamos fases especiais aqui.
+ * jogo.php continuará responsável pelo fluxo.
+ */
+
+header('Location: jogo.php');
+exit;

@@ -1,0 +1,343 @@
+/* =========================================================
+   HEADER - BBB SIMULATOR
+   ========================================================= */
+
+
+/* =========================================================
+   CONTEÚDO
+   ========================================================= */
+
+   .top-header .header-content{
+
+    width:100%;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    gap:30px;
+}
+
+
+/* =========================================================
+   LOGO
+   ========================================================= */
+
+.top-header .logo-area{
+
+    flex-shrink:0;
+}
+
+
+/* =========================================================
+   AÇÕES DO HEADER
+   ========================================================= */
+
+.header-actions{
+
+    margin-left:auto;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:flex-end;
+
+    padding-right:25px;
+}
+
+
+/* =========================================================
+   BOTÃO FEED BBB
+   ========================================================= */
+
+.header-feed-btn{
+
+    position:relative;
+
+    width:auto;
+
+    min-width:205px;
+
+    min-height:55px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:11px;
+
+    padding:
+        9px 14px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.10);
+
+    border-radius:16px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255,0,180,.10),
+            rgba(0,198,255,.07)
+        );
+
+    color:white;
+
+    cursor:pointer;
+
+    font-family:'Orbitron',sans-serif;
+
+    box-shadow:
+        inset 0 0 20px
+        rgba(255,0,180,.03),
+        0 0 18px
+        rgba(255,0,180,.06);
+
+    transition:
+        transform .25s ease,
+        border-color .25s ease,
+        box-shadow .25s ease,
+        background .25s ease;
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
+.header-feed-btn:hover{
+
+    transform:
+        translateY(-2px);
+
+    border-color:
+        rgba(255,0,204,.42);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255,0,180,.18),
+            rgba(0,198,255,.12)
+        );
+
+    box-shadow:
+        0 0 22px
+        rgba(255,0,180,.16),
+        0 0 18px
+        rgba(0,198,255,.08);
+}
+
+
+/* =========================================================
+   ÍCONE
+   ========================================================= */
+
+.header-feed-icon{
+
+    width:38px;
+
+    height:38px;
+
+    flex-shrink:0;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-radius:12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #d00095,
+            #7500c8
+        );
+
+    box-shadow:
+        0 0 16px
+        rgba(255,0,204,.20);
+
+    font-size:17px;
+}
+
+
+/* =========================================================
+   TEXTO
+   ========================================================= */
+
+.header-feed-info{
+
+    min-width:0;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:flex-start;
+
+    gap:3px;
+
+    text-align:left;
+}
+
+
+.header-feed-info strong{
+
+    font-size:11px;
+
+    font-weight:900;
+
+    letter-spacing:.4px;
+
+    color:#f4f4f8;
+}
+
+
+.header-feed-info small{
+
+    font-family:Arial,sans-serif;
+
+    font-size:9px;
+
+    color:#8e8fa0;
+
+    white-space:nowrap;
+}
+
+
+/* =========================================================
+   AO VIVO
+   ========================================================= */
+
+.header-feed-live{
+
+    width:7px;
+
+    height:7px;
+
+    flex-shrink:0;
+
+    border-radius:50%;
+
+    background:#ff008c;
+
+    box-shadow:
+        0 0 9px
+        #ff008c;
+
+    animation:
+        feedHeaderPulse
+        1.7s infinite;
+}
+
+
+@keyframes feedHeaderPulse{
+
+    0%,
+    100%{
+
+        opacity:1;
+
+        transform:scale(1);
+    }
+
+    50%{
+
+        opacity:.45;
+
+        transform:scale(.75);
+    }
+}
+
+
+/* =========================================================
+   SETA
+   ========================================================= */
+
+.header-feed-arrow{
+
+    margin-left:2px;
+
+    color:#00d9ff;
+
+    font-size:15px;
+
+    transition:
+        transform .2s ease;
+}
+
+
+.header-feed-btn:hover
+.header-feed-arrow{
+
+    transform:
+        translateX(3px);
+}
+
+
+/* =========================================================
+   RESPONSIVO
+   ========================================================= */
+
+@media(max-width:900px){
+
+    .top-header .header-content{
+
+        gap:15px;
+    }
+
+
+    .header-actions{
+
+        padding-right:10px;
+    }
+
+
+    .header-feed-btn{
+
+        min-width:auto;
+
+        padding:9px;
+    }
+
+
+    .header-feed-info{
+
+        display:none;
+    }
+
+
+    .header-feed-arrow{
+
+        display:none;
+    }
+
+
+    .header-feed-icon{
+
+        width:38px;
+
+        height:38px;
+    }
+}
+
+
+@media(max-width:600px){
+
+    .top-header .header-content{
+
+        align-items:flex-start;
+    }
+
+
+    .header-feed-live{
+
+        display:none;
+    }
+}

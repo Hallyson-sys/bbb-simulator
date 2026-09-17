@@ -96,6 +96,12 @@
                 <option>Neutro</option>
             </select>
 
+            <select name="tipo_elenco" required>
+    <option value="">Escolha o tipo de elenco</option>
+    <option value="automatico">🎲 Elenco Aleatório</option>
+    <option value="personalizado">✏️ Montar Meu Próprio Elenco</option>
+</select>
+
             <select name="qtd" required>
                 <option value="20">20 participantes</option>
                 <option value="15">15 participantes</option>

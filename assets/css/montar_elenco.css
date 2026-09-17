@@ -1,0 +1,1684 @@
+/* =========================================================
+   MONTAR ELENCO - BBB SIMULATOR
+   MESMA IDENTIDADE VISUAL DO INDEX
+   ========================================================= */
+
+
+/* =========================================================
+   RESET
+   ========================================================= */
+
+   *{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    font-family:'Orbitron',sans-serif;
+
+    background:
+        radial-gradient(
+            circle at top,
+            #2a003f,
+            #050510 75%
+        );
+
+    color:white;
+
+    min-height:100vh;
+
+    overflow-x:hidden;
+    overflow-y:auto;
+}
+
+
+/* =========================================================
+   BRILHO DE FUNDO - IGUAL AO INDEX
+   ========================================================= */
+
+body::before{
+    content:"";
+
+    position:fixed;
+
+    inset:-50%;
+
+    background:
+        radial-gradient(
+            circle,
+            #ff00cc33,
+            transparent 55%
+        );
+
+    animation:mover 9s linear infinite;
+
+    z-index:0;
+
+    pointer-events:none;
+}
+
+
+@keyframes mover{
+
+    0%{
+        transform:translate(-10%,-10%);
+    }
+
+    50%{
+        transform:translate(5%,5%);
+    }
+
+    100%{
+        transform:translate(-10%,-10%);
+    }
+}
+
+
+/* =========================================================
+   ANIMAÇÃO DO GRADIENTE
+   ========================================================= */
+
+@keyframes brilho{
+
+    0%{
+        background-position:0%;
+    }
+
+    100%{
+        background-position:300%;
+    }
+}
+
+
+/* =========================================================
+   PÁGINA
+   ========================================================= */
+
+.pagina-elenco{
+
+    position:relative;
+
+    z-index:2;
+
+    width:100%;
+
+    max-width:1500px;
+
+    margin:0 auto;
+
+    padding:
+        50px 35px
+        80px;
+}
+
+
+/* =========================================================
+   CABEÇALHO
+   ========================================================= */
+
+.cabecalho-elenco{
+
+    text-align:center;
+
+    margin-bottom:35px;
+}
+
+
+.marca{
+
+    font-size:13px;
+
+    font-weight:700;
+
+    letter-spacing:4px;
+
+    margin-bottom:14px;
+
+    opacity:.75;
+}
+
+
+.etapa{
+
+    display:inline-block;
+
+    padding:8px 16px;
+
+    margin-bottom:18px;
+
+    border-radius:30px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    border:
+        1px solid
+        rgba(255,255,255,.14);
+
+    box-shadow:
+        0 0 18px
+        rgba(255,0,180,.12);
+
+    font-size:9px;
+
+    letter-spacing:2px;
+
+    color:#ddd;
+}
+
+
+.cabecalho-elenco h1{
+
+    font-size:
+        clamp(
+            34px,
+            5vw,
+            54px
+        );
+
+    line-height:1.12;
+
+    font-weight:900;
+
+    margin-bottom:12px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #00c6ff,
+            #ff00cc,
+            #ffcc00,
+            #00ffee
+        );
+
+    background-size:300%;
+
+    -webkit-background-clip:text;
+    background-clip:text;
+
+    -webkit-text-fill-color:transparent;
+
+    animation:
+        brilho 4s linear infinite;
+}
+
+
+.cabecalho-elenco p{
+
+    font-size:13px;
+
+    opacity:.7;
+
+    line-height:1.6;
+}
+
+
+/* =========================================================
+   PROGRESSO
+   ========================================================= */
+
+.painel-progresso{
+
+    width:100%;
+
+    max-width:850px;
+
+    margin:
+        0 auto
+        35px;
+
+    padding:20px 24px;
+
+    border-radius:20px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    backdrop-filter:
+        blur(14px);
+
+    border:
+        1px solid
+        rgba(255,255,255,.14);
+
+    box-shadow:
+        0 0 25px
+        rgba(255,0,180,.18);
+}
+
+
+.progresso-topo{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:20px;
+
+    margin-bottom:15px;
+}
+
+
+.progresso-topo > div:first-child{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:14px;
+}
+
+
+.progresso-topo span{
+
+    font-size:9px;
+
+    font-weight:700;
+
+    letter-spacing:2px;
+
+    opacity:.65;
+}
+
+
+.progresso-topo strong{
+
+    font-size:20px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #00c6ff,
+            #ff00cc,
+            #ffcc00
+        );
+
+    background-size:300%;
+
+    -webkit-background-clip:text;
+    background-clip:text;
+
+    -webkit-text-fill-color:transparent;
+
+    animation:
+        brilho 4s linear infinite;
+}
+
+
+.vagas{
+
+    font-size:10px;
+
+    opacity:.75;
+}
+
+
+/* =========================================================
+   BARRA
+   ========================================================= */
+
+.barra-progresso{
+
+    width:100%;
+
+    height:8px;
+
+    overflow:hidden;
+
+    border-radius:20px;
+
+    background:
+        rgba(0,0,0,.45);
+}
+
+
+.barra-preenchida{
+
+    height:100%;
+
+    border-radius:20px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #00c6ff,
+            #ff00cc,
+            #ffcc00,
+            #00ffee
+        );
+
+    background-size:300%;
+
+    animation:
+        brilho 4s linear infinite;
+
+    box-shadow:
+        0 0 15px
+        rgba(255,0,204,.6);
+
+    transition:
+        width .4s ease;
+}
+
+
+/* =========================================================
+   MENSAGENS
+   ========================================================= */
+
+.mensagem{
+
+    max-width:850px;
+
+    margin:
+        0 auto
+        25px;
+
+    padding:15px 18px;
+
+    border-radius:15px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    border:
+        1px solid
+        rgba(255,255,255,.14);
+
+    font-family:Arial,sans-serif;
+
+    font-size:13px;
+}
+
+
+.mensagem.erro{
+
+    color:#ff9ebf;
+
+    box-shadow:
+        0 0 18px
+        rgba(255,0,102,.2);
+}
+
+
+.mensagem.sucesso{
+
+    color:#8fffe9;
+
+    box-shadow:
+        0 0 18px
+        rgba(0,255,238,.15);
+}
+
+
+/* =========================================================
+   CONTEÚDO PRINCIPAL
+   ========================================================= */
+
+.conteudo-elenco{
+
+    display:grid;
+
+    grid-template-columns:
+        minmax(0,1fr)
+        390px;
+
+    gap:30px;
+
+    align-items:start;
+}
+
+
+.area-participantes{
+
+    min-width:0;
+}
+
+
+/* =========================================================
+   TÍTULO DA LISTA
+   ========================================================= */
+
+.titulo-secao{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:end;
+
+    margin-bottom:20px;
+}
+
+
+.titulo-secao span,
+.mini-titulo{
+
+    font-size:9px;
+
+    font-weight:700;
+
+    letter-spacing:3px;
+
+    color:#ff55d6;
+}
+
+
+.titulo-secao h2{
+
+    margin-top:7px;
+
+    font-size:25px;
+
+    color:white;
+}
+
+
+/* =========================================================
+   GRID PARTICIPANTES
+   ========================================================= */
+
+.grid-participantes{
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(
+            3,
+            minmax(0,1fr)
+        );
+
+    gap:17px;
+}
+
+
+/* =========================================================
+   CARD PARTICIPANTE
+   ========================================================= */
+
+.card-participante,
+.card-vazio{
+
+    position:relative;
+
+    min-height:290px;
+
+    padding:22px;
+
+    overflow:hidden;
+
+    border-radius:20px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    backdrop-filter:
+        blur(14px);
+
+    border:
+        1px solid
+        rgba(255,255,255,.14);
+
+    box-shadow:
+        0 0 20px
+        rgba(255,0,180,.13);
+
+    transition:.3s;
+}
+
+
+.card-participante:hover{
+
+    transform:
+        translateY(-6px)
+        scale(1.015);
+
+    box-shadow:
+        0 0 28px
+        rgba(255,0,180,.45);
+}
+
+
+/* =========================================================
+   CARD DO JOGADOR
+   ========================================================= */
+
+.card-participante.meu-participante{
+
+    border:
+        1px solid
+        rgba(255,0,204,.45);
+
+    box-shadow:
+        0 0 28px
+        rgba(255,0,180,.30);
+}
+
+
+/* =========================================================
+   NUMERAÇÃO
+   ========================================================= */
+
+.numero-participante{
+
+    position:absolute;
+
+    top:17px;
+
+    left:18px;
+
+    font-size:9px;
+
+    font-weight:700;
+
+    opacity:.4;
+}
+
+
+/* =========================================================
+   VOCÊ
+   ========================================================= */
+
+.badge-voce{
+
+    position:absolute;
+
+    top:14px;
+
+    right:14px;
+
+    padding:
+        6px 10px;
+
+    border-radius:20px;
+
+    background:
+        rgba(255,0,204,.15);
+
+    border:
+        1px solid
+        rgba(255,0,204,.28);
+
+    color:#ff80e5;
+
+    font-size:8px;
+
+    font-weight:900;
+
+    letter-spacing:2px;
+
+    box-shadow:
+        0 0 12px
+        rgba(255,0,204,.12);
+}
+
+
+/* =========================================================
+   AVATAR
+   ========================================================= */
+
+.avatar{
+
+    width:68px;
+
+    height:68px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    margin:
+        30px auto
+        18px;
+
+    border-radius:50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            #00c6ff,
+            #ff00cc,
+            #ffcc00
+        );
+
+    box-shadow:
+        0 0 22px
+        rgba(255,0,204,.35);
+
+    font-size:25px;
+
+    font-weight:900;
+
+    color:white;
+}
+
+
+/* =========================================================
+   DADOS DO PARTICIPANTE
+   ========================================================= */
+
+.card-participante h3{
+
+    text-align:center;
+
+    font-size:15px;
+
+    line-height:1.3;
+
+    overflow-wrap:anywhere;
+}
+
+
+.dados-participante{
+
+    display:flex;
+
+    justify-content:center;
+
+    gap:12px;
+
+    margin-top:11px;
+
+    font-family:Arial,sans-serif;
+
+    font-size:11px;
+
+    opacity:.7;
+}
+
+
+.profissao{
+
+    margin-top:12px;
+
+    text-align:center;
+
+    font-family:Arial,sans-serif;
+
+    font-size:13px;
+
+    opacity:.82;
+}
+
+
+.personalidade{
+
+    display:block;
+
+    width:fit-content;
+
+    margin:
+        12px auto
+        0;
+
+    padding:
+        6px 10px;
+
+    border-radius:30px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    border:
+        1px solid
+        rgba(255,255,255,.12);
+
+    color:#ff9ae7;
+
+    font-family:Arial,sans-serif;
+
+    font-size:10px;
+
+    font-weight:bold;
+}
+
+
+/* =========================================================
+   BOTÕES DOS CARDS
+   ========================================================= */
+
+.acoes-card{
+
+    display:flex;
+
+    gap:8px;
+
+    margin-top:18px;
+}
+
+
+.acoes-card form{
+
+    display:flex;
+}
+
+
+.btn-editar,
+.btn-remover{
+
+    min-height:36px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    border-radius:10px;
+
+    background:
+        rgba(0,0,0,.35);
+
+    border:
+        1px solid
+        rgba(255,255,255,.12);
+
+    color:white;
+
+    cursor:pointer;
+
+    text-decoration:none;
+
+    font-family:Arial,sans-serif;
+
+    transition:.25s;
+}
+
+
+.btn-editar{
+
+    flex:1;
+
+    padding:
+        0 12px;
+
+    font-size:11px;
+}
+
+
+.btn-remover{
+
+    width:40px;
+
+    font-size:12px;
+}
+
+
+.btn-editar:hover{
+
+    transform:scale(1.03);
+
+    border-color:
+        rgba(255,0,204,.45);
+
+    box-shadow:
+        0 0 15px
+        rgba(255,0,204,.20);
+}
+
+
+.btn-remover:hover{
+
+    transform:scale(1.05);
+
+    border-color:
+        rgba(255,0,102,.55);
+
+    box-shadow:
+        0 0 15px
+        rgba(255,0,102,.20);
+}
+
+
+/* =========================================================
+   CARDS VAZIOS
+   ========================================================= */
+
+.card-vazio{
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-style:dashed;
+
+    opacity:.55;
+}
+
+
+.icone-vaga{
+
+    width:52px;
+
+    height:52px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    margin-bottom:15px;
+
+    border-radius:50%;
+
+    border:
+        1px dashed
+        rgba(255,255,255,.25);
+
+    background:
+        rgba(0,0,0,.20);
+
+    font-size:23px;
+}
+
+
+.card-vazio span{
+
+    font-size:10px;
+
+    font-weight:900;
+
+    letter-spacing:2px;
+}
+
+
+.card-vazio p{
+
+    margin-top:8px;
+
+    font-family:Arial,sans-serif;
+
+    font-size:11px;
+}
+
+
+/* =========================================================
+   PAINEL FORMULÁRIO
+   ========================================================= */
+
+.painel-formulario{
+
+    position:sticky;
+
+    top:25px;
+
+    padding:30px;
+
+    border-radius:28px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    backdrop-filter:
+        blur(14px);
+
+    border:
+        1px solid
+        rgba(255,255,255,.14);
+
+    box-shadow:
+        0 0 35px
+        rgba(255,0,180,.30);
+}
+
+
+.painel-formulario h2{
+
+    margin-top:8px;
+
+    font-size:21px;
+}
+
+
+.painel-formulario > p{
+
+    margin-top:9px;
+
+    font-family:Arial,sans-serif;
+
+    font-size:12px;
+
+    line-height:1.5;
+
+    opacity:.65;
+}
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.form-participante{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:14px;
+
+    margin-top:24px;
+}
+
+
+.form-participante label{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:7px;
+
+    font-size:9px;
+
+    font-weight:700;
+
+    letter-spacing:1.5px;
+
+    opacity:.8;
+}
+
+
+/* =========================================================
+   INPUTS - IGUAIS AO INDEX
+   ========================================================= */
+
+.form-participante input,
+.form-participante select{
+
+    width:100%;
+
+    padding:13px;
+
+    margin:0;
+
+    border:none;
+
+    border-radius:14px;
+
+    background:
+        rgba(0,0,0,.45);
+
+    color:white;
+
+    font-size:13px;
+
+    outline:none;
+
+    font-family:Arial,sans-serif;
+}
+
+
+.form-participante input:focus,
+.form-participante select:focus{
+
+    box-shadow:
+        0 0 14px
+        #ff00cc;
+}
+
+
+.form-participante input::placeholder{
+
+    color:
+        rgba(255,255,255,.4);
+}
+
+
+.form-participante select option{
+
+    color:black;
+
+    background:white;
+}
+
+
+.linha-dupla{
+
+    display:grid;
+
+    grid-template-columns:
+        .65fr
+        1.35fr;
+
+    gap:10px;
+}
+
+
+/* =========================================================
+   BOTÃO PRINCIPAL
+   IGUAL AO INDEX
+   ========================================================= */
+
+.btn-principal{
+
+    width:100%;
+
+    padding:15px;
+
+    margin-top:5px;
+
+    border:none;
+
+    border-radius:16px;
+
+    font-size:11px;
+
+    font-weight:bold;
+
+    color:white;
+
+    cursor:pointer;
+
+    font-family:'Orbitron',sans-serif;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ff0066,
+            #ffcc00
+        );
+
+    transition:.25s;
+}
+
+
+.btn-principal:hover{
+
+    transform:scale(1.04);
+
+    box-shadow:
+        0 0 22px
+        #ff0066;
+}
+
+
+/* =========================================================
+   CANCELAR
+   ========================================================= */
+
+.btn-cancelar{
+
+    display:block;
+
+    padding:10px;
+
+    text-align:center;
+
+    text-decoration:none;
+
+    color:white;
+
+    opacity:.55;
+
+    font-family:Arial,sans-serif;
+
+    font-size:12px;
+
+    transition:.2s;
+}
+
+
+.btn-cancelar:hover{
+
+    opacity:1;
+}
+
+
+/* =========================================================
+   SEPARADOR
+   ========================================================= */
+
+.separador{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    margin:
+        25px 0
+        20px;
+
+    font-size:9px;
+
+    opacity:.45;
+}
+
+
+.separador::before,
+.separador::after{
+
+    content:"";
+
+    height:1px;
+
+    flex:1;
+
+    background:
+        rgba(255,255,255,.15);
+}
+
+
+/* =========================================================
+   AUTOMÁTICO
+   ========================================================= */
+
+.btn-automatico{
+
+    width:100%;
+
+    padding:14px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.14);
+
+    border-radius:16px;
+
+    background:
+        rgba(255,255,255,.06);
+
+    color:white;
+
+    cursor:pointer;
+
+    font-family:'Orbitron',sans-serif;
+
+    font-size:9px;
+
+    font-weight:bold;
+
+    line-height:1.4;
+
+    transition:.25s;
+
+    box-shadow:
+        0 0 16px
+        rgba(0,198,255,.08);
+}
+
+
+.btn-automatico:hover{
+
+    transform:scale(1.03);
+
+    border-color:
+        rgba(0,198,255,.45);
+
+    box-shadow:
+        0 0 20px
+        rgba(0,198,255,.25);
+}
+
+
+/* =========================================================
+   INICIAR TEMPORADA
+   ========================================================= */
+
+.iniciar-jogo{
+
+    margin-top:26px;
+
+    padding-top:22px;
+
+    border-top:
+        1px solid
+        rgba(255,255,255,.12);
+}
+
+
+.btn-iniciar{
+
+    width:100%;
+
+    padding:15px;
+
+    border:none;
+
+    border-radius:16px;
+
+    font-size:12px;
+
+    font-weight:bold;
+
+    color:white;
+
+    cursor:pointer;
+
+    font-family:'Orbitron',sans-serif;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ff0066,
+            #ffcc00
+        );
+
+    transition:.25s;
+}
+
+
+.btn-iniciar:not(:disabled):hover{
+
+    transform:scale(1.04);
+
+    box-shadow:
+        0 0 22px
+        #ff0066;
+}
+
+
+.btn-iniciar:disabled{
+
+    cursor:not-allowed;
+
+    opacity:.25;
+
+    filter:grayscale(.5);
+}
+
+
+.iniciar-jogo small{
+
+    display:block;
+
+    margin-top:12px;
+
+    text-align:center;
+
+    font-family:Arial,sans-serif;
+
+    font-size:10px;
+
+    line-height:1.5;
+
+    opacity:.5;
+}
+
+
+.iniciar-jogo small.pronto{
+
+    color:#00ffee;
+
+    opacity:.8;
+}
+
+
+/* =========================================================
+   ELENCO COMPLETO
+   ========================================================= */
+
+.elenco-finalizado{
+
+    margin-top:25px;
+
+    padding:35px 15px;
+
+    text-align:center;
+
+    border-radius:18px;
+
+    background:
+        rgba(255,255,255,.05);
+
+    border:
+        1px solid
+        rgba(255,255,255,.13);
+
+    box-shadow:
+        0 0 20px
+        rgba(255,0,180,.12);
+}
+
+
+.elenco-finalizado > div{
+
+    width:50px;
+
+    height:50px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    margin:
+        0 auto
+        15px;
+
+    border-radius:50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            #00c6ff,
+            #ff00cc,
+            #ffcc00
+        );
+
+    box-shadow:
+        0 0 20px
+        rgba(255,0,204,.3);
+
+    font-size:18px;
+}
+
+
+.elenco-finalizado strong{
+
+    display:block;
+
+    font-size:13px;
+}
+
+
+.elenco-finalizado p{
+
+    margin-top:8px;
+
+    font-family:Arial,sans-serif;
+
+    font-size:11px;
+
+    opacity:.55;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+::-webkit-scrollbar{
+
+    width:7px;
+}
+
+
+::-webkit-scrollbar-track{
+
+    background:
+        #050510;
+}
+
+
+::-webkit-scrollbar-thumb{
+
+    border-radius:20px;
+
+    background:
+        linear-gradient(
+            #ff00cc,
+            #ffcc00
+        );
+}
+
+
+/* =========================================================
+   RESPONSIVO - NOTEBOOK
+   ========================================================= */
+
+@media(max-width:1200px){
+
+    .conteudo-elenco{
+
+        grid-template-columns:
+            minmax(0,1fr)
+            350px;
+    }
+
+
+    .grid-participantes{
+
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            );
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVO - TABLET
+   ========================================================= */
+
+@media(max-width:950px){
+
+    body::before{
+
+        inset:-120%;
+    }
+
+
+    .pagina-elenco{
+
+        padding:
+            35px 20px
+            60px;
+    }
+
+
+    .conteudo-elenco{
+
+        grid-template-columns:
+            1fr;
+    }
+
+
+    .painel-formulario{
+
+        position:static;
+
+        width:100%;
+
+        max-width:650px;
+
+        margin:
+            10px auto
+            0;
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVO - CELULAR
+   ========================================================= */
+
+@media(max-width:650px){
+
+    .pagina-elenco{
+
+        padding:
+            30px 16px
+            50px;
+    }
+
+
+    .cabecalho-elenco h1{
+
+        font-size:30px;
+    }
+
+
+    .cabecalho-elenco p{
+
+        font-size:11px;
+    }
+
+
+    .painel-progresso{
+
+        padding:17px;
+    }
+
+
+    .progresso-topo{
+
+        flex-direction:column;
+
+        align-items:flex-start;
+
+        gap:10px;
+    }
+
+
+    .grid-participantes{
+
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            );
+
+        gap:10px;
+    }
+
+
+    .card-participante,
+    .card-vazio{
+
+        min-height:245px;
+
+        padding:15px 10px;
+
+        border-radius:16px;
+    }
+
+
+    .avatar{
+
+        width:52px;
+
+        height:52px;
+
+        font-size:19px;
+    }
+
+
+    .card-participante h3{
+
+        font-size:12px;
+    }
+
+
+    .dados-participante{
+
+        flex-direction:column;
+
+        align-items:center;
+
+        gap:3px;
+
+        font-size:9px;
+    }
+
+
+    .profissao{
+
+        font-size:10px;
+    }
+
+
+    .personalidade{
+
+        font-size:8px;
+
+        text-align:center;
+    }
+
+
+    .linha-dupla{
+
+        grid-template-columns:1fr;
+    }
+
+
+    .painel-formulario{
+
+        padding:24px 18px;
+
+        border-radius:24px;
+    }
+
+
+    .form-participante input,
+    .form-participante select{
+
+        padding:15px;
+
+        font-size:16px;
+    }
+
+
+    .btn-principal,
+    .btn-iniciar{
+
+        padding:16px;
+
+        font-size:11px;
+    }
+}
+
+
+/* =========================================================
+   CELULAR PEQUENO
+   ========================================================= */
+
+@media(max-width:430px){
+
+    .pagina-elenco{
+
+        padding-left:12px;
+
+        padding-right:12px;
+    }
+
+
+    .grid-participantes{
+
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            );
+    }
+
+
+    .cabecalho-elenco h1{
+
+        font-size:27px;
+    }
+
+
+    .card-participante h3{
+
+        font-size:11px;
+    }
+
+
+    .acoes-card{
+
+        flex-direction:column;
+    }
+
+
+    .btn-remover{
+
+        width:100%;
+    }
+}
