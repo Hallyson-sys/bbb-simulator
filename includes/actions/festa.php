@@ -12,9 +12,6 @@ if (
     require_once __DIR__ . '/../logica/inteligencia_npc.php';
 }
 
-?>
-
-<?php
 if (isset($_POST['acao_festa']) && $fase == 'festa') {
 
 $acao = $_POST['acao_festa'];
