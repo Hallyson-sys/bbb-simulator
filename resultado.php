@@ -26,43 +26,20 @@ $mostrarResultado = false;
 $eliminado = "";
 $ranking = [];
 $fuiEliminado = false;
-$meuJogadorEliminado = $_SESSION['meu_jogador_snapshot'] ?? null;
-$ehParedaoFalso = !empty($_SESSION['paredao_falso_ativo']);
 
-if ($souFalsoEliminado) {
+$meuJogadorEliminado =
+    $_SESSION['meu_jogador_snapshot'] ?? null;
 
-    /*
-     * Se VOCÊ foi o falso eliminado, a rodada seguinte
-     * precisa começar sem você dentro da casa.
-     *
-     * A flag impede que F5/recarregamento avance
-     * mais de uma rodada.
-     */
-    if (
-        empty($_SESSION['paredao_falso_rodada_seguinte_iniciada'])
-    ) {
+$ehParedaoFalso =
+    !empty($_SESSION['paredao_falso_ativo']);
 
-        $jogadores =
-            $_SESSION['jogadores']
-            ?? $jogadores;
+/*
+ * Começa sempre como false.
+ * Só calculamos o valor real depois que soubermos
+ * quem foi o "eliminado" da noite.
+ */
+$souFalsoEliminado = false;
 
-        iniciarNovaRodadaAposEliminacao(
-            $jogadores
-        );
-
-        $_SESSION['paredao_falso_rodada_seguinte_iniciada'] =
-            true;
-    }
-
-    /*
-     * Você continua escondido.
-     * Não marcamos fase_semana como quarto_secreto,
-     * porque por trás a nova semana precisa continuar:
-     *
-     * interações → líder → VIP/Xepa → anjo →
-     * monstro → Big Fone → interações...
-     */
-}
 
 /* ==========================
    FUNÇÕES VISUAIS
@@ -86,18 +63,35 @@ require_once __DIR__ . '/includes/actions/eliminacao.php';
 /* =========================================================
    🔄 RECARREGAR ESTADO APÓS ACTION
    ========================================================= */
-$jogadores = $_SESSION['jogadores'] ?? $jogadores;
-$ehParedaoFalso = !empty($_SESSION['paredao_falso_ativo']);
+$jogadores =
+    $_SESSION['jogadores']
+    ?? $jogadores;
+
+$ehParedaoFalso =
+    !empty($_SESSION['paredao_falso_ativo']);
 
 
-/* Se já revelou e voltou por refresh, mantém informação. */
-if (isset($_SESSION['ultimo_ranking_eliminacao'])) {
-    $ranking = $_SESSION['ultimo_ranking_eliminacao'];
+/* =========================================================
+   📊 RECUPERAR RESULTADO
+   ========================================================= */
+if (
+    isset($_SESSION['ultimo_ranking_eliminacao'])
+) {
+
+    $ranking =
+        $_SESSION['ultimo_ranking_eliminacao'];
 
     if ($ehParedaoFalso) {
-        $eliminado = $_SESSION['falso_eliminado'] ?? '';
+
+        $eliminado =
+            $_SESSION['falso_eliminado']
+            ?? '';
+
     } else {
-        $eliminado = $_SESSION['eliminado'] ?? '';
+
+        $eliminado =
+            $_SESSION['eliminado']
+            ?? '';
     }
 
     if ($eliminado !== '') {
@@ -106,19 +100,38 @@ if (isset($_SESSION['ultimo_ranking_eliminacao'])) {
 }
 
 
-/*
- * No Paredão Falso, mesmo se o próprio jogador for o nome
- * mais votado, ele NÃO foi eliminado da temporada.
- */
+/* =========================================================
+   🚪 DESCOBRIR SE EU SOU O FALSO ELIMINADO
+   ========================================================= */
+$souFalsoEliminado =
+    $ehParedaoFalso &&
+    $eliminado !== '' &&
+    $meuNome !== '' &&
+    nomeIgual(
+        $eliminado,
+        $meuNome
+    );
+
+
+/* =========================================================
+   ❌ DESCOBRIR SE EU FUI ELIMINADO DE VERDADE
+   ========================================================= */
 if (
     !$ehParedaoFalso &&
-    nomeIgual($eliminado, $meuNome)
+    $eliminado !== '' &&
+    nomeIgual(
+        $eliminado,
+        $meuNome
+    )
 ) {
+
     $fuiEliminado = true;
 
     if (!$meuJogadorEliminado) {
+
         $meuJogadorEliminado =
-            $_SESSION['meu_jogador_snapshot'] ?? [];
+            $_SESSION['meu_jogador_snapshot']
+            ?? [];
     }
 }
 
@@ -294,7 +307,7 @@ if (
 
         </div>
 
-        <?php if($ehParedaoFalso): ?>
+        <?php if($souFalsoEliminado): ?>
 
             <div class="box">
                 <form action="quarto_secreto.php" method="GET">
