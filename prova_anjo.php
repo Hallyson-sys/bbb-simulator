@@ -32,6 +32,64 @@ $participantes = obterParticipantesProvaAnjo(
     $lider
 );
 
+
+/* =========================================================
+   🚪 PROVA DO ANJO ENQUANTO ESTOU NO QUARTO SECRETO
+   ========================================================= */
+
+$estaNoQuartoSecreto =
+    !empty($_SESSION['paredao_falso_ativo']) &&
+    !empty($_SESSION['falso_eliminado']) &&
+    $meuNome !== '' &&
+    nomeIgual(
+        $_SESSION['falso_eliminado'],
+        $meuNome
+    );
+
+if (
+    $estaNoQuartoSecreto &&
+    ($_SESSION['fase_semana'] ?? '') === 'anjo'
+) {
+
+    /*
+     * Você está escondido e não participa da prova.
+     * Sorteamos o vencedor somente entre quem está
+     * oficialmente dentro da casa.
+     */
+    $campeaoNome =
+        sortearNPCAnjo(
+            $participantes,
+            $meuNome
+        );
+
+    if ($campeaoNome !== '') {
+
+        finalizarProvaAnjo(
+            $jogadores,
+            $campeaoNome,
+            $lider
+        );
+
+    } else {
+
+        $_SESSION['evento_extra'][] =
+            "⚠️ Não havia participantes suficientes para a Prova do Anjo.";
+
+        $_SESSION['prova_anjo_finalizada'] =
+            true;
+
+        $_SESSION['prova_anjo_finalizada_rodada'] =
+            (int)($_SESSION['rodada'] ?? 1);
+
+        $_SESSION['fase_semana'] =
+            'monstro';
+    }
+
+    header("Location: jogo.php");
+    exit;
+}
+
+
 require_once __DIR__ . '/includes/actions/prova_anjo.php';
 
 $dadosProva = prepararProvaAnjo();

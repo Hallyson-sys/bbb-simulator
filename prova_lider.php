@@ -17,6 +17,71 @@ $dadosProva=prepararProvaLider();
 $tipoProva=$dadosProva['tipo'];
 $prova=$dadosProva['prova'];
 
+
+/* =========================================================
+   🚪 PROVA DO LÍDER ENQUANTO ESTOU NO QUARTO SECRETO
+   ========================================================= */
+
+$estaNoQuartoSecreto =
+    !empty($_SESSION['paredao_falso_ativo']) &&
+    !empty($_SESSION['falso_eliminado']) &&
+    $meuNome !== '' &&
+    nomeIgual(
+        $_SESSION['falso_eliminado'],
+        $meuNome
+    );
+
+if (
+    $estaNoQuartoSecreto &&
+    ($_SESSION['fase_semana'] ?? '') === 'lider'
+) {
+
+    /*
+     * O jogador está escondido e não participa.
+     * Portanto a prova é disputada exclusivamente pelos NPCs.
+     */
+    $liderNPC =
+        sortearNPCVencedorLider(
+            $jogadores,
+            $meuNome
+        );
+
+    if ($liderNPC !== '') {
+
+        registrarLiderDaRodada(
+            $jogadores,
+            $liderNPC,
+            $meuNome
+        );
+
+        $_SESSION['jogadores'] =
+            array_values($jogadores);
+
+        /*
+         * Como sabemos que o vencedor obrigatoriamente
+         * é um NPC, podemos seguir diretamente para
+         * a revelação de VIP/Xepa.
+         *
+         * Isso é importante porque jogo.php redirecionará
+         * o jogador de volta ao Quarto Secreto.
+         */
+        $_SESSION['fase_semana'] =
+            'vip_xepa_revelar';
+
+    } else {
+
+        $_SESSION['evento_extra'][] =
+            "⚠️ Não foi possível definir um Líder durante a semana do Quarto Secreto.";
+
+        $_SESSION['fase_semana'] =
+            'vip_xepa_revelar';
+    }
+
+    header("Location: jogo.php");
+    exit;
+}
+
+
 require_once __DIR__ . '/includes/actions/prova_lider.php';
 
 $sequenciaMemoria=[];

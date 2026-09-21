@@ -16,6 +16,47 @@ function garantirMeuJogadorNaLista(&$jogadores)
         return;
     }
 
+    /* =========================================================
+   🚪 NÃO RECOLOCAR JOGADOR QUE ESTÁ NO QUARTO SECRETO
+   ========================================================= */
+
+$estaNoQuartoSecreto =
+!empty($_SESSION['paredao_falso_ativo']) &&
+!empty($_SESSION['falso_eliminado']) &&
+nomeIgual(
+    $_SESSION['falso_eliminado'],
+    $meuNomeSeguro
+);
+
+if ($estaNoQuartoSecreto) {
+return;
+}
+
+    /*
+     * Depois que o jogador foi eliminado, ele NÃO pode voltar
+     * para o elenco por causa do snapshot.
+     *
+     * Isso também é essencial para o modo espectador.
+     */
+    if (
+        !empty($_SESSION['jogador_eliminado']) ||
+        !empty($_SESSION['modo_espectador'])
+    ) {
+        $jogadores = array_values(
+            array_filter(
+                $jogadores,
+                function ($j) use ($meuNomeSeguro) {
+                    return !nomeIgual(
+                        $j['nome'] ?? '',
+                        $meuNomeSeguro
+                    );
+                }
+            )
+        );
+
+        return;
+    }
+
     $existe = false;
 
     foreach ($jogadores as $j) {
@@ -54,11 +95,17 @@ function ordenarParticipantesParaExibicao(
             $nomeA = $a['nome'] ?? '';
             $nomeB = $b['nome'] ?? '';
 
-            if (nomeIgual($nomeA, $meuNome)) {
+            if (
+                empty($_SESSION['modo_espectador']) &&
+                nomeIgual($nomeA, $meuNome)
+            ) {
                 return -1;
             }
 
-            if (nomeIgual($nomeB, $meuNome)) {
+            if (
+                empty($_SESSION['modo_espectador']) &&
+                nomeIgual($nomeB, $meuNome)
+            ) {
                 return 1;
             }
 

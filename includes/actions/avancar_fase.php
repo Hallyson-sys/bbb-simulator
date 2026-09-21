@@ -12,6 +12,19 @@ if (isset($_POST['avancar_fase'])) {
 
     $fase = $_SESSION['fase_semana'] ?? $fase;
 
+    /* =========================================================
+   🚪 VERIFICAR SE O JOGADOR ESTÁ NO QUARTO SECRETO
+   ========================================================= */
+
+$estaNoQuartoSecreto =
+!empty($_SESSION['paredao_falso_ativo']) &&
+!empty($_SESSION['falso_eliminado']) &&
+$meuNome !== '' &&
+nomeIgual(
+    $_SESSION['falso_eliminado'],
+    $meuNome
+);
+
     if ($fase == 'queridometro') {
 
         /* Confessionário começa somente a partir da Rodada 2, logo depois do Queridômetro */
@@ -201,11 +214,104 @@ if (isset($_POST['avancar_fase'])) {
     }
 
     if ($fase == 'monstro') {
+
+        /*
+         * Enquanto você está no Quarto Secreto,
+         * não há escolha manual sua.
+         *
+         * Apenas saímos deste include.
+         * Logo depois, jogo.php carrega
+         * decisoes_automaticas.php e o Anjo NPC
+         * escolhe o Monstro normalmente.
+         */
+        if ($estaNoQuartoSecreto) {
+            return;
+        }
+    
         header("Location: jogo.php");
         exit;
     }
 
     if ($fase == 'bigfone') {
+
+        /* =====================================================
+           🚪 BIG FONE DURANTE O QUARTO SECRETO
+           ===================================================== */
+    
+        if ($estaNoQuartoSecreto) {
+    
+            $estadoBigFone =
+                prepararBigFoneDaRodada();
+    
+            /*
+             * Se tocar, somente participantes que estão
+             * dentro da casa podem atender.
+             */
+            if ($estadoBigFone === 'tocou') {
+    
+                $atendenteNPC =
+                    npcAtendeBigFone(
+                        $jogadores,
+                        $meuNome
+                    );
+    
+                if (
+                    $atendenteNPC !== '' &&
+                    !nomeIgual(
+                        $atendenteNPC,
+                        $meuNome
+                    )
+                ) {
+    
+                    finalizarAtendimentoBigFone(
+                        $jogadores,
+                        $atendenteNPC,
+                        false
+                    );
+    
+                } else {
+    
+                    $_SESSION['bigfone_feito'] =
+                        true;
+                }
+            }
+    
+            $_SESSION['jogadores'] =
+                array_values($jogadores);
+    
+    
+            /*
+             * Segue o mesmo caminho usado pelo
+             * retorno automático normal do jogo.
+             */
+            if (
+                function_exists(
+                    'prepararSorteioPoderCuringa'
+                ) &&
+                prepararSorteioPoderCuringa(
+                    $jogadores
+                )
+            ) {
+    
+                $_SESSION['fase_semana'] =
+                    'poder_curinga';
+    
+            } else {
+    
+                $_SESSION['fase_semana'] =
+                    'interacoes_2';
+    
+                $_SESSION['acoes_restantes'] =
+                    3;
+            }
+    
+            header("Location: jogo.php");
+            exit;
+        }
+    
+    
+        /* Jogador dentro da casa: fluxo normal. */
+    
         header("Location: big_fone.php");
         exit;
     }

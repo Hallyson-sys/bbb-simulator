@@ -8,18 +8,12 @@ $postsFeed =
         $postsFeed
     );
 
-    $trendingFeed =
-    function_exists('gerarTrendingTopicsFeedInteligente')
-        ? gerarTrendingTopicsFeedInteligente(
-            $jogadores,
-            $rodada,
-            $meuNome
-        )
-        : gerarTrendingTopicsFeed(
-            $jogadores,
-            $rodada,
-            $meuNome
-        );
+$trendingFeed =
+    gerarTrendingTopicsFeed(
+        $jogadores,
+        $rodada,
+        $meuNome
+    );
 
 $ultimoPost =
     $postsFeed[0] ?? null;
@@ -41,9 +35,7 @@ $ultimoPost =
         onclick="fecharFeedPublico()"
     ></div>
 
-
     <div class="feed-publico-janela">
-
 
         <!-- =================================================
              CABEÇALHO
@@ -68,7 +60,6 @@ $ultimoPost =
 
             </div>
 
-
             <button
                 type="button"
                 class="feed-fechar"
@@ -80,14 +71,11 @@ $ultimoPost =
 
         </header>
 
-
-
         <!-- =================================================
              CONTEÚDO
         ================================================== -->
 
         <div class="feed-publico-conteudo">
-
 
             <!-- =============================================
                  POSTS
@@ -107,7 +95,6 @@ $ultimoPost =
                     </strong>
 
                 </div>
-
 
                 <?php if (!empty($postsFeed)): ?>
 
@@ -129,7 +116,6 @@ $ultimoPost =
 
                             </div>
 
-
                             <div class="feed-post-conteudo">
 
                                 <div class="feed-post-autor">
@@ -148,7 +134,6 @@ $ultimoPost =
 
                                     </div>
 
-
                                     <span>
 
                                         <?= htmlspecialchars(
@@ -165,7 +150,6 @@ $ultimoPost =
 
                                 </div>
 
-
                                 <p class="feed-post-texto">
 
                                     <?= htmlspecialchars(
@@ -173,7 +157,6 @@ $ultimoPost =
                                     ) ?>
 
                                 </p>
-
 
                                 <div class="feed-post-acoes">
 
@@ -240,8 +223,6 @@ $ultimoPost =
 
             </section>
 
-
-
             <!-- =============================================
                  TRENDING
             ============================================== -->
@@ -270,7 +251,6 @@ $ultimoPost =
 
                     </div>
 
-
                     <div class="trending-lista">
 
                         <?php
@@ -287,7 +267,6 @@ $ultimoPost =
                                     <?= $indice + 1 ?>
 
                                 </span>
-
 
                                 <div>
 
@@ -317,7 +296,6 @@ $ultimoPost =
 
                 </div>
 
-
                 <div class="feed-info-card">
 
                     <span>
@@ -331,10 +309,9 @@ $ultimoPost =
                         </strong>
 
                         <p>
-                            Popularidade, alianças,
-                            rivalidades e acontecimentos
-                            da casa influenciam o que
-                            aparece aqui.
+                            Provas, alianças, rivalidades,
+                            romances e acontecimentos da
+                            casa influenciam o que aparece aqui.
                         </p>
 
                     </div>

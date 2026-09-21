@@ -20,6 +20,7 @@ require_once __DIR__ . '/includes/logica/semana.php';
 require_once __DIR__ . '/includes/logica/participantes.php';
 require_once __DIR__ . '/includes/logica/inicializacao.php';
 require_once __DIR__ . '/includes/logica/casa_vidro.php';
+require_once __DIR__ . '/includes/logica/paredao_falso.php';
 require_once __DIR__ . '/includes/logica/relacoes.php';
 require_once __DIR__ . '/includes/logica/popularidade.php';
 require_once __DIR__ . '/includes/logica/romance.php';
@@ -38,6 +39,7 @@ require_once __DIR__ . '/includes/logica/fofoca_vt.php';
 require_once __DIR__ . '/includes/logica/queridometro.php';
 require_once __DIR__ . '/includes/logica/feed_publico.php';
 require_once __DIR__ . '/includes/logica/feed_inteligente.php';
+require_once __DIR__ . '/includes/logica/espectador.php';
 
 
 /* =========================================================
@@ -59,7 +61,12 @@ $meuNome = trim($_SESSION['meu_nome'] ?? '');
 
 if (
     !empty($_SESSION['paredao_falso_ativo']) &&
-    ($_SESSION['fase_semana'] ?? '') === 'quarto_secreto'
+    ($_SESSION['fase_semana'] ?? '') === 'quarto_secreto' &&
+    !empty($_SESSION['falso_eliminado']) &&
+    nomeIgual(
+        $_SESSION['falso_eliminado'],
+        $meuNome
+    )
 ) {
     header('Location: quarto_secreto.php');
     exit;
@@ -104,11 +111,13 @@ garantirInicioRodadaQueridometro(
    🏠 CASA DE VIDRO
    ========================================================= */
 
-   verificarInicioCasaVidro(
-    $jogadores,
-    $fase,
-    $rodada
-);
+if (empty($_SESSION['modo_espectador'])) {
+    verificarInicioCasaVidro(
+        $jogadores,
+        $fase,
+        $rodada
+    );
+}
 
 /* =========================================================
    📣 GARANTIR O AO VIVO
@@ -244,6 +253,7 @@ sincronizarFasesFinais(
 /* =========================================================
    🎮 ACTIONS
    ========================================================= */
+require_once __DIR__ . '/includes/actions/espectador.php';
 require_once __DIR__ . '/includes/actions/festa.php';
 require_once __DIR__ . '/includes/actions/interacoes.php';
 require_once __DIR__ . '/includes/actions/curinga.php';
@@ -268,7 +278,9 @@ require_once __DIR__ . '/includes/actions/feed_casa.php';
 /* =========================================================
    🤖 DECISÕES AUTOMÁTICAS DOS NPCs
    ========================================================= */
-require_once __DIR__ . '/includes/fluxo/decisoes_automaticas.php';
+if (empty($_SESSION['modo_espectador'])) {
+    require_once __DIR__ . '/includes/fluxo/decisoes_automaticas.php';
+}
 
 /* Recarrega o estado caso uma decisão automática tenha alterado a sessão. */
 $jogadores = $_SESSION['jogadores'] ?? $jogadores;
@@ -322,9 +334,19 @@ render('layout/header', [
     ?>
 
     <?php
-    if ($fase == 'jogador_eliminado') {
+    if (
+        $fase == 'jogador_eliminado' &&
+        empty($_SESSION['modo_espectador'])
+    ) {
 
         render('components/jogador_eliminado', [
+            'jogadores' => $jogadores,
+            'rodada' => $rodada
+        ]);
+
+    } elseif (!empty($_SESSION['modo_espectador'])) {
+
+        render('components/espectador', [
             'jogadores' => $jogadores,
             'rodada' => $rodada
         ]);
@@ -380,7 +402,7 @@ render('components/feed_publico', [
                 Cancelar
             </button>
 
-            <form method="POST" style="width:100%;">
+            <form method="POST" style="width:100%;" onsubmit="localStorage.removeItem('bbb_simulator_save_v1')">
                 <button class="confirmar" name="novo_jogo">
                     Sim, Reiniciar
                 </button>
@@ -397,6 +419,7 @@ const acaoSelecionada = <?= json_encode($_SESSION['acao_selecionada'] ?? '') ?>;
 
 <script src="assets/js/jogo.js"></script>
 <script src="assets/js/feed_publico.js"></script>
+<script src="assets/js/autosave.js"></script>
 
 </body>
 </html>

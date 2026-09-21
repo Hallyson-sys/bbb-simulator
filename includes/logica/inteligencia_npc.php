@@ -1540,6 +1540,63 @@ function escolherVariosAlvosNPCInteligentes(
    de acordo com personalidade e momento.
    ========================================================= */
 
+function alvosRecentesInteracaoNPC(
+    $npc,
+    $limite = 2
+) {
+    garantirMemoriaNPC();
+
+    $recentes = [];
+
+    $historico =
+        array_reverse(
+            $_SESSION[
+                'ultimas_decisoes_npc'
+            ] ?? []
+        );
+
+    foreach ($historico as $item) {
+
+        if (
+            !isset($item['npc']) ||
+            $item['npc'] !== $npc
+        ) {
+            continue;
+        }
+
+        $contexto =
+            $item['contexto'] ?? '';
+
+        if (
+            $contexto !== 'discordia_negativo' &&
+            $contexto !== 'interacao_aliado'
+        ) {
+            continue;
+        }
+
+        $alvo =
+            trim(
+                (string)($item['escolhido'] ?? '')
+            );
+
+        if (
+            $alvo === '' ||
+            in_array($alvo, $recentes, true)
+        ) {
+            continue;
+        }
+
+        $recentes[] = $alvo;
+
+        if (count($recentes) >= $limite) {
+            break;
+        }
+    }
+
+    return $recentes;
+}
+
+
 function escolherAlvoInteracaoNPC(
     $jogadores,
     $npc,
@@ -1583,13 +1640,69 @@ function escolherAlvoInteracaoNPC(
         ? 'discordia_negativo'
         : 'interacao_aliado';
 
-    return
+    $bloqueados = [$npc];
+
+    /*
+     * Evita procurar sempre a mesma pessoa.
+     * O último alvo costuma ser bloqueado, mas não 100%:
+     * rivalidades e alianças fortes ainda podem gerar insistência.
+     */
+    $recentes =
+        alvosRecentesInteracaoNPC(
+            $npc,
+            2
+        );
+
+    $totalCandidatos =
+        max(
+            0,
+            count($jogadores) - 1
+        );
+
+    if (
+        $totalCandidatos >= 3 &&
+        !empty($recentes)
+    ) {
+        if (rand(1, 100) <= 72) {
+            $bloqueados[] =
+                $recentes[0];
+        }
+
+        if (
+            isset($recentes[1]) &&
+            $totalCandidatos >= 5 &&
+            rand(1, 100) <= 38
+        ) {
+            $bloqueados[] =
+                $recentes[1];
+        }
+    }
+
+    $escolhido =
         escolherAlvoNPCInteligente(
             $jogadores,
             $npc,
             $contexto,
-            [$npc]
+            array_values(
+                array_unique($bloqueados)
+            )
         );
+
+    /*
+     * Se os bloqueios deixarem o NPC sem alvo válido,
+     * tenta novamente usando apenas ele próprio como bloqueado.
+     */
+    if ($escolhido === null) {
+        $escolhido =
+            escolherAlvoNPCInteligente(
+                $jogadores,
+                $npc,
+                $contexto,
+                [$npc]
+            );
+    }
+
+    return $escolhido;
 }
 
 

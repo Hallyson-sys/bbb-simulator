@@ -85,10 +85,39 @@ function prepararParedaoFalsoDaRodada(
 
 
 /* =========================================================
-   👤 REGISTRAR FALSO ELIMINADO
-   Remove temporariamente da lista ativa, mas NÃO elimina.
+   👤 O JOGADOR É O FALSO ELIMINADO?
    ========================================================= */
-function registrarFalsoEliminado(
+   function paredaoFalsoEhDoJogador()
+   {
+       $falsoEliminado = trim(
+           (string)($_SESSION['falso_eliminado'] ?? '')
+       );
+   
+       $meuNome = trim(
+           (string)($_SESSION['meu_nome'] ?? '')
+       );
+   
+       return (
+           !empty($_SESSION['paredao_falso_ativo']) &&
+           $falsoEliminado !== '' &&
+           $meuNome !== '' &&
+           nomeIgual($falsoEliminado, $meuNome)
+       );
+   }
+
+
+/* =========================================================
+   👤 REGISTRAR FALSO ELIMINADO
+
+   REGRAS:
+   - Sai temporariamente da lista ativa.
+   - NÃO conta como eliminação real.
+   - Se for NPC, o jogador NÃO descobre o Paredão Falso.
+   - Se for o próprio jogador, ele descobre o Quarto Secreto.
+   - O retorno fica programado para a rodada seguinte,
+     imediatamente antes da Festa.
+   ========================================================= */
+   function registrarFalsoEliminado(
     &$jogadores,
     $nome,
     $ranking,
@@ -97,13 +126,20 @@ function registrarFalsoEliminado(
     $snapshot = null;
 
     foreach ($jogadores as $indice => $j) {
-        if (!nomeIgual($j['nome'] ?? '', $nome)) {
+
+        if (!nomeIgual(
+            $j['nome'] ?? '',
+            $nome
+        )) {
             continue;
         }
 
         $snapshot = $j;
 
-        if (!isset($snapshot['estatisticas'])) {
+        if (
+            !isset($snapshot['estatisticas']) ||
+            !is_array($snapshot['estatisticas'])
+        ) {
             $snapshot['estatisticas'] = [];
         }
 
@@ -111,6 +147,7 @@ function registrarFalsoEliminado(
             ($snapshot['estatisticas']['paredao_falso'] ?? 0) + 1;
 
         unset($jogadores[$indice]);
+
         break;
     }
 
@@ -119,18 +156,72 @@ function registrarFalsoEliminado(
     }
 
     $jogadores = array_values($jogadores);
+
     $_SESSION['jogadores'] = $jogadores;
 
+    /* Estado da dinâmica */
     $_SESSION['paredao_falso_ativo'] = true;
     $_SESSION['paredao_falso_realizado'] = true;
-    $_SESSION['paredao_falso_revelado'] = true;
-    $_SESSION['paredao_falso_rodada'] = (int) $rodada;
+
+    $_SESSION['paredao_falso_rodada'] =
+        (int)$rodada;
+    $_SESSION['paredao_falso_rodada_retorno'] =
+    (int)$rodada + 1;
+
+    /*
+     * Exemplo:
+     * falso eliminado na Rodada 5
+     * volta antes da Festa da Rodada 6.
+     */
+    $_SESSION['paredao_falso_rodada_retorno'] =
+        (int)$rodada + 1;
 
     $_SESSION['falso_eliminado'] = $nome;
     $_SESSION['falso_eliminado_snapshot'] = $snapshot;
     $_SESSION['falso_eliminado_ranking'] = $ranking;
 
-    $_SESSION['fase_semana'] = 'quarto_secreto';
+    /*
+     * IMPORTANTE:
+     * Não existe eliminado REAL nesta semana.
+     * Evita outras partes do jogo interpretarem o nome
+     * como uma eliminação verdadeira.
+     */
+    unset($_SESSION['eliminado']);
+
+    $meuNome =
+        trim((string)($_SESSION['meu_nome'] ?? ''));
+
+    $ehMeuJogador =
+        $meuNome !== '' &&
+        nomeIgual($nome, $meuNome);
+
+    if ($ehMeuJogador) {
+
+        /*
+         * Se EU fui o falso eliminado,
+         * obviamente descubro a dinâmica.
+         */
+        $_SESSION['paredao_falso_revelado'] = true;
+        $_SESSION['paredao_falso_oculto_para_jogador'] = false;
+
+        $_SESSION['fase_semana'] =
+            'quarto_secreto';
+
+    } else {
+
+        /*
+         * Se foi um NPC, para mim continua parecendo
+         * uma eliminação completamente normal.
+         */
+        $_SESSION['paredao_falso_revelado'] = false;
+        $_SESSION['paredao_falso_oculto_para_jogador'] = true;
+
+        /*
+         * NÃO muda a fase para quarto_secreto.
+         * resultado.php continua mostrando a falsa eliminação
+         * normalmente e depois a temporada segue.
+         */
+    }
 
     return true;
 }
@@ -328,6 +419,13 @@ function retornarFalsoEliminadoParaCasa(&$jogadores)
 
     $_SESSION['jogadores'] = array_values($jogadores);
 
+    if (
+        !isset($_SESSION['evento_extra']) ||
+        !is_array($_SESSION['evento_extra'])
+    ) {
+        $_SESSION['evento_extra'] = [];
+    }
+
     $_SESSION['evento_extra'][] =
         "🚪 PAREDÃO FALSO! <b>$nome</b> voltou do Quarto Secreto para a casa.";
 
@@ -344,7 +442,10 @@ function retornarFalsoEliminadoParaCasa(&$jogadores)
         $_SESSION['falso_eliminado'],
         $_SESSION['falso_eliminado_snapshot'],
         $_SESSION['falso_eliminado_ranking'],
-        $_SESSION['paredao_falso_revelado']
+        $_SESSION['paredao_falso_revelado'],
+        $_SESSION['paredao_falso_oculto_para_jogador'],
+        $_SESSION['paredao_falso_rodada_retorno'],
+        $_SESSION['paredao_falso_rodada_seguinte_iniciada']
     );
 
     return true;

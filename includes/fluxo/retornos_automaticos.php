@@ -111,6 +111,68 @@ if (
 
 
 /* =========================================================
+   🚪 RETORNO AUTOMÁTICO DO PAREDÃO FALSO
+
+   Exemplo:
+   - falso eliminado na Rodada 5
+   - Rodada 6 acontece normalmente
+   - ao chegar na Festa da Rodada 6,
+     ele retorna ANTES da Festa começar
+   ========================================================= */
+
+   if (
+    $faseAtual === 'festa' &&
+    !empty($_SESSION['paredao_falso_ativo']) &&
+    empty($_SESSION['paredao_falso_retorno_realizado']) &&
+    function_exists('retornarFalsoEliminadoParaCasa')
+) {
+
+    $rodadaAtual =
+        (int)($_SESSION['rodada'] ?? 1);
+
+    $rodadaOrigem =
+        (int)($_SESSION['paredao_falso_rodada'] ?? 0);
+
+    $rodadaRetorno =
+        (int)(
+            $_SESSION['paredao_falso_rodada_retorno']
+            ?? ($rodadaOrigem + 1)
+        );
+
+    /*
+     * Para NPC:
+     * retorno surpresa e automático.
+     *
+     * O próprio jogador no Quarto Secreto será
+     * tratado pela tela especial.
+     */
+    $ehMeuJogador =
+        function_exists('paredaoFalsoEhDoJogador') &&
+        paredaoFalsoEhDoJogador();
+
+    if (
+        !$ehMeuJogador &&
+        $rodadaAtual >= $rodadaRetorno
+    ) {
+
+        retornarFalsoEliminadoParaCasa(
+            $jogadores
+        );
+
+        /*
+         * Não pula a Festa.
+         * O retorno acontece imediatamente antes dela.
+         */
+        $_SESSION['fase_semana'] =
+            'festa';
+
+        $faseAtual =
+            'festa';
+    }
+}
+
+
+/* =========================================================
    🔄 SINCRONIZAR VARIÁVEL LOCAL
    ========================================================= */
 

@@ -29,6 +29,41 @@ $fuiEliminado = false;
 $meuJogadorEliminado = $_SESSION['meu_jogador_snapshot'] ?? null;
 $ehParedaoFalso = !empty($_SESSION['paredao_falso_ativo']);
 
+if ($souFalsoEliminado) {
+
+    /*
+     * Se VOCÊ foi o falso eliminado, a rodada seguinte
+     * precisa começar sem você dentro da casa.
+     *
+     * A flag impede que F5/recarregamento avance
+     * mais de uma rodada.
+     */
+    if (
+        empty($_SESSION['paredao_falso_rodada_seguinte_iniciada'])
+    ) {
+
+        $jogadores =
+            $_SESSION['jogadores']
+            ?? $jogadores;
+
+        iniciarNovaRodadaAposEliminacao(
+            $jogadores
+        );
+
+        $_SESSION['paredao_falso_rodada_seguinte_iniciada'] =
+            true;
+    }
+
+    /*
+     * Você continua escondido.
+     * Não marcamos fase_semana como quarto_secreto,
+     * porque por trás a nova semana precisa continuar:
+     *
+     * interações → líder → VIP/Xepa → anjo →
+     * monstro → Big Fone → interações...
+     */
+}
+
 /* ==========================
    FUNÇÕES VISUAIS
 ========================== */
@@ -152,10 +187,6 @@ if (
                             <div class="label">Emparedado</div>
                             <h3><?php echo e($nome); ?></h3>
                             <p><?php echo e(resumoParticipanteResultado($jogadorParedao)); ?></p>
-                            <?php $popParedao = popularidadeJogadorResultado($jogadores, $nome); ?>
-                            <p style="margin-top:8px;color:#ffd9eb;">
-                                📈 Popularidade: <b><?php echo $popParedao; ?>/100</b> • <?php echo e(statusPopularidadeResultado($popParedao)); ?>
-                            </p>
                         </div>
 
                     <?php endforeach; ?>
@@ -197,7 +228,7 @@ if (
                 <?php echo e($eliminado); ?>
             </div>
 
-            <?php if($ehParedaoFalso): ?>
+            <?php if($souFalsoEliminado): ?>
 
                 <p class="eliminado-sub">
                     🚨 Mas essa eliminação não é o que parece...
@@ -258,7 +289,7 @@ if (
 
             <p class="after-text">
                 O maior percentual representa quem recebeu mais votos para sair.
-                Agora o resultado é calculado com base na popularidade pública, rejeição, personalidade e situação da semana.
+                O resultado considera a trajetória dos participantes, o comportamento no jogo e a repercussão dos acontecimentos da semana.
             </p>
 
         </div>
@@ -344,6 +375,12 @@ if (
                     </div>
 
                 </div>
+
+                <form method="POST">
+    <button class="btn" name="continuar">
+        👁️ Continuar Assistindo à Temporada
+    </button>
+</form>
 
                 <form method="POST">
                     <button class="btn" name="novo_jogo">

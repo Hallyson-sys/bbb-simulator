@@ -3,8 +3,13 @@
 /** @var array $jogadores */
 /** @var int $rodada */
 
-$meuFinal = $_SESSION['meu_jogador_snapshot'] ?? [];
-$estatisticasFinal = $meuFinal['estatisticas'] ?? [];
+$meuFinal =
+    $_SESSION['meu_jogador_snapshot']
+    ?? [];
+
+$estatisticasFinal =
+    $meuFinal['estatisticas']
+    ?? [];
 
 $popularidadeFinal =
     $_SESSION['minha_popularidade_final']
@@ -14,10 +19,11 @@ $colocacaoFinal =
     $_SESSION['minha_colocacao_final']
     ?? (count($jogadores) + 1);
 
-$rodadasSobrevividas = max(
-    1,
-    ($rodada ?? 1) - 1
-);
+$rodadasSobrevividas =
+    max(
+        1,
+        ($rodada ?? 1) - 1
+    );
 
 ?>
 
@@ -25,12 +31,12 @@ $rodadasSobrevividas = max(
 
     <div class="eliminado-final-box">
 
-        <h2>🚫 Fim de Jogo</h2>
+        <h2>🚫 Fim da sua participação</h2>
 
         <p>
             Você foi eliminado da temporada em
             <b><?php echo $colocacaoFinal; ?>º lugar</b>.
-            Sua trajetória chegou ao fim, mas suas estatísticas ficaram registradas.
+            Seu jogo como participante acabou, mas você ainda pode acompanhar a temporada até a Grande Final.
         </p>
 
         <div class="popularidade-final-barra">
@@ -41,7 +47,7 @@ $rodadasSobrevividas = max(
         </div>
 
         <p>
-            📊 Popularidade final:
+            📊 Sua popularidade final:
             <b><?php echo limitar($popularidadeFinal, 0, 100); ?>/100</b>
         </p>
 
@@ -90,8 +96,17 @@ $rodadasSobrevividas = max(
         </div>
 
         <form method="POST">
+            <button class="btn" name="continuar_espectador">
+                👁️ Continuar assistindo à temporada
+            </button>
+        </form>
+
+        <form
+            method="POST"
+            onsubmit="localStorage.removeItem('bbb_simulator_save_v1')"
+        >
             <button class="btn novo" name="novo_jogo">
-                🔄 Começar Novo Jogo
+                🔄 Encerrar e começar novo jogo
             </button>
         </form>
 

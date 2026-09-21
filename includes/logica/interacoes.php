@@ -121,6 +121,184 @@ function perfilPersonalidadeCompleto($personalidade)
    🤖 GERAR AÇÕES DOS NPCs
    ========================================================= */
 
+
+/* =========================================================
+   🎲 VARIEDADE DAS INTERAÇÕES DOS NPCs
+   ========================================================= */
+
+function garantirHistoricoInteracoesNPC()
+{
+    if (
+        !isset($_SESSION['historico_interacoes_npc']) ||
+        !is_array($_SESSION['historico_interacoes_npc'])
+    ) {
+        $_SESSION['historico_interacoes_npc'] = [];
+    }
+}
+
+
+function registrarHistoricoInteracaoNPC(
+    $npc,
+    $acao,
+    $alvo
+) {
+    garantirHistoricoInteracoesNPC();
+
+    if (
+        !isset(
+            $_SESSION[
+                'historico_interacoes_npc'
+            ][$npc]
+        ) ||
+        !is_array(
+            $_SESSION[
+                'historico_interacoes_npc'
+            ][$npc]
+        )
+    ) {
+        $_SESSION[
+            'historico_interacoes_npc'
+        ][$npc] = [];
+    }
+
+    $_SESSION[
+        'historico_interacoes_npc'
+    ][$npc][] = [
+        'acao' => (int)$acao,
+        'alvo' => (string)$alvo,
+        'rodada' =>
+            (int)($_SESSION['rodada'] ?? 1),
+        'fase' =>
+            (string)($_SESSION['fase_semana'] ?? '')
+    ];
+
+    $_SESSION[
+        'historico_interacoes_npc'
+    ][$npc] =
+        array_slice(
+            $_SESSION[
+                'historico_interacoes_npc'
+            ][$npc],
+            -7
+        );
+}
+
+
+function escolherAcaoNPCVariada(
+    $nomeNPC,
+    $possiveis
+) {
+    garantirHistoricoInteracoesNPC();
+
+    if (empty($possiveis)) {
+        return rand(1, 4);
+    }
+
+    /*
+     * A quantidade de vezes que uma ação aparece em $possiveis
+     * continua representando a personalidade e a relação.
+     */
+    $pesos = [];
+
+    foreach ($possiveis as $acao) {
+        $acao = (int)$acao;
+
+        if ($acao < 1 || $acao > 4) {
+            continue;
+        }
+
+        $pesos[$acao] =
+            ($pesos[$acao] ?? 0)
+            + 100;
+    }
+
+    if (empty($pesos)) {
+        return rand(1, 4);
+    }
+
+    $historico =
+        $_SESSION[
+            'historico_interacoes_npc'
+        ][$nomeNPC]
+        ?? [];
+
+    $ultimos =
+        array_reverse(
+            array_slice(
+                $historico,
+                -4
+            )
+        );
+
+    /*
+     * Repetir a última ação continua possível,
+     * mas fica bem menos provável.
+     */
+    foreach ($ultimos as $posicao => $item) {
+
+        $acaoAnterior =
+            (int)($item['acao'] ?? 0);
+
+        if (!isset($pesos[$acaoAnterior])) {
+            continue;
+        }
+
+        if ($posicao === 0) {
+            $pesos[$acaoAnterior] *= 0.18;
+
+        } elseif ($posicao === 1) {
+            $pesos[$acaoAnterior] *= 0.48;
+
+        } else {
+            $pesos[$acaoAnterior] *= 0.72;
+        }
+    }
+
+    /*
+     * Pequena dose de imprevisibilidade:
+     * às vezes um NPC faz algo fora do padrão
+     * sem deixar a personalidade irrelevante.
+     */
+    if (rand(1, 100) <= 18) {
+
+        for ($acao = 1; $acao <= 4; $acao++) {
+
+            if (!isset($pesos[$acao])) {
+                $pesos[$acao] =
+                    rand(12, 30);
+            }
+        }
+    }
+
+    foreach ($pesos as $acao => $peso) {
+        $pesos[$acao] =
+            max(
+                1,
+                (int)round($peso)
+            );
+    }
+
+    $total =
+        array_sum($pesos);
+
+    $sorteio =
+        rand(1, $total);
+
+    $acumulado = 0;
+
+    foreach ($pesos as $acao => $peso) {
+
+        $acumulado += $peso;
+
+        if ($sorteio <= $acumulado) {
+            return (int)$acao;
+        }
+    }
+
+    return (int)array_key_first($pesos);
+}
+
+
 function gerarAcoesNPC(
     &$jogadores,
     $meuNome,
@@ -360,9 +538,10 @@ function gerarAcoesNPC(
 
 
             $acao =
-                $possiveis[
-                    array_rand($possiveis)
-                ];
+                escolherAcaoNPCVariada(
+                    $nomeNPC,
+                    $possiveis
+                );
 
 
             /* =================================================
@@ -629,6 +808,17 @@ function gerarAcoesNPC(
                     }
                 }
             }
+
+
+            /*
+             * Guarda ação e alvo recentes para reduzir
+             * repetições nas próximas interações.
+             */
+            registrarHistoricoInteracaoNPC(
+                $nomeNPC,
+                $acao,
+                $nomeAlvo
+            );
 
 
             /* Atualiza aliados/rivais */

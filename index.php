@@ -2,12 +2,13 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BBB Simulator</title>
 
 <link rel="stylesheet" href="assets/css/index.css">
+<link rel="stylesheet" href="assets/css/index_save.css">
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-
 </head>
 
 <body>
@@ -24,49 +25,130 @@
         <h1 class="titulo">BBB<br>SIMULATOR</h1>
         <div class="sub">PARA VENCER O JOGO, VALE TUDO</div>
 
-        <form action="config.php" method="POST" id="formEntrada" onsubmit="return false;">
+        <div id="mensagemIndex" class="mensagem-index" hidden></div>
 
-            <input type="text" name="nome" placeholder="Digite seu nome" required>
+        <!-- =================================================
+             💾 SAVE LOCAL
+        ================================================== -->
+        <section class="save-card-index" id="saveCardIndex" hidden>
+            <div class="save-card-topo">
+                <span class="save-icone">💾</span>
 
-            <input type="number" name="idade" placeholder="Digite sua idade" required>
+                <div>
+                    <small>TEMPORADA EM ANDAMENTO</small>
+                    <h2 id="saveNome">Seu jogo salvo</h2>
+                </div>
+            </div>
 
-            <select name="profissao" required>
-                <option value="">Escolha sua profissão</option>
-                <option>Influencer</option>
-                <option>Professor(a)</option>
-                <option>Youtuber</option>
-                <option>Advogado(a)</option>
-                <option>Policial</option>
-                <option>Médico(a)</option>
-                <option>Enfermeiro(a)</option>
-                <option>Balconista</option>
-                <option>Desempregado</option>
-                <option>DJ</option>
-                <option>Terapeuta</option>
-                <option>Ator/Atriz</option>
-                <option>Bombeiro(a)</option>
-                <option>Personal Trainer</option>
-                <option>Maquiador(a)</option>
-                <option>Motorista de Aplicativo</option>
-                <option>Nutricionista</option>
-                <option>Barbeiro(a)</option>
-                <option>Cabeleleiro(a)</option>
-                <option>Cantor(a)</option>
-                <option>Modelo</option>
-                <option>Vendedor(a)</option>
-                <option>Engenheiro(a)</option>
-                <option>Arquiteto(a)</option>
-                <option>Empresário</option>
-                <option>Psicólogo</option>
-                <option>Tatuador(a)</option>
-                <option>Veterinário(a)</option>
-                <option>Streamer</option>
-                <option>Fotográfo(a)</option>
-                <option>Comissário(a) de Bordo</option>
-                <option>Assistente Social</option>
-                <option>Esteticista</option>
-                <option>Radialista</option>
-            </select>
+            <div class="save-resumo">
+                <span id="saveRodada">🔥 Rodada -</span>
+                <span id="saveParticipantes">👥 - participantes</span>
+                <span id="saveData">🕒 Save recente</span>
+            </div>
+
+            <div class="save-botoes">
+                <button
+                    type="button"
+                    class="btn-save-continuar"
+                    onclick="continuarSaveBBB()"
+                >
+                    ▶ CONTINUAR TEMPORADA
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-save-apagar"
+                    onclick="apagarSaveBBB()"
+                >
+                    🗑 Apagar Save
+                </button>
+            </div>
+        </section>
+
+        <div class="separador-index" id="separadorIndex" hidden>
+            <span>NOVA TEMPORADA</span>
+        </div>
+
+        <form
+            action="config.php"
+            method="POST"
+            id="formEntrada"
+            onsubmit="return false;"
+        >
+
+            <input
+                type="text"
+                name="nome"
+                placeholder="Digite seu nome"
+                maxlength="40"
+                required
+            >
+
+            <input
+                type="number"
+                name="idade"
+                placeholder="Digite sua idade"
+                min="18"
+                max="70"
+                step="1"
+                required
+            >
+
+            <!--
+                O jogador pode escolher uma sugestão OU
+                escrever qualquer profissão personalizada.
+            -->
+            <input
+                type="text"
+                name="profissao"
+                list="listaProfissoes"
+                placeholder="Digite ou escolha sua profissão"
+                maxlength="60"
+                autocomplete="off"
+                required
+            >
+
+            <datalist id="listaProfissoes">
+                <option value="Influencer">
+                <option value="Professor(a)">
+                <option value="Youtuber">
+                <option value="Advogado(a)">
+                <option value="Policial">
+                <option value="Médico(a)">
+                <option value="Enfermeiro(a)">
+                <option value="Balconista">
+                <option value="Desempregado">
+                <option value="DJ">
+                <option value="Terapeuta">
+                <option value="Ator/Atriz">
+                <option value="Bombeiro(a)">
+                <option value="Personal Trainer">
+                <option value="Maquiador(a)">
+                <option value="Motorista de Aplicativo">
+                <option value="Nutricionista">
+                <option value="Barbeiro(a)">
+                <option value="Cabeleireiro(a)">
+                <option value="Cantor(a)">
+                <option value="Modelo">
+                <option value="Vendedor(a)">
+                <option value="Engenheiro(a)">
+                <option value="Arquiteto(a)">
+                <option value="Empresário">
+                <option value="Psicólogo">
+                <option value="Tatuador(a)">
+                <option value="Veterinário(a)">
+                <option value="Streamer">
+                <option value="Fotógrafo(a)">
+                <option value="Comissário(a) de Bordo">
+                <option value="Assistente Social">
+                <option value="Esteticista">
+                <option value="Radialista">
+                <option value="Estudante">
+                <option value="Cineasta">
+                <option value="Roteirista">
+                <option value="Designer">
+                <option value="Dublador(a)">
+            </datalist>
 
             <select name="estado" required>
                 <option value="">Escolha seu estado</option>
@@ -97,10 +179,10 @@
             </select>
 
             <select name="tipo_elenco" required>
-    <option value="">Escolha o tipo de elenco</option>
-    <option value="automatico">🎲 Elenco Aleatório</option>
-    <option value="personalizado">✏️ Montar Meu Próprio Elenco</option>
-</select>
+                <option value="">Escolha o tipo de elenco</option>
+                <option value="automatico">🎲 Elenco Aleatório</option>
+                <option value="personalizado">✏️ Montar Meu Próprio Elenco</option>
+            </select>
 
             <select name="qtd" required>
                 <option value="20">20 participantes</option>
@@ -109,8 +191,8 @@
             </select>
 
             <button type="button" onclick="entrarNaCasa()">
-ENTRAR NA CASA →
-</button>
+                ENTRAR NA CASA →
+            </button>
 
         </form>
 
@@ -137,19 +219,39 @@ ENTRAR NA CASA →
 
 </div>
 
+<script src="assets/js/index_save.js"></script>
+
 <script>
 function entrarNaCasa(){
+
+    const form = document.getElementById("formEntrada");
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const idade = Number(form.idade.value);
+
+    if (idade < 18 || idade > 70) {
+        mostrarMensagemIndex(
+            "⚠️ A idade precisa estar entre 18 e 70 anos.",
+            "erro"
+        );
+        return;
+    }
+
+    // Ao iniciar uma NOVA temporada, o save anterior deixa de valer.
+    localStorage.removeItem("bbb_simulator_save_v1");
 
     const overlay = document.getElementById("entradaCasa");
 
     overlay.classList.add("ativo");
 
-    // trava clique
     document.body.style.pointerEvents = "none";
 
-    // envia depois da animação
     setTimeout(() => {
-        document.getElementById("formEntrada").submit();
+        form.submit();
     }, 3000);
 }
 </script>

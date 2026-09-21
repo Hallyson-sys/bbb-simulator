@@ -73,26 +73,58 @@ function processarEntradaEliminacao($fase)
 
 /* =========================================================
    🚪 ENTRADA NO QUARTO SECRETO
-   Protege o fluxo caso o usuário tente abrir jogo.php
-   enquanto o Paredão Falso ainda está ativo.
    ========================================================= */
-function processarEntradaQuartoSecreto($fase)
-{
-    if (
-        $fase !== 'quarto_secreto' &&
-        empty($_SESSION['paredao_falso_ativo'])
-    ) {
-        return;
-    }
-
-    if (
-        !empty($_SESSION['paredao_falso_ativo']) &&
-        !empty($_SESSION['falso_eliminado'])
-    ) {
-        header('Location: quarto_secreto.php');
-        exit;
-    }
-}
+   function processarEntradaQuartoSecreto($fase)
+   {
+       $meuNome =
+           trim((string)(
+               $_SESSION['meu_nome']
+               ?? ''
+           ));
+   
+       $falsoEliminado =
+           trim((string)(
+               $_SESSION['falso_eliminado']
+               ?? ''
+           ));
+   
+       $souEuNoQuarto =
+           !empty($_SESSION['paredao_falso_ativo']) &&
+           $meuNome !== '' &&
+           $falsoEliminado !== '' &&
+           nomeIgual(
+               $falsoEliminado,
+               $meuNome
+           );
+   
+       /*
+        * Se quem está escondido é um NPC,
+        * o jogador continua vendo o jogo normalmente.
+        */
+       if (!$souEuNoQuarto) {
+           return;
+       }
+   
+       /*
+        * Esses POSTs precisam chegar às actions de jogo.php
+        * para que a semana continue acontecendo enquanto
+        * o jogador acompanha tudo do Quarto Secreto.
+        */
+       $postPermitido =
+           isset($_POST['avancar_fase']) ||
+           isset($_POST['ver_vip_xepa']);
+   
+       if ($postPermitido) {
+           return;
+       }
+   
+       /*
+        * Em qualquer acesso comum, mantém o jogador
+        * dentro da interface do Quarto Secreto.
+        */
+       header('Location: quarto_secreto.php');
+       exit;
+   }
 
 
 /* =========================================================
@@ -118,37 +150,63 @@ function prepararEstadoConfessionario(
 /* =========================================================
    🏆 SINCRONIZAR FASES FINAIS
    ========================================================= */
-function sincronizarFasesFinais(
+   function sincronizarFasesFinais(
     &$fase,
     $jogadores
 ) {
-    $faseAtual = $_SESSION['fase_semana'] ?? '';
+    $faseAtual =
+        $_SESSION['fase_semana'] ?? '';
+
+    $ehMeuParedaoFalso =
+        function_exists('paredaoFalsoEhDoJogador') &&
+        paredaoFalsoEhDoJogador();
 
     /*
-     * Durante um Paredão Falso há um participante
-     * temporariamente fora da lista ativa. Não permite
-     * que isso dispare uma final por engano.
+     * Se EU estou no Quarto Secreto,
+     * mantém a tela especial.
      */
-    if (!empty($_SESSION['paredao_falso_ativo'])) {
+    if ($ehMeuParedaoFalso) {
         $fase = 'quarto_secreto';
         return;
     }
 
     /*
-     * Durante a Casa de Vidro o fluxo normal da semana
-     * fica pausado até os dois vencedores entrarem.
+     * Casa de Vidro continua pausando
+     * normalmente o fluxo.
      */
     if (!empty($_SESSION['casa_vidro_ativa'])) {
         $fase = 'casa_vidro';
         return;
     }
 
+    /*
+     * IMPORTANTE:
+     *
+     * Um NPC falso eliminado saiu apenas temporariamente
+     * de $_SESSION['jogadores'].
+     *
+     * Para calcular Top 3/final, ele continua contando
+     * como participante da temporada.
+     */
+    $totalRealParticipantes =
+        count($jogadores);
+
+    if (
+        !empty($_SESSION['paredao_falso_ativo']) &&
+        !$ehMeuParedaoFalso &&
+        !empty($_SESSION['falso_eliminado_snapshot'])
+    ) {
+        $totalRealParticipantes++;
+    }
+
     if (
         $faseAtual != 'jogador_eliminado' &&
-        count($jogadores) == 3 &&
+        $totalRealParticipantes == 3 &&
         $faseAtual != 'finalistas'
     ) {
-        $_SESSION['fase_semana'] = 'finalistas';
+        $_SESSION['fase_semana'] =
+            'finalistas';
+
         $fase = 'finalistas';
         $faseAtual = 'finalistas';
     }
@@ -157,7 +215,10 @@ function sincronizarFasesFinais(
         $fase = 'finalistas';
     }
 
-    if (($_SESSION['fase_semana'] ?? '') == 'jogador_eliminado') {
+    if (
+        ($_SESSION['fase_semana'] ?? '') ==
+        'jogador_eliminado'
+    ) {
         $fase = 'jogador_eliminado';
     }
 }
