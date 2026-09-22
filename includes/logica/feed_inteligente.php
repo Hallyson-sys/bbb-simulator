@@ -37,6 +37,161 @@ function feedIntelMarcar($chave)
 
 
 /* =========================================================
+   🗣️ VARIAÇÃO DE TEXTO / MIGRAÇÃO DO FEED
+   ========================================================= */
+
+/*
+ * Evita repetir exatamente as mesmas frases em sequência.
+ * Guarda apenas os textos mais recentes da camada inteligente.
+ */
+function feedIntelEscolherTexto($opcoes)
+{
+    $opcoes = array_values(
+        array_filter(
+            (array)$opcoes,
+            function ($texto) {
+                return trim((string)$texto) !== '';
+            }
+        )
+    );
+
+    if (empty($opcoes)) {
+        return '';
+    }
+
+    if (
+        !isset($_SESSION['feed_intel_textos_recentes']) ||
+        !is_array($_SESSION['feed_intel_textos_recentes'])
+    ) {
+        $_SESSION['feed_intel_textos_recentes'] = [];
+    }
+
+    $recentes = $_SESSION['feed_intel_textos_recentes'];
+
+    $disponiveis = array_values(
+        array_filter(
+            $opcoes,
+            function ($texto) use ($recentes) {
+                return !in_array($texto, $recentes, true);
+            }
+        )
+    );
+
+    if (empty($disponiveis)) {
+        $disponiveis = $opcoes;
+    }
+
+    $texto = $disponiveis[array_rand($disponiveis)];
+
+    $recentes[] = $texto;
+
+    $_SESSION['feed_intel_textos_recentes'] =
+        array_slice(
+            array_values(array_unique($recentes)),
+            -18
+        );
+
+    return $texto;
+}
+
+
+/*
+ * Remove, UMA única vez, posts antigos da versão que
+ * mostrava números de popularidade e "Motivo mais recente".
+ *
+ * Assim saves já existentes migram sem precisar começar
+ * uma temporada nova.
+ */
+function feedIntelMigrarVersao()
+{
+    $versaoAtual = 2;
+    $versaoSalva = (int)($_SESSION['feed_inteligente_versao'] ?? 0);
+
+    if ($versaoSalva >= $versaoAtual) {
+        return;
+    }
+
+    if (
+        isset($_SESSION['feed_publico']) &&
+        is_array($_SESSION['feed_publico'])
+    ) {
+        $_SESSION['feed_publico'] = array_values(
+            array_filter(
+                $_SESSION['feed_publico'],
+                function ($post) {
+                    if (!is_array($post)) {
+                        return true;
+                    }
+
+                    if (($post['categoria'] ?? '') === 'popularidade') {
+                        return false;
+                    }
+
+                    $texto = (string)($post['texto'] ?? '');
+
+                    if (
+                        preg_match('/\b\d{1,3}\s*\/\s*100\b/u', $texto) ||
+                        mb_stripos($texto, 'Motivo mais recente:', 0, 'UTF-8') !== false ||
+                        mb_stripos($texto, 'pontos de popularidade', 0, 'UTF-8') !== false ||
+                        mb_stripos($texto, 'de popularidade', 0, 'UTF-8') !== false
+                    ) {
+                        return false;
+                    }
+
+                    return true;
+                }
+            )
+        );
+    }
+
+    /*
+     * Libera os gatilhos antigos de reação pública para
+     * os novos comentários naturais poderem ser gerados.
+     */
+    if (
+        isset($_SESSION['feed_inteligente_processados']) &&
+        is_array($_SESSION['feed_inteligente_processados'])
+    ) {
+        foreach (
+            array_keys($_SESSION['feed_inteligente_processados'])
+            as $chave
+        ) {
+            if (strpos((string)$chave, 'intel_pop|') === 0) {
+                unset(
+                    $_SESSION['feed_inteligente_processados'][$chave]
+                );
+            }
+        }
+    }
+
+    $_SESSION['feed_intel_textos_recentes'] = [];
+    $_SESSION['feed_inteligente_versao'] = $versaoAtual;
+}
+
+
+function feedIntelContemAlgum($texto, $termos)
+{
+    $texto = mb_strtolower((string)$texto, 'UTF-8');
+
+    foreach ((array)$termos as $termo) {
+        if (
+            $termo !== '' &&
+            mb_stripos(
+                $texto,
+                mb_strtolower((string)$termo, 'UTF-8'),
+                0,
+                'UTF-8'
+            ) !== false
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/* =========================================================
    ☎️ BIG FONE
    ========================================================= */
 function feedIntelNomePoderBigFone($tipo)
@@ -82,19 +237,19 @@ function feedIntelProcessarBigFone($jogadores, $rodada)
     );
 
     if ($sentimento === 'positivo') {
-        $texto = escolherFeedPublico([
+        $texto = feedIntelEscolherTexto([
             "$atendente ATENDEU O BIG FONE 😭 essa semana vai render.",
             "$atendente correu pro Big Fone e a torcida foi junto.",
             "O Big Fone caiu justamente na mão de $atendente. CINEMA."
         ]);
     } elseif ($sentimento === 'negativo') {
-        $texto = escolherFeedPublico([
+        $texto = feedIntelEscolherTexto([
             "$atendente atendendo o Big Fone... era tudo que eu não queria.",
             "Justo $atendente pegou o Big Fone. Agora segura.",
             "O Big Fone tocou e $atendente ganhou poder. perigo real."
         ]);
     } else {
-        $texto = escolherFeedPublico([
+        $texto = feedIntelEscolherTexto([
             "$atendente atendeu o Big Fone e a timeline parou.",
             "O Big Fone caiu com $atendente. Quero ver onde isso vai dar.",
             "$atendente no Big Fone 👀 a semana mudou AGORA."
@@ -142,7 +297,7 @@ function feedIntelProcessarBigFone($jogadores, $rodada)
             ]
         ];
 
-        $textoPoder = escolherFeedPublico(
+        $textoPoder = feedIntelEscolherTexto(
             $textos[$poder] ?? [
                 "$atendente ganhou $nomePoder no Big Fone. Quero ver como vai usar."
             ]
@@ -161,7 +316,7 @@ function feedIntelProcessarBigFone($jogadores, $rodada)
 
         adicionarPostFeedPublico(
             $jogadores,
-            escolherFeedPublico([
+            feedIntelEscolherTexto([
                 "$atendente colocou $alvo direto no Paredão pelo Big Fone. CLIMÃO.",
                 "A indicação do Big Fone foi em $alvo. Essa relação não volta igual.",
                 "$alvo foi direto pro Paredão pela mão de $atendente. pesado."
@@ -236,7 +391,7 @@ function feedIntelProcessarCuringa($jogadores, $rodada)
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "$dono ficou com o Poder Curinga: $nomePoder. Agora quero ver a movimentação 👀",
             "$nomePoder caiu na mão de $dono. Essa semana ganhou uma camada nova.",
             "O Poder Curinga é de $dono e o poder é $nomePoder. A casa que lute."
@@ -254,7 +409,7 @@ function feedIntelProcessarCuringa($jogadores, $rodada)
     ) {
         adicionarPostFeedPublico(
             $jogadores,
-            escolherFeedPublico([
+            feedIntelEscolherTexto([
                 "$dono pode guardar esse Curinga até a formação do Paredão. Isso é MUITO perigoso.",
                 "Esse $nomePoder do $dono pode mudar um Paredão inteiro no último segundo."
             ]),
@@ -268,7 +423,8 @@ function feedIntelProcessarCuringa($jogadores, $rodada)
 
 
 /* =========================================================
-   📈 POPULARIDADE: PERCEBER SUBIDAS E QUEDAS
+   📈 LEITURA INTERNA DA REAÇÃO DO PÚBLICO
+   Os valores continuam secretos para quem joga.
    ========================================================= */
 function feedIntelMotivoPopularidadeRecente($jogador, $rodada)
 {
@@ -292,6 +448,191 @@ function feedIntelMotivoPopularidadeRecente($jogador, $rodada)
     return '';
 }
 
+
+/*
+ * O motivo interno é convertido em linguagem de rede social.
+ * Nada de "Motivo mais recente", nota, pontos ou XX/100.
+ */
+function feedIntelComentarioMotivoNatural(
+    $nome,
+    $motivo,
+    $positivo
+) {
+    $motivo = trim((string)$motivo);
+
+    if ($motivo === '') {
+        return '';
+    }
+
+    if (feedIntelContemAlgum($motivo, ['vt', 'entretenimento'])) {
+        return feedIntelEscolherTexto(
+            $positivo
+                ? [
+                    "o VT do $nome hoje me pegou desprevenido KKKKK",
+                    "$nome entregando entretenimento sem precisar forçar, assim eu gosto",
+                    "eu ri mais do que devia com o $nome hoje 😭",
+                    "quando o $nome resolve aparecer no programa ele aparece MESMO"
+                ]
+                : [
+                    "essa tentativa de VT do $nome não me pegou não",
+                    "$nome tentando render e eu só olhando assim 🤨",
+                    "não sei explicar, mas hoje o $nome me cansou um pouco",
+                    "o VT do $nome hoje não funcionou pra mim"
+                ]
+        );
+    }
+
+    if (feedIntelContemAlgum($motivo, ['treta', 'brig', 'discut', 'bateu de frente'])) {
+        return feedIntelEscolherTexto(
+            $positivo
+                ? [
+                    "eu sei que foi treta mas o $nome me ganhou ali, foi mal",
+                    "$nome comprou a briga e dessa vez eu fiquei do lado dele",
+                    "não esperava concordar com o $nome nessa discussão e cá estamos",
+                    "o $nome falou o que muita gente tava pensando 👀"
+                ]
+                : [
+                    "cada discussão do $nome me deixa mais cansado dele",
+                    "$nome passou do ponto nessa e não tem muito como defender",
+                    "eu tava tentando gostar do $nome mas essa briga complicou tudo",
+                    "o jeito que o $nome conduziu essa treta me deu ranço real"
+                ]
+        );
+    }
+
+    if (feedIntelContemAlgum($motivo, ['fofoca', 'intriga', 'fals'])) {
+        return feedIntelEscolherTexto(
+            $positivo
+                ? [
+                    "não vou mentir: a fofoca do $nome rendeu e eu tava entretido",
+                    "$nome mexeu as peças e eu tô aqui assistindo com a pipoca",
+                    "o jogo do $nome tá ficando perigosamente interessante",
+                    "$nome resolveu movimentar a casa e eu agradeço pelo entretenimento"
+                ]
+                : [
+                    "essa movimentação do $nome tá com uma energia tão esquisita",
+                    "o $nome se enrola sozinho quando começa com essas fofocas",
+                    "eu não compraria uma palavra do $nome depois dessa",
+                    "a casa vai descobrir essa do $nome e vai dar MUITO ruim"
+                ]
+        );
+    }
+
+    if (feedIntelContemAlgum($motivo, ['romance', 'casal', 'flert', 'beijo'])) {
+        return feedIntelEscolherTexto(
+            $positivo
+                ? [
+                    "eu jurava que não ia shippar ninguém e aí veio o $nome",
+                    "o lado romântico do $nome me pegou desprevenido 😭",
+                    "eu tentando não me apegar ao enredo do $nome: falhando miseravelmente",
+                    "$nome vivendo o próprio romcom no meio do caos da casa"
+                ]
+                : [
+                    "esse enredo romântico do $nome não tá me convencendo muito não",
+                    "eu queria comprar esse romance do $nome mas tá difícil",
+                    "o clima do $nome tá mais novela das seis do que química real pra mim",
+                    "não sei se sou eu, mas esse romance do $nome tá meio forçado"
+                ]
+        );
+    }
+
+    if (feedIntelContemAlgum($motivo, ['líder', 'lider', 'prova', 'anjo'])) {
+        return feedIntelEscolherTexto(
+            $positivo
+                ? [
+                    "depois dessa prova eu comecei a olhar o $nome com outros olhos",
+                    "$nome apareceu na hora que precisava, isso conta MUITO",
+                    "o $nome foi bem na prova e parece que ganhou confiança junto",
+                    "tem gente que cresce quando a pressão bate e o $nome tá mostrando isso"
+                ]
+                : [
+                    "prova nenhuma tá me fazendo esquecer as últimas do $nome",
+                    "o $nome pode até estar ganhando coisa na casa mas comigo ainda não virou",
+                    "não sei, o $nome hoje não me convenceu nem um pouco",
+                    "esperava mais do $nome nessa altura do jogo"
+                ]
+        );
+    }
+
+    if (feedIntelContemAlgum($motivo, ['confessionário', 'confessionario'])) {
+        return feedIntelEscolherTexto(
+            $positivo
+                ? [
+                    "o confessionário do $nome foi simplesmente tudo pra mim",
+                    "$nome falando no confessionário e eu finalmente entendendo o jogo dele",
+                    "a leitura de jogo do $nome no confessionário foi muito boa",
+                    "o confessionário do $nome me fez repensar umas coisas aqui 👀"
+                ]
+                : [
+                    "o confessionário do $nome me deixou com mais dúvidas do que antes",
+                    "$nome abriu a boca no confessionário e conseguiu piorar a situação",
+                    "não gostei NADA do tom do $nome no confessionário",
+                    "o confessionário do $nome hoje não ajudou em absolutamente nada"
+                ]
+        );
+    }
+
+    if (feedIntelContemAlgum($motivo, ['aliança', 'alianca', 'aliado'])) {
+        return feedIntelEscolherTexto(
+            $positivo
+                ? [
+                    "a forma como o $nome tá construindo relações tá começando a fazer sentido",
+                    "$nome parece ter encontrado gente que realmente fecha com ele",
+                    "o social do $nome tá encaixando aos poucos e eu tô vendo",
+                    "$nome finalmente achou um grupo que combina com o jogo dele"
+                ]
+                : [
+                    "essas alianças do $nome estão começando a me dar uma preguiça",
+                    "não sei se o $nome escolheu muito bem com quem se juntar",
+                    "o jogo social do $nome tá parecendo uma bomba-relógio",
+                    "essa aliança do $nome ainda vai cobrar um preço, anotem"
+                ]
+        );
+    }
+
+    if (feedIntelContemAlgum($motivo, ['apagado', 'planta', 'discreto'])) {
+        return feedIntelEscolherTexto(
+            $positivo
+                ? [
+                    "o $nome quietinho tá começando a me intrigar, confesso",
+                    "vai ver o $nome tava só esperando a hora certa de aparecer",
+                    "eu ainda quero entender qual é a do $nome nesse jogo",
+                    "o $nome tá na dele mas eu sinto que alguma coisa vem aí"
+                ]
+                : [
+                    "eu esqueço que o $nome tá na casa e isso tá começando a ser um problema",
+                    "$nome precisa acordar pra temporada urgentemente",
+                    "alguém avisa o $nome que o programa já começou 😭",
+                    "eu tô esperando o $nome entrar no jogo até agora"
+                ]
+        );
+    }
+
+    if (feedIntelContemAlgum($motivo, ['monstro'])) {
+        return feedIntelEscolherTexto(
+            $positivo
+                ? [
+                    "o $nome no Monstro me deu uma dó que eu não esperava",
+                    "eu defendendo o $nome depois do Monstro? pois é",
+                    "o Monstro acabou me fazendo prestar mais atenção no $nome",
+                    "$nome sofrendo no Monstro e eu aqui criando apego"
+                ]
+                : [
+                    "nem o Monstro conseguiu me fazer comprar o enredo do $nome",
+                    "o $nome tá no Monstro e ainda assim eu continuo meio assim com ele",
+                    "juro que tentei ter dó do $nome no Monstro",
+                    "essa semana do $nome tá estranha do começo ao fim"
+                ]
+        );
+    }
+
+    return '';
+}
+
+
+/* =========================================================
+   📣 REAÇÃO DO PÚBLICO — SEM EXPOR NÚMEROS
+   ========================================================= */
 function feedIntelProcessarPopularidade($jogadores, $rodada)
 {
     if (
@@ -313,12 +654,16 @@ function feedIntelProcessarPopularidade($jogadores, $rodada)
     }
 
     foreach ($jogadores as $j) {
-        $nome = $j['nome'] ?? '';
+        $nome = trim((string)($j['nome'] ?? ''));
 
-        if ($nome == '') {
+        if ($nome === '') {
             continue;
         }
 
+        /*
+         * Continua existindo apenas para a lógica interna.
+         * O valor nunca é escrito no texto do Feed.
+         */
         $atual = (int)($j['popularidade'] ?? 50);
 
         if (!array_key_exists($nome, $_SESSION['feed_intel_pop_snapshot'])) {
@@ -344,74 +689,101 @@ function feedIntelProcessarPopularidade($jogadores, $rodada)
         $acumulado =
             (int)$_SESSION['feed_intel_delta_pop'][$rodada][$nome];
 
+        /*
+         * Mudanças pequenas ficam invisíveis.
+         * Isso mantém suspense e evita spam.
+         */
         if (abs($acumulado) < 4) {
             continue;
         }
 
-        $direcao = $acumulado > 0 ? 'subiu' : 'caiu';
-        $chave = "intel_pop|$rodada|$nome|$direcao";
+        $direcao =
+            $acumulado > 0
+                ? 'reacao_positiva'
+                : 'reacao_negativa';
+
+        $chave =
+            "intel_pop|$rodada|$nome|$direcao";
 
         if (feedIntelProcessado($chave)) {
             continue;
         }
 
-        $motivo = feedIntelMotivoPopularidadeRecente(
-            $j,
-            $rodada
-        );
+        $motivo =
+            feedIntelMotivoPopularidadeRecente(
+                $j,
+                $rodada
+            );
 
-        if ($acumulado > 0) {
-            if ($atual >= 90) {
-                $texto = escolherFeedPublico([
-                    "$nome chegou em $atual de popularidade. FAVORITO oficial da edição?",
-                    "$nome bateu $atual de popularidade e a torcida já tá falando em final.",
-                    "O crescimento do $nome virou coisa séria: $atual/100."
-                ]);
-            } elseif ($acumulado >= 8) {
-                $texto = escolherFeedPublico([
-                    "$nome disparou no público essa semana. Cresceu $acumulado pontos 👀",
-                    "A torcida do $nome cresceu MUITO: +$acumulado de popularidade.",
-                    "$nome virou a semana completamente e subiu $acumulado pontos."
-                ]);
+        /*
+         * Tenta primeiro transformar o acontecimento real
+         * em uma reação espontânea.
+         */
+        $texto =
+            feedIntelComentarioMotivoNatural(
+                $nome,
+                $motivo,
+                $acumulado > 0
+            );
+
+        if ($texto === '') {
+            if ($acumulado > 0) {
+                if ($acumulado >= 8) {
+                    $texto = feedIntelEscolherTexto([
+                        "eu não dava nada pro $nome e agora tô começando a defender 😭",
+                        "$nome virou a semana pra mim, não esperava MESMO",
+                        "do nada eu percebi que tô torcendo pro $nome e isso me assustou",
+                        "o $nome tá me ganhando de um jeito que eu não tava preparado",
+                        "comecei a edição meio assim com o $nome e agora entendi tudo",
+                        "tem alguma coisa no jogo do $nome que começou a encaixar muito",
+                        "eu fui de 'tanto faz' pra 'ninguém mexe com $nome' rápido demais",
+                        "$nome tá conquistando espaço sem eu nem perceber"
+                    ]);
+                } else {
+                    $texto = feedIntelEscolherTexto([
+                        "$nome tá começando a me ganhar aos poucos",
+                        "não sei o que aconteceu mas hoje eu gostei mais do $nome",
+                        "eu ainda não sou torcida do $nome mas tô prestando atenção 👀",
+                        "$nome vem melhorando no meu conceito sem fazer alarde",
+                        "acho que finalmente comecei a entender o jeito do $nome",
+                        "o $nome tá crescendo em mim aos poucos, infelizmente KKKKK",
+                        "cada dia eu fico um pouquinho mais curioso com o jogo do $nome",
+                        "eu jurava que não ia ligar pro $nome e olha eu aqui"
+                    ]);
+                }
             } else {
-                $texto = escolherFeedPublico([
-                    "$nome tá crescendo no público e já chegou a $atual/100.",
-                    "A maré virou a favor do $nome: agora tá com $atual de popularidade.",
-                    "$nome vem ganhando a audiência aos poucos. $atual/100."
-                ]);
-            }
-        } else {
-            $queda = abs($acumulado);
+                $queda = abs($acumulado);
 
-            if ($atual <= 20) {
-                $texto = escolherFeedPublico([
-                    "$nome despencou pra $atual de popularidade. A rejeição tá PESADA.",
-                    "$nome chegou a $atual/100 e a situação nas redes tá crítica.",
-                    "A torcida contra $nome cresceu muito. Popularidade agora: $atual."
-                ]);
-            } elseif ($queda >= 8) {
-                $texto = escolherFeedPublico([
-                    "$nome perdeu $queda pontos de popularidade nessa semana. Isso não é pouca coisa.",
-                    "A imagem do $nome lá fora levou um tombo: -$queda pontos.",
-                    "$nome tá se queimando e já caiu $queda pontos no público."
-                ]);
-            } else {
-                $texto = escolherFeedPublico([
-                    "$nome tá perdendo força com o público. Agora está em $atual/100.",
-                    "A popularidade do $nome começou a cair: $atual/100.",
-                    "O público esfriou com $nome e a nota caiu pra $atual."
-                ]);
+                if ($queda >= 8) {
+                    $texto = feedIntelEscolherTexto([
+                        "eu tentei defender o $nome mas tá ficando impossível",
+                        "$nome perdeu completamente a mão essa semana pra mim",
+                        "cada dia fica mais difícil comprar o jogo do $nome",
+                        "não sei o que aconteceu com o $nome mas eu desisti de passar pano",
+                        "o $nome conseguiu me perder muito rápido nessa semana",
+                        "eu tava gostando do $nome e agora só consigo revirar o olho",
+                        "a sequência de decisões do $nome tá acabando comigo",
+                        "$nome precisa se reencontrar porque a situação tá feia nas redes"
+                    ]);
+                } else {
+                    $texto = feedIntelEscolherTexto([
+                        "não sei explicar mas o $nome começou a me cansar",
+                        "eu gostava mais do $nome uns dias atrás, confesso",
+                        "o $nome tá me deixando com um pé atrás ultimamente",
+                        "cada aparição do $nome tá me fazendo questionar mais",
+                        "tô começando a perder a paciência com o $nome",
+                        "o $nome ainda pode me ganhar de volta, mas hoje não rolou",
+                        "alguma coisa no jogo do $nome começou a me incomodar",
+                        "eu tô tentando entender o $nome mas tá difícil"
+                    ]);
+                }
             }
-        }
-
-        if ($motivo != '') {
-            $texto .= " Motivo mais recente: $motivo.";
         }
 
         adicionarPostFeedPublico(
             $jogadores,
             $texto,
-            'popularidade',
+            'reacao_publico',
             [$nome]
         );
 
@@ -507,7 +879,7 @@ function feedIntelProcessarAlianca($jogadores, $rodada, $meuNome)
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "$a e $b estão fechadíssimos no jogo. Quero ver até onde essa dupla vai.",
             "A aliança de $a e $b tá ficando impossível de ignorar.",
             "$a e $b parecem confiar MUITO um no outro. Isso pode virar força ou problema.",
@@ -587,7 +959,7 @@ function feedIntelProcessarRomance($jogadores)
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "$a e $b achando que ninguém tá percebendo 👀",
             "Eu disse que não ia shippar ninguém e aí vieram $a e $b.",
             "Já existe torcida pra $a e $b e eu infelizmente faço parte.",
@@ -643,7 +1015,7 @@ function feedIntelProcessarEliminacao($jogadores, $rodada)
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "Depois da saída de $nome, quero ver quem vai ocupar esse espaço no jogo.",
             "A eliminação do $nome muda alianças, alvos e até o clima da casa.",
             "Sai $nome e começa oficialmente uma nova fase dessa edição."
@@ -697,7 +1069,7 @@ function feedIntelProcessarParedaoFalso(
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "PAREDÃO FALSO! $nome estava no Quarto Secreto esse tempo todo 😭",
             "$nome VOLTOU PRA CASA. Era Paredão Falso e ninguém tava preparado.",
             "A porta abriu e $nome reapareceu. Isso aqui virou filme.",
@@ -709,7 +1081,7 @@ function feedIntelProcessarParedaoFalso(
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "Quero ver a cara da casa descobrindo que $nome viu tudo do Quarto Secreto 👀",
             "Depois desse retorno do $nome, alianças e rivalidades vão mudar MUITO.",
             "$nome ganhou uma segunda entrada na casa e agora sabe que a eliminação era falsa."
@@ -783,7 +1155,7 @@ function feedIntelProcessarAnuncioCasaVidro(
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "CASA DE VIDRO NA RODADA 3! Os candidatos são $lista. Eu já escolhi meus favoritos 😭",
             "A Casa de Vidro abriu: $lista disputam DUAS vagas. Essa votação vai render muito.",
             "Quatro nomes e só duas vagas: $lista. Quero ver como a internet vai se dividir 👀"
@@ -798,7 +1170,7 @@ function feedIntelProcessarAnuncioCasaVidro(
     if ($primeiro !== '') {
         adicionarPostFeedPublico(
             $jogadores,
-            escolherFeedPublico([
+            feedIntelEscolherTexto([
                 "Já vi gente fechando torcida pro $primeiro e a votação acabou de abrir KKKKK.",
                 "$primeiro mal apareceu na Casa de Vidro e já virou assunto.",
                 "A campanha por #" . hashtagNomeFeed($primeiro) . "NaCasa começou cedo 👀"
@@ -811,7 +1183,7 @@ function feedIntelProcessarAnuncioCasaVidro(
     if ($segundo !== '') {
         adicionarPostFeedPublico(
             $jogadores,
-            escolherFeedPublico([
+            feedIntelEscolherTexto([
                 "$segundo também chegou forte na Casa de Vidro. Essa disputa tá aberta.",
                 "Quero ver se o público compra $segundo até o fim da Rodada 3.",
                 "A torcida do $segundo já apareceu nas redes e nem chegamos no resultado."
@@ -884,7 +1256,7 @@ function feedIntelProcessarCasaVidro(
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "CASA DE VIDRO DECIDIDA! $a e $b estão oficialmente no BBB Simulator 😭",
             "$a e $b atravessaram a porta da Casa de Vidro. Agora o jogo mudou.",
             "O público escolheu: $a e $b entram na casa! Quero ver onde eles vão se encaixar 👀"
@@ -895,7 +1267,7 @@ function feedIntelProcessarCasaVidro(
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "$a acabou de chegar e eu já quero saber em qual grupo vai entrar.",
             "$a entrou pela Casa de Vidro e já chega com torcida do lado de fora.",
             "Primeiras horas do $a na casa vão dizer MUITA coisa sobre esse jogo."
@@ -906,7 +1278,7 @@ function feedIntelProcessarCasaVidro(
 
     adicionarPostFeedPublico(
         $jogadores,
-        escolherFeedPublico([
+        feedIntelEscolherTexto([
             "$b entrou e agora quero ver quem vai se aproximar primeiro 👀",
             "$b na casa depois da Casa de Vidro. Essa temporada acabou de ganhar uma peça nova.",
             "O público colocou $b no jogo. Agora precisa entregar!"
@@ -935,6 +1307,8 @@ function atualizarFeedPublicoInteligente(
     $rodada,
     $meuNome
 ) {
+    feedIntelMigrarVersao();
+
     feedIntelProcessarBigFone(
         $jogadores,
         $rodada
@@ -1225,39 +1599,7 @@ function gerarTrendingTopicsFeedInteligente(
     }
 
 
-    /* 📈 Maior movimento de popularidade */
-    $deltas =
-        $_SESSION['feed_intel_delta_pop'][$rodada]
-        ?? [];
-
-    if (!empty($deltas)) {
-        uasort(
-            $deltas,
-            function ($a, $b) {
-                return abs($b) <=> abs($a);
-            }
-        );
-
-        $nome = array_key_first($deltas);
-        $delta = $deltas[$nome] ?? 0;
-
-        if ($nome && abs($delta) >= 4) {
-            $tag =
-                '#' .
-                hashtagNomeFeed($nome) .
-                ($delta > 0 ? 'Cresceu' : 'Caiu');
-
-            feedIntelAdicionarTrending(
-                $lista,
-                $tag,
-                feedIntelPostsTrending(
-                    $tag,
-                    $rodada,
-                    17000 + (abs($delta) * 700)
-                )
-            );
-        }
-    }
+    /* Reações de público não viram Trending baseado em números secretos. */
 
     /* 🤝 Aliança forte */
     $alianca = feedIntelAliancaMaisForte(
