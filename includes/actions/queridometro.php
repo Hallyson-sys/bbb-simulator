@@ -5,40 +5,35 @@
 /** @var array $EMOJIS_QUERIDOMETRO */
 
 
-/* =========================
-   💖 PROCESSAR QUERIDÔMETRO
-========================= */
+/* =========================================================
+   💖 ACTION — PROCESSAR QUERIDÔMETRO
+   ========================================================= */
 
 if (
     isset($_POST['enviar_queridometro']) ||
     isset($_POST['auto_queridometro'])
 ) {
-
     iniciarQueridometro();
 
     $dados =
-        $_POST['queridometro'] ?? [];
+        $_POST['queridometro']
+        ?? [];
 
 
-    /* =========================
-       ⚡ PREENCHIMENTO AUTOMÁTICO
-    ========================= */
+    /* =====================================================
+       ⚡ PREENCHIMENTO AUTOMÁTICO DO JOGADOR
+       ===================================================== */
 
     if (isset($_POST['auto_queridometro'])) {
-
         $dados = [];
 
         foreach ($jogadores as $jAuto) {
-
             $nomeAuto =
                 $jAuto['nome'] ?? '';
 
             if (
-                $nomeAuto == '' ||
-                nomeIgual(
-                    $nomeAuto,
-                    $meuNome
-                )
+                $nomeAuto === '' ||
+                nomeIgual($nomeAuto, $meuNome)
             ) {
                 continue;
             }
@@ -53,12 +48,11 @@ if (
     }
 
 
-    /* =========================
-       👤 EMOJIS DO JOGADOR
-    ========================= */
+    /* =====================================================
+       👤 EMOJIS ENVIADOS PELO JOGADOR
+       ===================================================== */
 
     foreach ($dados as $alvo => $emoji) {
-
         registrarEmojiQueridometro(
             $jogadores,
             $meuNome,
@@ -69,138 +63,43 @@ if (
     }
 
 
-    /* =========================
-       🤖 EMOJIS DOS NPCs
-    ========================= */
+    /* =====================================================
+       🤖 NPCs TAMBÉM ENVIAM EMOJIS
+
+       Agora cada NPC usa a PRÓPRIA relação com o alvo.
+       Isso substitui decisões baseadas principalmente em
+       popularidade ou sorte aleatória.
+       ===================================================== */
 
     foreach ($jogadores as $npc) {
-
         $nomeNPC =
             $npc['nome'] ?? '';
 
         if (
-            $nomeNPC == '' ||
-            $nomeNPC == $meuNome
+            $nomeNPC === '' ||
+            nomeIgual($nomeNPC, $meuNome)
         ) {
             continue;
         }
 
-
         foreach ($jogadores as $alvo) {
-
             $nomeAlvo =
                 $alvo['nome'] ?? '';
 
             if (
-                $nomeAlvo == '' ||
-                $nomeAlvo == $nomeNPC
+                $nomeAlvo === '' ||
+                nomeIgual($nomeAlvo, $nomeNPC)
             ) {
                 continue;
             }
 
-
-            $relacao =
-                $npc['relacoes'][$nomeAlvo] ?? [];
-
-            $amizade =
-                $relacao['amizade'] ?? 0;
-
-            $rivalidade =
-                $relacao['rivalidade'] ?? 0;
-
-            $confianca =
-                $relacao['confianca'] ?? 0;
-
-            $romance =
-                $npc['romances'][$nomeAlvo] ?? 0;
-
-            $popularidadeAlvo =
-                $alvo['popularidade'] ?? 50;
-
-
-            $pontuacao =
-                $amizade +
-                $confianca +
-                floor($romance / 2) -
-                $rivalidade;
-
-
-            /* ❤️ Coração */
-
-            if (
-                $romance >= 50 ||
-                $pontuacao >= 45
-            ) {
-
-                $emoji = "❤️";
-            }
-
-
-            /* 🤝 Aperto de mão */
-
-            elseif (
-                $confianca >= 25 ||
-                $amizade >= 30
-            ) {
-
-                $emoji = "🤝";
-            }
-
-
-            /* 😄 Feliz */
-
-            elseif ($amizade >= 12) {
-
-                $emoji = "😄";
-            }
-
-
-            /* 🤮 Ranço forte */
-
-            elseif (
-                $rivalidade >= 45 ||
-                $pontuacao <= -35
-            ) {
-
-                $emoji = "🤮";
-            }
-
-
-            /* 🐍 Cobra */
-
-            elseif (
-                $rivalidade >= 30 ||
-                $pontuacao <= -20
-            ) {
-
-                $emoji = "🐍";
-            }
-
-
-            /* 🙄 Rejeição */
-
-            elseif ($popularidadeAlvo <= 35) {
-
-                $emoji = "🙄";
-            }
-
-
-            /* 🎲 Neutro / aleatório */
-
-            else {
-
-                $lista = [
-                    "😄",
-                    "🔥",
-                    "😴",
-                    "🎯",
-                    "😡"
-                ];
-
-                $emoji =
-                    $lista[array_rand($lista)];
-            }
-
+            $emoji =
+                escolherEmojiQueridometroNPC(
+                    $jogadores,
+                    $nomeNPC,
+                    $nomeAlvo,
+                    $meuNome
+                );
 
             registrarEmojiQueridometro(
                 $jogadores,
@@ -213,10 +112,6 @@ if (
     }
 
 
-    /* =========================
-       💾 SALVAR RESULTADO
-    ========================= */
-
     $_SESSION['jogadores'] =
         $jogadores;
 
@@ -225,12 +120,9 @@ if (
 
 
     if (isset($_POST['auto_queridometro'])) {
-
         $_SESSION['evento_extra'][] =
             "💟 O Queridômetro foi preenchido automaticamente com base nas suas relações.";
-
     } else {
-
         $_SESSION['evento_extra'][] =
             "💟 O Queridômetro movimentou a casa.";
     }

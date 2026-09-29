@@ -121,184 +121,6 @@ function perfilPersonalidadeCompleto($personalidade)
    🤖 GERAR AÇÕES DOS NPCs
    ========================================================= */
 
-
-/* =========================================================
-   🎲 VARIEDADE DAS INTERAÇÕES DOS NPCs
-   ========================================================= */
-
-function garantirHistoricoInteracoesNPC()
-{
-    if (
-        !isset($_SESSION['historico_interacoes_npc']) ||
-        !is_array($_SESSION['historico_interacoes_npc'])
-    ) {
-        $_SESSION['historico_interacoes_npc'] = [];
-    }
-}
-
-
-function registrarHistoricoInteracaoNPC(
-    $npc,
-    $acao,
-    $alvo
-) {
-    garantirHistoricoInteracoesNPC();
-
-    if (
-        !isset(
-            $_SESSION[
-                'historico_interacoes_npc'
-            ][$npc]
-        ) ||
-        !is_array(
-            $_SESSION[
-                'historico_interacoes_npc'
-            ][$npc]
-        )
-    ) {
-        $_SESSION[
-            'historico_interacoes_npc'
-        ][$npc] = [];
-    }
-
-    $_SESSION[
-        'historico_interacoes_npc'
-    ][$npc][] = [
-        'acao' => (int)$acao,
-        'alvo' => (string)$alvo,
-        'rodada' =>
-            (int)($_SESSION['rodada'] ?? 1),
-        'fase' =>
-            (string)($_SESSION['fase_semana'] ?? '')
-    ];
-
-    $_SESSION[
-        'historico_interacoes_npc'
-    ][$npc] =
-        array_slice(
-            $_SESSION[
-                'historico_interacoes_npc'
-            ][$npc],
-            -7
-        );
-}
-
-
-function escolherAcaoNPCVariada(
-    $nomeNPC,
-    $possiveis
-) {
-    garantirHistoricoInteracoesNPC();
-
-    if (empty($possiveis)) {
-        return rand(1, 4);
-    }
-
-    /*
-     * A quantidade de vezes que uma ação aparece em $possiveis
-     * continua representando a personalidade e a relação.
-     */
-    $pesos = [];
-
-    foreach ($possiveis as $acao) {
-        $acao = (int)$acao;
-
-        if ($acao < 1 || $acao > 4) {
-            continue;
-        }
-
-        $pesos[$acao] =
-            ($pesos[$acao] ?? 0)
-            + 100;
-    }
-
-    if (empty($pesos)) {
-        return rand(1, 4);
-    }
-
-    $historico =
-        $_SESSION[
-            'historico_interacoes_npc'
-        ][$nomeNPC]
-        ?? [];
-
-    $ultimos =
-        array_reverse(
-            array_slice(
-                $historico,
-                -4
-            )
-        );
-
-    /*
-     * Repetir a última ação continua possível,
-     * mas fica bem menos provável.
-     */
-    foreach ($ultimos as $posicao => $item) {
-
-        $acaoAnterior =
-            (int)($item['acao'] ?? 0);
-
-        if (!isset($pesos[$acaoAnterior])) {
-            continue;
-        }
-
-        if ($posicao === 0) {
-            $pesos[$acaoAnterior] *= 0.18;
-
-        } elseif ($posicao === 1) {
-            $pesos[$acaoAnterior] *= 0.48;
-
-        } else {
-            $pesos[$acaoAnterior] *= 0.72;
-        }
-    }
-
-    /*
-     * Pequena dose de imprevisibilidade:
-     * às vezes um NPC faz algo fora do padrão
-     * sem deixar a personalidade irrelevante.
-     */
-    if (rand(1, 100) <= 18) {
-
-        for ($acao = 1; $acao <= 4; $acao++) {
-
-            if (!isset($pesos[$acao])) {
-                $pesos[$acao] =
-                    rand(12, 30);
-            }
-        }
-    }
-
-    foreach ($pesos as $acao => $peso) {
-        $pesos[$acao] =
-            max(
-                1,
-                (int)round($peso)
-            );
-    }
-
-    $total =
-        array_sum($pesos);
-
-    $sorteio =
-        rand(1, $total);
-
-    $acumulado = 0;
-
-    foreach ($pesos as $acao => $peso) {
-
-        $acumulado += $peso;
-
-        if ($sorteio <= $acumulado) {
-            return (int)$acao;
-        }
-    }
-
-    return (int)array_key_first($pesos);
-}
-
-
 function gerarAcoesNPC(
     &$jogadores,
     $meuNome,
@@ -306,6 +128,10 @@ function gerarAcoesNPC(
 ) {
 
     $eventos = [];
+
+    if (function_exists('sincronizarMemoriasAutomaticasNPC')) {
+        sincronizarMemoriasAutomaticasNPC($jogadores);
+    }
 
     atualizarRelacoesMarcantes($jogadores);
 
@@ -439,109 +265,27 @@ function gerarAcoesNPC(
                 );
 
 
-            $possiveis = [];
-
-
-            /* =========================
-               😡 RIVAL
-               ========================= */
-
-            if ($ehRival) {
-
-                $possiveis = [
-                    3,
-                    3,
-                    2
-                ];
-
-
-                if (
-                    ($perfil['fofoca'] ?? 0) >= 60
-                ) {
-                    $possiveis[] = 2;
-                }
-
-
-                if (
-                    ($perfil['treta'] ?? 0) >= 70
-                ) {
-                    $possiveis[] = 3;
-                }
-            }
-
-
-            /* =========================
-               🤝 ALIADO
-               ========================= */
-
-            elseif ($ehAliado) {
-
-                $possiveis = [
-                    1,
-                    4,
-                    4
-                ];
-
-
-                if (
-                    ($perfil['alianca'] ?? 0) >= 60
-                ) {
-                    $possiveis[] = 4;
-                }
-            }
-
-
-            /* =========================
-               😶 RELAÇÃO NEUTRA
-               ========================= */
-
-            else {
-
-                if (
-                    rand(1, 100) <=
-                    $perfil['alianca']
-                ) {
-                    $possiveis[] = 4;
-                }
-
-
-                if (
-                    rand(1, 100) <=
-                    $perfil['treta']
-                ) {
-                    $possiveis[] = 3;
-                }
-
-
-                if (
-                    rand(1, 100) <=
-                    $perfil['emocao']
-                ) {
-                    $possiveis[] = 1;
-                }
-
-
-                if (
-                    rand(1, 100) <=
-                    $perfil['fofoca']
-                ) {
-                    $possiveis[] = 2;
-                }
-            }
-
-
-            if (empty($possiveis)) {
-
-                $possiveis[] =
-                    rand(1, 4);
-            }
-
-
-            $acao =
-                escolherAcaoNPCVariada(
+            /* NPCs 2.0: personalidade + relação + memória recente. */
+            if (function_exists('escolherAcaoInteracaoNPC')) {
+                $acao = escolherAcaoInteracaoNPC(
+                    $jogadores,
                     $nomeNPC,
-                    $possiveis
+                    $nomeAlvo,
+                    $meuNome,
+                    $perfil,
+                    $ehRival,
+                    $ehAliado
                 );
+            } else {
+                if ($ehRival) {
+                    $fallback = [2, 3, 3];
+                } elseif ($ehAliado) {
+                    $fallback = [1, 4, 4];
+                } else {
+                    $fallback = [1, 2, 3, 4];
+                }
+                $acao = $fallback[array_rand($fallback)];
+            }
 
 
             /* =================================================
@@ -810,15 +554,73 @@ function gerarAcoesNPC(
             }
 
 
+            /* Registra a ação para reduzir repetições futuras. */
+            if (function_exists('registrarAcaoRecenteNPC')) {
+                registrarAcaoRecenteNPC(
+                    $nomeNPC,
+                    $acao,
+                    $nomeAlvo,
+                    $ehRival,
+                    $ehAliado
+                );
+            }
+
             /*
-             * Guarda ação e alvo recentes para reduzir
-             * repetições nas próximas interações.
+             * Fase 2: o alvo também guarda uma lembrança social
+             * do que acabou de acontecer. Essa memória continua
+             * influenciando decisões nas próximas rodadas.
              */
-            registrarHistoricoInteracaoNPC(
-                $nomeNPC,
-                $acao,
-                $nomeAlvo
-            );
+            if (function_exists('registrarMemoriaSocialNPC')) {
+                if ($acao == 1) {
+                    registrarMemoriaSocialNPC(
+                        $nomeAlvo,
+                        $nomeNPC,
+                        'me_aproximou',
+                        1,
+                        "$nomeNPC conversou e se aproximou de $nomeAlvo."
+                    );
+                }
+
+                if ($acao == 2 && $ehRival) {
+                    registrarMemoriaSocialNPC(
+                        $nomeAlvo,
+                        $nomeNPC,
+                        'espalhou_fofoca',
+                        1,
+                        "$nomeNPC espalhou comentários contra $nomeAlvo."
+                    );
+                }
+
+                if ($acao == 2 && !$ehRival) {
+                    registrarMemoriaSocialNPC(
+                        $nomeAlvo,
+                        $nomeNPC,
+                        'me_aproximou',
+                        1,
+                        "$nomeNPC tentou se aproximar de $nomeAlvo."
+                    );
+                }
+
+                if ($acao == 3) {
+                    registrarMemoriaSocialNPC(
+                        $nomeAlvo,
+                        $nomeNPC,
+                        'brigou_comigo',
+                        1,
+                        "$nomeNPC teve um atrito com $nomeAlvo."
+                    );
+                }
+
+                if ($acao == 4) {
+                    registrarMemoriaSocialNPC(
+                        $nomeAlvo,
+                        $nomeNPC,
+                        'me_aproximou',
+                        2,
+                        "$nomeNPC propôs uma aproximação estratégica com $nomeAlvo."
+                    );
+                }
+            }
 
 
             /* Atualiza aliados/rivais */

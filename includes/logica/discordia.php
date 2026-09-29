@@ -4,6 +4,8 @@
    🔥 LÓGICA DO JOGO DA DISCÓRDIA
    ========================================================= */
 
+require_once __DIR__ . '/consequencias_sociais.php';
+
 
 /* =========================================================
    📋 TEMAS DISPONÍVEIS
@@ -116,16 +118,7 @@ function gerarDiscordiaNPC(
         if ($tema == "podio") {
 
             $segundo =
-                function_exists(
-                    'escolherAlvoNPCInteligente'
-                )
-                ? escolherAlvoNPCInteligente(
-                    $jogadores,
-                    $nomeNPC,
-                    'podio',
-                    [$nomeNPC]
-                )
-                : escolherAlvoNPCPorRelacao(
+                escolherAlvoNPCPorRelacao(
                     $jogadores,
                     $nomeNPC,
                     $meuNome,
@@ -158,18 +151,7 @@ function gerarDiscordiaNPC(
 
 
             $aliadoExtra =
-                function_exists(
-                    'escolherAlvoNPCInteligente'
-                )
-                ? escolherAlvoNPCInteligente(
-                    $jogadores,
-                    $nomeNPC,
-                    'podio',
-                    array_filter(
-                        [$nomeNPC, $segundo]
-                    )
-                )
-                : escolherAlvoNPCPorRelacao(
+                escolherAlvoNPCPorRelacao(
                     $jogadores,
                     $nomeNPC,
                     $meuNome,
@@ -224,97 +206,30 @@ function gerarDiscordiaNPC(
                 $terceiro
             ) {
 
-                alterarAfinidade(
+                aplicarConsequenciaSocial(
                     $jogadores,
                     $nomeNPC,
                     $segundo,
-                    10,
-                    -4,
-                    8
+                    'discordia_podio_2',
+                    'discordia_npc|' .
+                    ($_SESSION['rodada'] ?? 1) .
+                    '|podio2|' .
+                    $nomeNPC . '|' . $segundo,
+                    "$nomeNPC colocou $segundo em segundo lugar no pódio."
                 );
 
-
-                alterarAfinidade(
-                    $jogadores,
-                    $segundo,
-                    $nomeNPC,
-                    6,
-                    -2,
-                    5
-                );
-
-
-                alterarAfinidade(
+                aplicarConsequenciaSocial(
                     $jogadores,
                     $nomeNPC,
                     $terceiro,
-                    6,
-                    -2,
-                    5
+                    'discordia_podio_3',
+                    'discordia_npc|' .
+                    ($_SESSION['rodada'] ?? 1) .
+                    '|podio3|' .
+                    $nomeNPC . '|' . $terceiro,
+                    "$nomeNPC colocou $terceiro em terceiro lugar no pódio."
                 );
 
-
-                alterarAfinidade(
-                    $jogadores,
-                    $terceiro,
-                    $nomeNPC,
-                    4,
-                    -1,
-                    3
-                );
-
-
-                if ($segundo == $meuNome) {
-
-                    ajustarRelacaoJogador(
-                        $nomeNPC,
-                        10
-                    );
-                }
-
-
-                if ($terceiro == $meuNome) {
-
-                    ajustarRelacaoJogador(
-                        $nomeNPC,
-                        6
-                    );
-                }
-
-
-                if (
-                    function_exists(
-                        'registrarMemoriaSocialNPC'
-                    )
-                ) {
-                    registrarMemoriaSocialNPC(
-                        $segundo,
-                        $nomeNPC,
-                        'me_defendeu',
-                        1,
-                        "$nomeNPC colocou $segundo em seu pódio.",
-                        'discordia_podio|' .
-                        ($_SESSION['rodada'] ?? 1) .
-                        '|' .
-                        $nomeNPC .
-                        '|' .
-                        $segundo
-                    );
-
-                    registrarMemoriaSocialNPC(
-                        $terceiro,
-                        $nomeNPC,
-                        'me_defendeu',
-                        1,
-                        "$nomeNPC colocou $terceiro em seu pódio.",
-                        'discordia_podio|' .
-                        ($_SESSION['rodada'] ?? 1) .
-                        '|' .
-                        $nomeNPC .
-                        '|' .
-                        $terceiro
-                    );
-                }
 
                 $eventos[] =
                     "🏆 $nomeNPC montou seu pódio: 🥇 $nomeNPC, 🥈 $segundo e 🥉 $terceiro.";
@@ -332,16 +247,7 @@ function gerarDiscordiaNPC(
         if ($tema == "aliado") {
 
             $alvo =
-                function_exists(
-                    'escolherAlvoNPCInteligente'
-                )
-                ? escolherAlvoNPCInteligente(
-                    $jogadores,
-                    $nomeNPC,
-                    'discordia_aliado',
-                    [$nomeNPC]
-                )
-                : escolherAlvoNPCPorRelacao(
+                escolherAlvoNPCPorRelacao(
                     $jogadores,
                     $nomeNPC,
                     $meuNome,
@@ -358,59 +264,22 @@ function gerarDiscordiaNPC(
             }
 
 
-            if (
-                function_exists(
-                    'registrarMemoriaSocialNPC'
-                )
-            ) {
-                registrarMemoriaSocialNPC(
-                    $alvo,
-                    $nomeNPC,
-                    'me_defendeu',
-                    1,
-                    "$nomeNPC declarou $alvo como aliado no Jogo da Discórdia.",
-                    'discordia_aliado|' .
-                    ($_SESSION['rodada'] ?? 1) .
-                    '|' .
-                    $nomeNPC .
-                    '|' .
-                    $alvo
-                );
-            }
-
-            alterarAfinidade(
+            aplicarConsequenciaSocial(
                 $jogadores,
                 $nomeNPC,
                 $alvo,
-                12,
-                -5,
-                10
+                'discordia_aliado',
+                'discordia_npc|' .
+                ($_SESSION['rodada'] ?? 1) .
+                '|aliado|' .
+                $nomeNPC . '|' . $alvo,
+                "$nomeNPC declarou $alvo como maior aliado."
             );
 
-
-            alterarAfinidade(
-                $jogadores,
-                $alvo,
-                $nomeNPC,
-                8,
-                -3,
-                6
-            );
-
-
-            if ($alvo == $meuNome) {
-
-                ajustarRelacaoJogador(
-                    $nomeNPC,
-                    12
-                );
-
-
+            if (nomeIgual($alvo, $meuNome)) {
                 $eventos[] =
                     "🤝 $nomeNPC declarou que $meuNome é seu maior aliado. Sua afinidade com $nomeNPC subiu.";
-
             } else {
-
                 $eventos[] =
                     "🤝 $nomeNPC declarou que $alvo é seu maior aliado.";
             }
@@ -431,16 +300,7 @@ function gerarDiscordiaNPC(
         ) {
 
             $alvo =
-                function_exists(
-                    'escolherAlvoNPCInteligente'
-                )
-                ? escolherAlvoNPCInteligente(
-                    $jogadores,
-                    $nomeNPC,
-                    'discordia_negativo',
-                    [$nomeNPC]
-                )
-                : escolherAlvoNPCPorRelacao(
+                escolherAlvoNPCPorRelacao(
                     $jogadores,
                     $nomeNPC,
                     $meuNome,
@@ -454,29 +314,6 @@ function gerarDiscordiaNPC(
                     $alvos[
                         array_rand($alvos)
                     ];
-            }
-
-
-            if (
-                function_exists(
-                    'registrarMemoriaSocialNPC'
-                )
-            ) {
-                registrarMemoriaSocialNPC(
-                    $alvo,
-                    $nomeNPC,
-                    'me_atacou_discordia',
-                    1,
-                    "$nomeNPC atacou $alvo no Jogo da Discórdia.",
-                    'discordia_ataque|' .
-                    ($_SESSION['rodada'] ?? 1) .
-                    '|' .
-                    $nomeNPC .
-                    '|' .
-                    $alvo .
-                    '|' .
-                    $tema
-                );
             }
 
 
@@ -525,39 +362,22 @@ function gerarDiscordiaNPC(
 
             if ($forca == 1) {
 
-                alterarAfinidade(
+                aplicarConsequenciaSocial(
                     $jogadores,
                     $nomeNPC,
                     $alvo,
-                    -6,
-                    5,
-                    -4
+                    'discordia_negativa_leve',
+                    'discordia_npc|' .
+                    ($_SESSION['rodada'] ?? 1) .
+                    '|leve|' .
+                    $nomeNPC . '|' . $alvo,
+                    "$nomeNPC atacou $alvo de forma leve no Jogo da Discórdia."
                 );
 
-
-                alterarAfinidade(
-                    $jogadores,
-                    $alvo,
-                    $nomeNPC,
-                    -6,
-                    5,
-                    -4
-                );
-
-
-                if ($alvo == $meuNome) {
-
-                    ajustarRelacaoJogador(
-                        $nomeNPC,
-                        -6
-                    );
-
-
+                if (nomeIgual($alvo, $meuNome)) {
                     $eventos[] =
                         "😶 $nomeNPC disse que $meuNome é $tema de forma mais leve. Sua afinidade com $nomeNPC caiu.";
-
                 } else {
-
                     $eventos[] =
                         "😶 $nomeNPC disse que $alvo é $tema de forma mais leve.";
                 }
@@ -570,39 +390,22 @@ function gerarDiscordiaNPC(
 
             if ($forca == 2) {
 
-                alterarAfinidade(
+                aplicarConsequenciaSocial(
                     $jogadores,
                     $nomeNPC,
                     $alvo,
-                    -12,
-                    9,
-                    -8
+                    'discordia_negativa_forte',
+                    'discordia_npc|' .
+                    ($_SESSION['rodada'] ?? 1) .
+                    '|forte|' .
+                    $nomeNPC . '|' . $alvo,
+                    "$nomeNPC atacou $alvo com tudo no Jogo da Discórdia."
                 );
 
-
-                alterarAfinidade(
-                    $jogadores,
-                    $alvo,
-                    $nomeNPC,
-                    -12,
-                    9,
-                    -8
-                );
-
-
-                if ($alvo == $meuNome) {
-
-                    ajustarRelacaoJogador(
-                        $nomeNPC,
-                        -12
-                    );
-
-
+                if (nomeIgual($alvo, $meuNome)) {
                     $eventos[] =
                         "🔥 $nomeNPC chamou $meuNome de $tema no Jogo da Discórdia. Sua afinidade com $nomeNPC caiu bastante.";
-
                 } else {
-
                     $eventos[] =
                         "🔥 $nomeNPC chamou $alvo de $tema no Jogo da Discórdia.";
                 }
@@ -615,6 +418,18 @@ function gerarDiscordiaNPC(
 
             if ($forca == 3) {
 
+                aplicarConsequenciaSocial(
+                    $jogadores,
+                    $nomeNPC,
+                    $alvo,
+                    'discordia_sabonete',
+                    'discordia_npc|' .
+                    ($_SESSION['rodada'] ?? 1) .
+                    '|sabonete|' .
+                    $nomeNPC . '|' . $alvo,
+                    "$nomeNPC sabonetou ao falar de $alvo no Jogo da Discórdia."
+                );
+
                 alterarPopularidadeMotivo(
                     $jogadores,
                     $nomeNPC,
@@ -623,7 +438,6 @@ function gerarDiscordiaNPC(
                     "saboneteou no Jogo da Discórdia",
                     false
                 );
-
 
                 $eventos[] =
                     "🧼 $nomeNPC sabonetou e tentou fugir da pergunta.";
@@ -652,3 +466,4 @@ function gerarDiscordiaNPC(
 
     return $eventos;
 }
+

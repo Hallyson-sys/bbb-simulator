@@ -3,6 +3,8 @@
 /** @var array $jogadores */
 /** @var string $meuNome */
 
+require_once __DIR__ . '/../logica/consequencias_sociais.php';
+
 
 /* =========================
    🔥 PROCESSAR JOGO DA DISCÓRDIA
@@ -30,37 +32,22 @@ if (isset($_POST['fazer_discordia'])) {
         $tema == "falso" ||
         $tema == "saboneteiro"
     ) {
-
-        $alvo =
-            $_POST['alvo_discordia'] ?? '';
+        $alvo = $_POST['alvo_discordia'] ?? '';
 
         if ($alvo != '') {
 
-            /* 🔥 COM TUDO */
-
             if ($intensidade == "com_tudo") {
 
-                ajustarRelacaoJogador(
-                    $alvo,
-                    -15
-                );
-
-                alterarAfinidade(
+                aplicarConsequenciaSocial(
                     $jogadores,
                     $meuNome,
                     $alvo,
-                    -15,
-                    12,
-                    -10
-                );
-
-                alterarAfinidade(
-                    $jogadores,
-                    $alvo,
-                    $meuNome,
-                    -15,
-                    12,
-                    -10
+                    'discordia_negativa_forte',
+                    'discordia|' .
+                    ($_SESSION['rodada'] ?? 1) .
+                    '|forte|' .
+                    $meuNome . '|' . $alvo,
+                    "$meuNome atacou $alvo com tudo no Jogo da Discórdia."
                 );
 
                 ajustarPopularidadePorAlvo(
@@ -75,32 +62,18 @@ if (isset($_POST['fazer_discordia'])) {
                     "🔥 $meuNome chamou $alvo de $tema COM TUDO no Jogo da Discórdia. Afinidade com $alvo caiu 15 pontos.";
             }
 
-
-            /* 😶 LEVE */
-
             elseif ($intensidade == "leve") {
 
-                ajustarRelacaoJogador(
-                    $alvo,
-                    -6
-                );
-
-                alterarAfinidade(
+                aplicarConsequenciaSocial(
                     $jogadores,
                     $meuNome,
                     $alvo,
-                    -6,
-                    5,
-                    -4
-                );
-
-                alterarAfinidade(
-                    $jogadores,
-                    $alvo,
-                    $meuNome,
-                    -6,
-                    5,
-                    -4
+                    'discordia_negativa_leve',
+                    'discordia|' .
+                    ($_SESSION['rodada'] ?? 1) .
+                    '|leve|' .
+                    $meuNome . '|' . $alvo,
+                    "$meuNome atacou $alvo de forma leve no Jogo da Discórdia."
                 );
 
                 alterarPopularidadePublica(
@@ -116,23 +89,18 @@ if (isset($_POST['fazer_discordia'])) {
                     "😶 $meuNome chamou $alvo de $tema de forma mais leve. Afinidade com $alvo caiu 6 pontos.";
             }
 
-
-            /* 🧼 SABONETAR */
-
             else {
 
-                ajustarRelacaoJogador(
-                    $alvo,
-                    -2
-                );
-
-                alterarAfinidade(
+                aplicarConsequenciaSocial(
                     $jogadores,
                     $meuNome,
                     $alvo,
-                    -2,
-                    2,
-                    -2
+                    'discordia_sabonete',
+                    'discordia|' .
+                    ($_SESSION['rodada'] ?? 1) .
+                    '|sabonete|' .
+                    $meuNome . '|' . $alvo,
+                    "$meuNome sabonetou ao falar de $alvo no Jogo da Discórdia."
                 );
 
                 alterarPopularidadeMotivo(
@@ -155,33 +123,20 @@ if (isset($_POST['fazer_discordia'])) {
     ========================= */
 
     if ($tema == "aliado") {
-
-        $alvo =
-            $_POST['alvo_discordia'] ?? '';
+        $alvo = $_POST['alvo_discordia'] ?? '';
 
         if ($alvo != '') {
 
-            ajustarRelacaoJogador(
-                $alvo,
-                12
-            );
-
-            alterarAfinidade(
+            aplicarConsequenciaSocial(
                 $jogadores,
                 $meuNome,
                 $alvo,
-                12,
-                -5,
-                10
-            );
-
-            alterarAfinidade(
-                $jogadores,
-                $alvo,
-                $meuNome,
-                12,
-                -5,
-                10
+                'discordia_aliado',
+                'discordia|' .
+                ($_SESSION['rodada'] ?? 1) .
+                '|aliado|' .
+                $meuNome . '|' . $alvo,
+                "$meuNome declarou $alvo como aliado no Jogo da Discórdia."
             );
 
             alterarPopularidadePublica(
@@ -204,90 +159,50 @@ if (isset($_POST['fazer_discordia'])) {
     ========================= */
 
     if ($tema == "podio") {
-
-        $primeiro =
-            $meuNome;
-
-        $segundo =
-            $_POST['podio_2'] ?? '';
-
-        $terceiro =
-            $_POST['podio_3'] ?? '';
-
+        $primeiro = $meuNome;
+        $segundo = $_POST['podio_2'] ?? '';
+        $terceiro = $_POST['podio_3'] ?? '';
 
         if (
             $segundo != '' &&
             $terceiro != '' &&
             $segundo != $terceiro &&
-            !nomeIgual(
-                $segundo,
-                $primeiro
-            ) &&
-            !nomeIgual(
-                $terceiro,
-                $primeiro
-            )
+            !nomeIgual($segundo, $primeiro) &&
+            !nomeIgual($terceiro, $primeiro)
         ) {
 
-            ajustarRelacaoJogador(
-                $segundo,
-                10
-            );
-
-            ajustarRelacaoJogador(
-                $terceiro,
-                6
-            );
-
-
-            alterarAfinidade(
+            aplicarConsequenciaSocial(
                 $jogadores,
                 $meuNome,
                 $segundo,
-                10,
-                -4,
-                8
+                'discordia_podio_2',
+                'discordia|' .
+                ($_SESSION['rodada'] ?? 1) .
+                '|podio2|' .
+                $meuNome . '|' . $segundo,
+                "$meuNome colocou $segundo em segundo lugar no pódio."
             );
 
-            alterarAfinidade(
-                $jogadores,
-                $segundo,
-                $meuNome,
-                10,
-                -4,
-                8
-            );
-
-
-            alterarAfinidade(
+            aplicarConsequenciaSocial(
                 $jogadores,
                 $meuNome,
                 $terceiro,
-                6,
-                -2,
-                5
+                'discordia_podio_3',
+                'discordia|' .
+                ($_SESSION['rodada'] ?? 1) .
+                '|podio3|' .
+                $meuNome . '|' . $terceiro,
+                "$meuNome colocou $terceiro em terceiro lugar no pódio."
             );
-
-            alterarAfinidade(
-                $jogadores,
-                $terceiro,
-                $meuNome,
-                6,
-                -2,
-                5
-            );
-
 
             $evento =
                 "🏆 $meuNome montou seu pódio: 🥇 $primeiro, 🥈 $segundo e 🥉 $terceiro. Afinidades subiram.";
 
         } else {
-
             $evento =
                 "⚠️ O 2º e o 3º lugar precisam ser participantes diferentes.";
 
-            $_SESSION['evento_extra'][] =
-                $evento;
+            $_SESSION['evento_extra'][] = $evento;
 
             header("Location: jogo.php");
             exit;
@@ -295,52 +210,28 @@ if (isset($_POST['fazer_discordia'])) {
     }
 
 
-    /* =========================
-       ⚠️ GARANTIA
-    ========================= */
-
     if ($evento == "") {
-
         $evento =
             "🔥 O Jogo da Discórdia aconteceu, mas nenhuma escolha válida foi registrada.";
     }
 
+    $_SESSION['evento_extra'][] = $evento;
 
-    /* =========================
-       📺 AO VIVO
-    ========================= */
-
-    $_SESSION['evento_extra'][] =
-        $evento;
-
-
-    /* NPCs também participam */
-
-    $eventosNPC =
-        gerarDiscordiaNPC(
-            $jogadores,
-            $meuNome,
-            $tema
-        );
-
-
-    foreach ($eventosNPC as $ev) {
-
-        $_SESSION['evento_extra'][] =
-            $ev;
-    }
-
-
-    $_SESSION['jogadores'] =
-        $jogadores;
-
-    $_SESSION['discordia_feito'] =
-        true;
-
-    unset(
-        $_SESSION['tema_discordia']
+    /* NPCs também participam — mantém sua lógica atual. */
+    $eventosNPC = gerarDiscordiaNPC(
+        $jogadores,
+        $meuNome,
+        $tema
     );
 
+    foreach ($eventosNPC as $ev) {
+        $_SESSION['evento_extra'][] = $ev;
+    }
+
+    $_SESSION['jogadores'] = $jogadores;
+    $_SESSION['discordia_feito'] = true;
+
+    unset($_SESSION['tema_discordia']);
 
     header("Location: jogo.php");
     exit;

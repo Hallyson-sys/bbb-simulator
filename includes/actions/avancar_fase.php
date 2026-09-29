@@ -12,22 +12,17 @@ if (isset($_POST['avancar_fase'])) {
 
     $fase = $_SESSION['fase_semana'] ?? $fase;
 
-    /* =========================================================
-   🚪 VERIFICAR SE O JOGADOR ESTÁ NO QUARTO SECRETO
-   ========================================================= */
-
-$estaNoQuartoSecreto =
-!empty($_SESSION['paredao_falso_ativo']) &&
-!empty($_SESSION['falso_eliminado']) &&
-$meuNome !== '' &&
-nomeIgual(
-    $_SESSION['falso_eliminado'],
-    $meuNome
-);
+    $estaNoQuartoSecreto =
+        !empty($_SESSION['paredao_falso_ativo']) &&
+        !empty($_SESSION['falso_eliminado']) &&
+        $meuNome !== '' &&
+        nomeIgual(
+            $_SESSION['falso_eliminado'],
+            $meuNome
+        );
 
     if ($fase == 'queridometro') {
 
-        /* Confessionário começa somente a partir da Rodada 2, logo depois do Queridômetro */
         if (($_SESSION['rodada'] ?? 1) >= 2) {
             prepararConfessionarioDaRodada($jogadores, $meuNome);
             $_SESSION['fase_semana'] = 'confessionario';
@@ -40,17 +35,104 @@ nomeIgual(
         exit;
     }
 
+    /* =====================================================
+       🚪 RETORNO DO PAREDÃO FALSO
+       Após Interações 2 e antes da Festa.
+       Funciona para NPC e jogador humano.
+       ===================================================== */
+
+    if (
+        $fase === 'interacoes_2' &&
+        !empty($_SESSION['paredao_falso_ativo'])
+    ) {
+        $rodadaAtual =
+            (int)($_SESSION['rodada'] ?? 1);
+
+        $rodadaOrigem =
+            (int)(
+                $_SESSION['paredao_falso_rodada']
+                ?? $rodadaAtual
+            );
+
+        $rodadaRetorno =
+            (int)(
+                $_SESSION['paredao_falso_rodada_retorno']
+                ?? ($rodadaOrigem + 1)
+            );
+
+        if ($rodadaAtual >= $rodadaRetorno) {
+
+            if (
+                !isset($_SESSION['acoes_restantes']) ||
+                $_SESSION['acoes_restantes'] > 0
+            ) {
+                npcExecutarInteracoesDaFase(
+                    $jogadores,
+                    $meuNome,
+                    $fase,
+                    3
+                );
+            }
+
+            unset($_SESSION['acoes_restantes']);
+
+            $retornou = false;
+
+            if (
+                function_exists(
+                    'retornarFalsoEliminadoParaCasa'
+                )
+            ) {
+                $retornou =
+                    retornarFalsoEliminadoParaCasa(
+                        $jogadores
+                    );
+            }
+
+            if ($retornou) {
+                $_SESSION['jogadores'] =
+                    array_values($jogadores);
+
+                $_SESSION['fase_semana'] =
+                    'festa';
+
+                header("Location: jogo.php");
+                exit;
+            }
+
+            if (
+                !isset($_SESSION['evento_extra']) ||
+                !is_array($_SESSION['evento_extra'])
+            ) {
+                $_SESSION['evento_extra'] = [];
+            }
+
+            $_SESSION['evento_extra'][] =
+                "⚠️ Não foi possível concluir o retorno do Paredão Falso.";
+
+            header("Location: jogo.php");
+            exit;
+        }
+    }
+
     if (strpos($fase, 'interacoes') !== false) {
 
-        if (!isset($_SESSION['acoes_restantes']) || $_SESSION['acoes_restantes'] > 0) {
-            npcExecutarInteracoesDaFase($jogadores, $meuNome, $fase, 3);
+        if (
+            !isset($_SESSION['acoes_restantes']) ||
+            $_SESSION['acoes_restantes'] > 0
+        ) {
+            npcExecutarInteracoesDaFase(
+                $jogadores,
+                $meuNome,
+                $fase,
+                3
+            );
         }
 
         unset($_SESSION['acoes_restantes']);
 
         if ($fase == 'interacoes_1') {
 
-            /* NOVA SEMANA: limpar líder e poderes antigos antes da Prova do Líder */
             unset($_SESSION['lider']);
             unset($_SESSION['anjo']);
             unset($_SESSION['imune']);
@@ -100,7 +182,10 @@ nomeIgual(
             unset($_SESSION['prova_anjo_dados']);
 
             foreach ($_SESSION['jogadores'] as &$j) {
-                if (!isset($j['status']) || !is_array($j['status'])) {
+                if (
+                    !isset($j['status']) ||
+                    !is_array($j['status'])
+                ) {
                     $j['status'] = [];
                 }
 
@@ -111,23 +196,50 @@ nomeIgual(
                 $j['status']['vip'] = false;
                 $j['status']['xepa'] = false;
             }
+
             unset($j);
 
             $_SESSION['fase_semana'] = 'lider';
+
             header("Location: prova_lider.php");
             exit;
         }
 
         if ($fase == 'interacoes_2') {
+
+            /*
+             * A Festa é a próxima fase real da semana.
+             * A Casa de Vidro NÃO vira fase_semana.
+             */
             $_SESSION['fase_semana'] = 'festa';
+
+            /*
+             * Rodada 3:
+             * se houve Casa de Vidro, revela o resultado
+             * imediatamente antes da Festa começar.
+             */
+            if (
+                function_exists(
+                    'prepararResultadoCasaVidroAntesFesta'
+                ) &&
+                prepararResultadoCasaVidroAntesFesta(
+                    (int)($_SESSION['rodada'] ?? 1)
+                )
+            ) {
+                header("Location: casa_vidro.php");
+                exit;
+            }
+
             header("Location: jogo.php");
             exit;
         }
 
         if ($fase == 'interacoes_3') {
             aplicarDesgasteSemanalPublico($jogadores);
+
             $_SESSION['jogadores'] = $jogadores;
             $_SESSION['fase_semana'] = 'eliminacao';
+
             header("Location: resultado.php");
             exit;
         }
@@ -138,34 +250,23 @@ nomeIgual(
         exit;
     }
 
-    /* =====================================================
-       👑 VIP / XEPA
-       ===================================================== */
-
     if ($fase == 'vip_xepa') {
 
         $liderAtual = $_SESSION['lider'] ?? '';
 
-        /*
-         * Compatibilidade com save antigo:
-         * Líder NPC precisa passar pela revelação antes do Anjo.
-         */
         if (
             $liderAtual != '' &&
             !nomeIgual($liderAtual, $meuNome)
         ) {
-            $_SESSION['fase_semana'] = isset($_SESSION['vip_definido'])
-                ? 'anjo'
-                : 'vip_xepa_revelar';
+            $_SESSION['fase_semana'] =
+                isset($_SESSION['vip_definido'])
+                    ? 'anjo'
+                    : 'vip_xepa_revelar';
 
             header("Location: jogo.php");
             exit;
         }
 
-        /*
-         * Se você é o Líder, não deixa pular a seleção manual.
-         * O próprio formulário de VIP marca vip_definido e segue.
-         */
         if (!isset($_SESSION['vip_definido'])) {
             header("Location: jogo.php");
             exit;
@@ -183,7 +284,10 @@ nomeIgual(
         unset($_SESSION['prova_anjo_dados']);
 
         foreach ($_SESSION['jogadores'] as &$j) {
-            if (!isset($j['status']) || !is_array($j['status'])) {
+            if (
+                !isset($j['status']) ||
+                !is_array($j['status'])
+            ) {
                 $j['status'] = [];
             }
 
@@ -191,6 +295,7 @@ nomeIgual(
             $j['status']['imune'] = false;
             $j['status']['monstro'] = false;
         }
+
         unset($j);
 
         $_SESSION['fase_semana'] = 'anjo';
@@ -199,10 +304,6 @@ nomeIgual(
         exit;
     }
 
-    /*
-     * A revelação de Líder NPC só pode avançar pelo action vip_xepa.php.
-     * Isso evita pular a revelação e evita duplicar eventos.
-     */
     if ($fase == 'vip_xepa_revelar') {
         header("Location: jogo.php");
         exit;
@@ -215,46 +316,34 @@ nomeIgual(
 
     if ($fase == 'monstro') {
 
-        /*
-         * Enquanto você está no Quarto Secreto,
-         * não há escolha manual sua.
-         *
-         * Apenas saímos deste include.
-         * Logo depois, jogo.php carrega
-         * decisoes_automaticas.php e o Anjo NPC
-         * escolhe o Monstro normalmente.
-         */
         if ($estaNoQuartoSecreto) {
             return;
         }
-    
+
         header("Location: jogo.php");
         exit;
     }
 
     if ($fase == 'bigfone') {
 
-        /* =====================================================
-           🚪 BIG FONE DURANTE O QUARTO SECRETO
-           ===================================================== */
-    
         if ($estaNoQuartoSecreto) {
-    
+
             $estadoBigFone =
-                prepararBigFoneDaRodada();
-    
-            /*
-             * Se tocar, somente participantes que estão
-             * dentro da casa podem atender.
-             */
-            if ($estadoBigFone === 'tocou') {
-    
+                function_exists('prepararBigFoneDaRodada')
+                    ? prepararBigFoneDaRodada()
+                    : 'nao_tocou';
+
+            if (
+                $estadoBigFone === 'tocou' &&
+                function_exists('npcAtendeBigFone') &&
+                function_exists('finalizarAtendimentoBigFone')
+            ) {
                 $atendenteNPC =
                     npcAtendeBigFone(
                         $jogadores,
                         $meuNome
                     );
-    
+
                 if (
                     $atendenteNPC !== '' &&
                     !nomeIgual(
@@ -262,76 +351,79 @@ nomeIgual(
                         $meuNome
                     )
                 ) {
-    
                     finalizarAtendimentoBigFone(
                         $jogadores,
                         $atendenteNPC,
                         false
                     );
-    
                 } else {
-    
-                    $_SESSION['bigfone_feito'] =
-                        true;
+                    $_SESSION['bigfone_feito'] = true;
                 }
+
+            } else {
+                $_SESSION['bigfone_feito'] = true;
             }
-    
+
             $_SESSION['jogadores'] =
                 array_values($jogadores);
-    
-    
-            /*
-             * Segue o mesmo caminho usado pelo
-             * retorno automático normal do jogo.
-             */
+
             if (
-                function_exists(
-                    'prepararSorteioPoderCuringa'
-                ) &&
-                prepararSorteioPoderCuringa(
-                    $jogadores
-                )
+                function_exists('prepararSorteioPoderCuringa') &&
+                prepararSorteioPoderCuringa($jogadores)
             ) {
-    
                 $_SESSION['fase_semana'] =
                     'poder_curinga';
-    
+
             } else {
-    
                 $_SESSION['fase_semana'] =
                     'interacoes_2';
-    
+
                 $_SESSION['acoes_restantes'] =
                     3;
             }
-    
+
             header("Location: jogo.php");
             exit;
         }
-    
-    
-        /* Jogador dentro da casa: fluxo normal. */
-    
+
         header("Location: big_fone.php");
         exit;
     }
 
     if ($fase == 'poder_curinga') {
-        $_SESSION['fase_semana'] = 'interacoes_2';
-        $_SESSION['acoes_restantes'] = 3;
+        $_SESSION['fase_semana'] =
+            'interacoes_2';
+
+        $_SESSION['acoes_restantes'] =
+            3;
+
         header("Location: jogo.php");
         exit;
     }
 
-    if ($fase == 'contra_golpe_curinga' || $fase == 'troca_curinga') {
-        definirFaseDepoisDaFormacaoDoParedao($jogadores);
+    if (
+        $fase == 'contra_golpe_curinga' ||
+        $fase == 'troca_curinga'
+    ) {
+        definirFaseDepoisDaFormacaoDoParedao(
+            $jogadores
+        );
 
         header("Location: jogo.php");
         exit;
     }
 
     if ($fase == 'festa') {
-        $_SESSION['evento_extra'][] = "🎉 A festa movimentou a casa com conversas, olhares, alianças e tensão.";
+
+        if (
+            !isset($_SESSION['evento_extra']) ||
+            !is_array($_SESSION['evento_extra'])
+        ) {
+            $_SESSION['evento_extra'] = [];
+        }
+
+        $_SESSION['evento_extra'][] =
+            "🎉 A festa movimentou a casa com conversas, olhares, alianças e tensão.";
 
         if (!empty($_SESSION['anjo_autoimune'])) {
             $_SESSION['fase_semana'] = 'paredao';
@@ -346,8 +438,13 @@ nomeIgual(
     if ($fase == 'confessionario') {
         unset($_SESSION['confessionario_falas']);
         unset($_SESSION['confessionario_feito']);
-        $_SESSION['fase_semana'] = 'interacoes_1';
-        $_SESSION['acoes_restantes'] = 3;
+
+        $_SESSION['fase_semana'] =
+            'interacoes_1';
+
+        $_SESSION['acoes_restantes'] =
+            3;
+
         header("Location: jogo.php");
         exit;
     }

@@ -1,130 +1,239 @@
 <?php
 
 /* =========================================================
-   🏠 CASA DE VIDRO
+   🏠 CASA DE VIDRO 2.0
+   =========================================================
+   Arquitetura simples:
+   - NÃO usa fase_semana = casa_vidro.
+   - Usa apenas casa_vidro_estado como estado principal.
+   - Anúncio: início da Rodada 3.
+   - Resultado + entrada: imediatamente antes da Festa
+     da Rodada 3.
    ========================================================= */
 
 
 /* =========================================================
-   🧱 REGISTRAR NOMES JÁ USADOS NA TEMPORADA
+   🧹 MIGRAÇÃO / LIMPEZA DA VERSÃO ANTIGA
    ========================================================= */
-function registrarNomesTemporadaCasaVidro($jogadores)
+function inicializarCasaVidroV2()
 {
-    if (
-        !isset($_SESSION['nomes_participantes_temporada']) ||
-        !is_array($_SESSION['nomes_participantes_temporada'])
-    ) {
-        $_SESSION['nomes_participantes_temporada'] = [];
-    }
+    $versao =
+        (int)($_SESSION['casa_vidro_versao'] ?? 0);
 
-    foreach ($jogadores as $j) {
-        $nome = trim($j['nome'] ?? '');
-
-        if ($nome === '') {
-            continue;
+    if ($versao === 2) {
+        if (!isset($_SESSION['casa_vidro_estado'])) {
+            $_SESSION['casa_vidro_estado'] =
+                'nao_decidida';
         }
 
-        $_SESSION['nomes_participantes_temporada'][] = $nome;
-    }
-
-    if (
-        !empty($_SESSION['elenco_personalizado']) &&
-        is_array($_SESSION['elenco_personalizado'])
-    ) {
-        foreach ($_SESSION['elenco_personalizado'] as $j) {
-            $nome = trim($j['nome'] ?? '');
-
-            if ($nome !== '') {
-                $_SESSION['nomes_participantes_temporada'][] = $nome;
-            }
-        }
-    }
-
-    if (
-        !empty($_SESSION['historico_eliminados']) &&
-        is_array($_SESSION['historico_eliminados'])
-    ) {
-        foreach ($_SESSION['historico_eliminados'] as $nome) {
-            if (trim((string)$nome) !== '') {
-                $_SESSION['nomes_participantes_temporada'][] = (string)$nome;
-            }
-        }
-    }
-
-    $normalizados = [];
-    $resultado = [];
-
-    foreach ($_SESSION['nomes_participantes_temporada'] as $nome) {
-        $nome = trim((string)$nome);
-
-        if ($nome === '') {
-            continue;
-        }
-
-        $chave = mb_strtolower($nome, 'UTF-8');
-
-        if (isset($normalizados[$chave])) {
-            continue;
-        }
-
-        $normalizados[$chave] = true;
-        $resultado[] = $nome;
-    }
-
-    $_SESSION['nomes_participantes_temporada'] = $resultado;
-}
-
-
-/* =========================================================
-   📅 PLANEJAR A RODADA DA CASA DE VIDRO
-   Uma vez por temporada, normalmente na Rodada 3 ou 4.
-   ========================================================= */
-function garantirPlanejamentoCasaVidro($jogadores, $rodada)
-{
-    registrarNomesTemporadaCasaVidro($jogadores);
-
-    if (!empty($_SESSION['casa_vidro_realizada'])) {
         return;
     }
 
-    if (!isset($_SESSION['casa_vidro_rodada_planejada'])) {
-        $rodada = (int)$rodada;
+    /*
+     * Preserva o modo de teste caso ele tenha sido ativado
+     * antes da primeira execução da versão nova.
+     */
+    $forcar =
+        !empty($_SESSION['forcar_casa_vidro']);
 
-        if ($rodada <= 2) {
-            $_SESSION['casa_vidro_rodada_planejada'] = rand(3, 4);
-        } elseif ($rodada <= 4) {
-            /* Compatibilidade se o recurso for instalado no meio da temporada. */
-            $_SESSION['casa_vidro_rodada_planejada'] = $rodada;
-        } else {
-            /* Em save antigo, tenta encaixar na próxima rodada. */
-            $_SESSION['casa_vidro_rodada_planejada'] = $rodada + 1;
+    /*
+     * Remove qualquer estado da implementação antiga.
+     */
+    foreach (array_keys($_SESSION) as $chave) {
+        if (
+            strpos(
+                (string)$chave,
+                'casa_vidro_'
+            ) === 0
+        ) {
+            unset($_SESSION[$chave]);
         }
+    }
+
+    $_SESSION['casa_vidro_versao'] = 2;
+    $_SESSION['casa_vidro_estado'] =
+        'nao_decidida';
+
+    if ($forcar) {
+        $_SESSION['forcar_casa_vidro'] = true;
     }
 }
 
 
 /* =========================================================
-   🎲 DADOS PARA GERAR CANDIDATOS
+   📍 ESTADO ATUAL
    ========================================================= */
-function opcoesCasaVidro()
+function estadoCasaVidro()
 {
-    require __DIR__ . '/../../data/opcoes_participantes.php';
+    inicializarCasaVidroV2();
+
+    return
+        $_SESSION['casa_vidro_estado']
+        ?? 'nao_decidida';
+}
+
+
+/* =========================================================
+   🧱 NOMES QUE NÃO PODEM SER REPETIDOS
+   ========================================================= */
+function nomesUsadosCasaVidro($jogadores)
+{
+    $usados = [];
+
+    $registrar =
+        function ($nome) use (&$usados) {
+            $nome = trim((string)$nome);
+
+            if ($nome === '') {
+                return;
+            }
+
+            $usados[
+                mb_strtolower(
+                    $nome,
+                    'UTF-8'
+                )
+            ] = true;
+        };
+
+    foreach ($jogadores as $j) {
+        $registrar($j['nome'] ?? '');
+    }
+
+    foreach (
+        $_SESSION['historico_eliminados']
+        ?? []
+        as $nome
+    ) {
+        $registrar($nome);
+    }
+
+    foreach (
+        $_SESSION['elenco_personalizado']
+        ?? []
+        as $j
+    ) {
+        $registrar($j['nome'] ?? '');
+    }
+
+    return $usados;
+}
+
+
+/* =========================================================
+   🎲 OPÇÕES PARA OS CANDIDATOS
+   ========================================================= */
+function opcoesCasaVidroV2()
+{
+    $nomesNPC = [];
+    $personalidades = [];
+    $profissoes = [];
+    $estados = [];
+
+    $arquivo =
+        __DIR__
+        . '/../../data/opcoes_participantes.php';
+
+    if (is_file($arquivo)) {
+        require $arquivo;
+    }
+
+    /*
+     * Fallbacks para não quebrar a dinâmica
+     * caso algum save/projeto antigo não tenha a lista.
+     */
+    if (empty($nomesNPC)) {
+        $nomesNPC = [
+            'Amanda',
+            'Arthur',
+            'Bárbara',
+            'Caio',
+            'Cecília',
+            'Danilo',
+            'Eduarda',
+            'Enzo',
+            'Gabriela',
+            'Heitor',
+            'Isabela',
+            'João',
+            'Lívia',
+            'Marcelo',
+            'Nicole',
+            'Otávio',
+            'Paula',
+            'Ravi',
+            'Sabrina',
+            'Theo'
+        ];
+    }
+
+    if (empty($personalidades)) {
+        $personalidades = [
+            'Estrategista',
+            'Explosivo',
+            'Planta',
+            'Manipulador',
+            'Emocional',
+            'Barraqueiro',
+            'Fofo',
+            'Líder Nato',
+            'Influencer',
+            'Falso',
+            'Neutro'
+        ];
+    }
+
+    if (empty($profissoes)) {
+        $profissoes = [
+            'Influencer',
+            'Professor(a)',
+            'Advogado(a)',
+            'Enfermeiro(a)',
+            'DJ',
+            'Ator/Atriz',
+            'Personal Trainer',
+            'Maquiador(a)',
+            'Cantor(a)',
+            'Modelo',
+            'Vendedor(a)',
+            'Tatuador(a)',
+            'Streamer',
+            'Fotógrafo(a)'
+        ];
+    }
+
+    if (empty($estados)) {
+        $estados = [
+            'SP',
+            'RJ',
+            'MG',
+            'BA',
+            'RS',
+            'SC',
+            'PR',
+            'PE',
+            'CE',
+            'GO',
+            'DF'
+        ];
+    }
 
     return [
-        'nomes' => $nomesNPC ?? [],
-        'personalidades' => $personalidades ?? [],
-        'profissoes' => $profissoes ?? [],
-        'estados' => $estados ?? []
+        'nomes' => array_values($nomesNPC),
+        'personalidades' =>
+            array_values($personalidades),
+        'profissoes' =>
+            array_values($profissoes),
+        'estados' =>
+            array_values($estados)
     ];
 }
 
 
 /* =========================================================
-   ⭐ BÔNUS DE APELO PÚBLICO POR PERSONALIDADE
-   Não é "melhor/pior"; apenas simula perfis que tendem
-   a gerar mais ou menos atenção numa votação de entrada.
+   ⭐ APELO INTERNO NA VOTAÇÃO
    ========================================================= */
-function bonusApeloCasaVidro($personalidade)
+function bonusVotacaoCasaVidro($personalidade)
 {
     $bonus = [
         'Influencer' => 8,
@@ -140,46 +249,66 @@ function bonusApeloCasaVidro($personalidade)
         'Planta' => -5
     ];
 
-    return (int)($bonus[$personalidade] ?? 0);
+    return
+        (int)($bonus[$personalidade] ?? 0);
 }
 
 
 /* =========================================================
-   👤 CRIAR UM CANDIDATO
+   👤 CRIAR CANDIDATO
    ========================================================= */
-function criarCandidatoCasaVidro(
+function criarCandidatoCasaVidroV2(
     $nome,
-    $personalidades,
-    $profissoes,
-    $estados
+    $opcoes
 ) {
-    $personalidade = !empty($personalidades)
-        ? $personalidades[array_rand($personalidades)]
-        : 'Neutro';
+    $personalidade =
+        $opcoes['personalidades'][
+            array_rand(
+                $opcoes['personalidades']
+            )
+        ];
 
-    $profissao = !empty($profissoes)
-        ? $profissoes[array_rand($profissoes)]
-        : 'Estudante';
+    $profissao =
+        $opcoes['profissoes'][
+            array_rand(
+                $opcoes['profissoes']
+            )
+        ];
 
-    $estado = !empty($estados)
-        ? $estados[array_rand($estados)]
-        : 'SP';
+    $estado =
+        $opcoes['estados'][
+            array_rand(
+                $opcoes['estados']
+            )
+        ];
 
-    $popularidadeInicial = rand(44, 62);
+    /*
+     * Popularidade continua sendo um dado INTERNO.
+     * Ela não aparece para o jogador na Casa de Vidro.
+     */
+    $popularidadeInicial =
+        rand(45, 58);
 
+    /*
+     * A força da votação é criada uma vez.
+     * Assim atualizar a página não muda o resultado.
+     */
     $forcaVoto =
-        rand(65, 100) +
-        bonusApeloCasaVidro($personalidade) +
-        (int)round(($popularidadeInicial - 50) * 0.8);
+        rand(65, 100)
+        + bonusVotacaoCasaVidro(
+            $personalidade
+        );
 
     return [
         'nome' => $nome,
-        'idade' => rand(18, 45),
+        'idade' => rand(18, 50),
         'profissao' => $profissao,
         'estado' => $estado,
         'personalidade' => $personalidade,
-        'popularidade' => limitar($popularidadeInicial, 0, 100),
-        'humor' => rand(50, 70),
+        'popularidade' =>
+            $popularidadeInicial,
+        'humor' => rand(48, 70),
+
         'status' => [
             'lider' => false,
             'anjo' => false,
@@ -188,231 +317,385 @@ function criarCandidatoCasaVidro(
             'xepa' => true,
             'monstro' => false
         ],
+
         'relacoes' => [],
         'romances' => [],
         'confessionarios' => [],
         'alianca' => null,
         'historico_aliancas' => [],
         'historico_popularidade' => [],
+
+        'estatisticas' => [
+            'lider' => 0,
+            'anjo' => 0,
+            'vip' => 0,
+            'xepa' => 0,
+            'monstro' => 0,
+            'imune' => 0,
+            'paredao' => 0
+        ],
+
         'origem' => 'casa_vidro',
-        '_casa_vidro_forca_voto' => max(25, $forcaVoto)
+
+        /*
+         * Campo privado da dinâmica.
+         * É removido quando o candidato entra.
+         */
+        '_casa_vidro_forca_voto' =>
+            max(
+                20,
+                $forcaVoto
+            )
     ];
 }
 
 
 /* =========================================================
-   👥 GERAR 4 CANDIDATOS ÚNICOS
+   👥 GERAR OS 4 CANDIDATOS
    ========================================================= */
-function gerarCandidatosCasaVidro($jogadores)
-{
+function gerarCandidatosCasaVidroV2(
+    $jogadores
+) {
     if (
-        !empty($_SESSION['casa_vidro_candidatos']) &&
-        is_array($_SESSION['casa_vidro_candidatos'])
-    ) {
-        return $_SESSION['casa_vidro_candidatos'];
-    }
-
-    $opcoes = opcoesCasaVidro();
-
-    $nomesUsados = [];
-
-    foreach ($_SESSION['nomes_participantes_temporada'] ?? [] as $nome) {
-        $nomesUsados[mb_strtolower(trim((string)$nome), 'UTF-8')] = true;
-    }
-
-    foreach ($jogadores as $j) {
-        $nome = trim($j['nome'] ?? '');
-
-        if ($nome !== '') {
-            $nomesUsados[mb_strtolower($nome, 'UTF-8')] = true;
-        }
-    }
-
-    $nomesDisponiveis = array_values(
-        array_filter(
-            $opcoes['nomes'],
-            function ($nome) use ($nomesUsados) {
-                return !isset(
-                    $nomesUsados[
-                        mb_strtolower(trim((string)$nome), 'UTF-8')
-                    ]
-                );
-            }
+        !empty(
+            $_SESSION[
+                'casa_vidro_candidatos'
+            ]
+        ) &&
+        is_array(
+            $_SESSION[
+                'casa_vidro_candidatos'
+            ]
         )
-    );
+    ) {
+        return
+            $_SESSION[
+                'casa_vidro_candidatos'
+            ];
+    }
+
+    $opcoes =
+        opcoesCasaVidroV2();
+
+    $usados =
+        nomesUsadosCasaVidro(
+            $jogadores
+        );
+
+    $nomesDisponiveis =
+        array_values(
+            array_filter(
+                $opcoes['nomes'],
+                function ($nome) use ($usados) {
+                    $chave =
+                        mb_strtolower(
+                            trim((string)$nome),
+                            'UTF-8'
+                        );
+
+                    return
+                        !isset(
+                            $usados[$chave]
+                        );
+                }
+            )
+        );
 
     shuffle($nomesDisponiveis);
 
     $candidatos = [];
 
     for ($i = 0; $i < 4; $i++) {
-        if (!empty($nomesDisponiveis)) {
-            $nome = array_shift($nomesDisponiveis);
-        } else {
-            $numero = $i + 1;
-            $nome = 'Candidato ' . $numero;
 
-            while (
-                isset(
-                    $nomesUsados[
-                        mb_strtolower($nome, 'UTF-8')
-                    ]
-                )
-            ) {
+        if (!empty($nomesDisponiveis)) {
+            $nome =
+                array_shift(
+                    $nomesDisponiveis
+                );
+        } else {
+            $numero =
+                $i + 1;
+
+            do {
+                $nome =
+                    'Candidato '
+                    . $numero;
+
                 $numero++;
-                $nome = 'Candidato ' . $numero;
-            }
+
+                $chave =
+                    mb_strtolower(
+                        $nome,
+                        'UTF-8'
+                    );
+
+            } while (
+                isset($usados[$chave])
+            );
         }
 
-        $nomesUsados[mb_strtolower($nome, 'UTF-8')] = true;
+        $usados[
+            mb_strtolower(
+                $nome,
+                'UTF-8'
+            )
+        ] = true;
 
-        $candidatos[] = criarCandidatoCasaVidro(
-            $nome,
-            $opcoes['personalidades'],
-            $opcoes['profissoes'],
-            $opcoes['estados']
-        );
+        $candidatos[] =
+            criarCandidatoCasaVidroV2(
+                $nome,
+                $opcoes
+            );
     }
 
-    $_SESSION['casa_vidro_candidatos'] = $candidatos;
+    $_SESSION[
+        'casa_vidro_candidatos'
+    ] = $candidatos;
 
     return $candidatos;
 }
 
 
 /* =========================================================
-   🚪 INICIAR A CASA DE VIDRO
+   🎲 DECIDIR SE HAVERÁ CASA DE VIDRO
    ========================================================= */
-function iniciarCasaVidro(&$jogadores, &$fase, $rodada)
-{
-    if (!empty($_SESSION['casa_vidro_realizada'])) {
+function decidirCasaVidroRodada3(
+    $jogadores,
+    $rodada
+) {
+    inicializarCasaVidroV2();
+
+    if ((int)$rodada !== 3) {
+        return;
+    }
+
+    if (
+        estadoCasaVidro()
+        !== 'nao_decidida'
+    ) {
+        return;
+    }
+
+    /*
+     * Temporadas muito pequenas não recebem
+     * dois participantes novos.
+     */
+    if (count($jogadores) < 6) {
+        $_SESSION[
+            'casa_vidro_estado'
+        ] = 'nao_ocorrera';
+
+        return;
+    }
+
+    /*
+     * Compatível com o modo de testes antigo.
+     */
+    $forcar =
+        !empty(
+            $_SESSION[
+                'forcar_casa_vidro'
+            ]
+        );
+
+    unset(
+        $_SESSION[
+            'forcar_casa_vidro'
+        ]
+    );
+
+    $ocorrera =
+        $forcar
+        || rand(1, 100) <= 45;
+
+    if (!$ocorrera) {
+        $_SESSION[
+            'casa_vidro_estado'
+        ] = 'nao_ocorrera';
+
+        return;
+    }
+
+    gerarCandidatosCasaVidroV2(
+        $jogadores
+    );
+
+    $_SESSION[
+        'casa_vidro_estado'
+    ] = 'anuncio';
+
+    $_SESSION[
+        'casa_vidro_rodada'
+    ] = 3;
+}
+
+
+/* =========================================================
+   🔄 VERIFICAR FLUXO NO JOGO.PHP
+   ========================================================= */
+function verificarFluxoCasaVidro(
+    &$jogadores,
+    $fase,
+    $rodada
+) {
+    inicializarCasaVidroV2();
+
+    decidirCasaVidroRodada3(
+        $jogadores,
+        $rodada
+    );
+
+    $estado =
+        estadoCasaVidro();
+
+    /*
+     * Início da Rodada 3:
+     * mostra o anúncio uma vez.
+     */
+    if (
+        (int)$rodada === 3 &&
+        $estado === 'anuncio'
+    ) {
+        header(
+            'Location: casa_vidro.php'
+        );
+        exit;
+    }
+
+    /*
+     * Antes da Festa:
+     * se o resultado já foi preparado,
+     * impede que jogo.php pule a revelação.
+     */
+    if (
+        (int)$rodada === 3 &&
+        $fase === 'festa' &&
+        $estado === 'resultado'
+    ) {
+        header(
+            'Location: casa_vidro.php'
+        );
+        exit;
+    }
+
+    /*
+     * Recuperação de save:
+     * se um save foi encerrado na votação
+     * e já está além da Rodada 3, não deixa
+     * a dinâmica ficar eternamente pendente.
+     */
+    if (
+        (int)$rodada > 3 &&
+        in_array(
+            $estado,
+            [
+                'anuncio',
+                'votacao',
+                'resultado'
+            ],
+            true
+        )
+    ) {
+        $_SESSION[
+            'casa_vidro_estado'
+        ] = 'resultado';
+
+        header(
+            'Location: casa_vidro.php'
+        );
+        exit;
+    }
+}
+
+
+/* =========================================================
+   🎉 PREPARAR RESULTADO ANTES DA FESTA
+   ========================================================= */
+function prepararResultadoCasaVidroAntesFesta(
+    $rodada
+) {
+    inicializarCasaVidroV2();
+
+    if (
+        (int)$rodada !== 3 ||
+        estadoCasaVidro()
+        !== 'votacao'
+    ) {
         return false;
     }
 
-    if (!empty($_SESSION['casa_vidro_ativa'])) {
-        $_SESSION['fase_semana'] = 'casa_vidro';
-        $fase = 'casa_vidro';
-        return true;
-    }
-
-    $_SESSION['casa_vidro_ativa'] = true;
-    $_SESSION['casa_vidro_rodada'] = (int)$rodada;
-    $_SESSION['casa_vidro_fase_retorno'] = $fase ?: 'queridometro';
-    $_SESSION['fase_semana'] = 'casa_vidro';
-
-    gerarCandidatosCasaVidro($jogadores);
-
-    if (
-        !isset($_SESSION['evento_extra']) ||
-        !is_array($_SESSION['evento_extra'])
-    ) {
-        $_SESSION['evento_extra'] = [];
-    }
-
-    $_SESSION['evento_extra'][] =
-        '🏠 A Casa de Vidro foi aberta! Quatro candidatos disputam duas vagas no BBB Simulator.';
-
-    $fase = 'casa_vidro';
+    $_SESSION[
+        'casa_vidro_estado'
+    ] = 'resultado';
 
     return true;
 }
 
 
 /* =========================================================
-   🔄 VERIFICAR SE A CASA DE VIDRO DEVE COMEÇAR
-   Chamar no jogo.php logo após o Queridômetro ser preparado.
+   🗳️ CALCULAR RESULTADO
    ========================================================= */
-function verificarInicioCasaVidro(&$jogadores, &$fase, $rodada)
-{
-    garantirPlanejamentoCasaVidro(
-        $jogadores,
-        $rodada
-    );
-
-    if (!empty($_SESSION['casa_vidro_realizada'])) {
-        return false;
-    }
-
-    if (!empty($_SESSION['casa_vidro_ativa'])) {
-        $_SESSION['fase_semana'] = 'casa_vidro';
-        $fase = 'casa_vidro';
-
-        header('Location: casa_vidro.php');
-        exit;
-    }
-
-    $forcar = !empty($_SESSION['forcar_casa_vidro']);
-
-    if ($forcar) {
-        unset($_SESSION['forcar_casa_vidro']);
-    }
-
-    $rodadaPlanejada =
-        (int)($_SESSION['casa_vidro_rodada_planejada'] ?? 4);
-
-    $fasePermitida = in_array(
-        $fase,
-        ['queridometro', 'interacoes_1'],
-        true
-    );
-
-    $deveIniciar = $forcar || (
-        (int)$rodada >= $rodadaPlanejada &&
-        $fasePermitida &&
-        count($jogadores) >= 6
-    );
-
-    if (!$deveIniciar) {
-        return false;
-    }
-
-    iniciarCasaVidro(
-        $jogadores,
-        $fase,
-        $rodada
-    );
-
-    header('Location: casa_vidro.php');
-    exit;
-}
-
-
-/* =========================================================
-   🗳️ CALCULAR VOTAÇÃO DO PÚBLICO
-   ========================================================= */
-function calcularResultadoCasaVidro()
+function calcularResultadoCasaVidroV2()
 {
     if (
-        !empty($_SESSION['casa_vidro_ranking']) &&
-        is_array($_SESSION['casa_vidro_ranking'])
+        !empty(
+            $_SESSION[
+                'casa_vidro_ranking'
+            ]
+        ) &&
+        is_array(
+            $_SESSION[
+                'casa_vidro_ranking'
+            ]
+        )
     ) {
-        return $_SESSION['casa_vidro_ranking'];
+        return
+            $_SESSION[
+                'casa_vidro_ranking'
+            ];
     }
 
-    $candidatos = $_SESSION['casa_vidro_candidatos'] ?? [];
+    $candidatos =
+        $_SESSION[
+            'casa_vidro_candidatos'
+        ]
+        ?? [];
 
-    if (!is_array($candidatos) || count($candidatos) < 2) {
+    if (count($candidatos) < 2) {
         return [];
     }
 
     $pesos = [];
 
     foreach ($candidatos as $candidato) {
-        $nome = $candidato['nome'] ?? '';
+        $nome =
+            trim(
+                (string)(
+                    $candidato['nome']
+                    ?? ''
+                )
+            );
 
         if ($nome === '') {
             continue;
         }
 
-        $pesos[$nome] = max(
-            1,
-            (int)($candidato['_casa_vidro_forca_voto'] ?? rand(50, 100))
-        );
+        $pesos[$nome] =
+            max(
+                1,
+                (int)(
+                    $candidato[
+                        '_casa_vidro_forca_voto'
+                    ]
+                    ?? rand(50, 100)
+                )
+            );
     }
 
     arsort($pesos);
 
-    $total = array_sum($pesos);
+    $total =
+        array_sum($pesos);
 
     if ($total <= 0) {
         return [];
@@ -420,27 +703,51 @@ function calcularResultadoCasaVidro()
 
     $ranking = [];
     $soma = 0.0;
-    $nomes = array_keys($pesos);
-    $ultimoIndice = count($nomes) - 1;
+    $nomes =
+        array_keys($pesos);
 
-    foreach ($nomes as $indice => $nome) {
-        if ($indice === $ultimoIndice) {
-            $pct = round(100 - $soma, 2);
+    $ultimo =
+        count($nomes) - 1;
+
+    foreach (
+        $nomes
+        as $indice => $nome
+    ) {
+        if ($indice === $ultimo) {
+            $pct =
+                round(
+                    100 - $soma,
+                    2
+                );
         } else {
-            $pct = round(
-                ($pesos[$nome] / $total) * 100,
-                2
-            );
+            $pct =
+                round(
+                    (
+                        $pesos[$nome]
+                        / $total
+                    ) * 100,
+                    2
+                );
+
             $soma += $pct;
         }
 
-        $ranking[$nome] = max(0, $pct);
+        $ranking[$nome] =
+            max(
+                0,
+                $pct
+            );
     }
 
     arsort($ranking);
 
-    $_SESSION['casa_vidro_ranking'] = $ranking;
-    $_SESSION['casa_vidro_vencedores'] = array_slice(
+    $_SESSION[
+        'casa_vidro_ranking'
+    ] = $ranking;
+
+    $_SESSION[
+        'casa_vidro_vencedores'
+    ] = array_slice(
         array_keys($ranking),
         0,
         2
@@ -453,10 +760,23 @@ function calcularResultadoCasaVidro()
 /* =========================================================
    🔎 BUSCAR CANDIDATO
    ========================================================= */
-function buscarCandidatoCasaVidro($nome)
-{
-    foreach ($_SESSION['casa_vidro_candidatos'] ?? [] as $candidato) {
-        if (nomeIgual($candidato['nome'] ?? '', $nome)) {
+function buscarCandidatoCasaVidroV2(
+    $nome
+) {
+    foreach (
+        $_SESSION[
+            'casa_vidro_candidatos'
+        ]
+        ?? []
+        as $candidato
+    ) {
+        if (
+            nomeIgual(
+                $candidato['nome']
+                ?? '',
+                $nome
+            )
+        ) {
             return $candidato;
         }
     }
@@ -466,95 +786,196 @@ function buscarCandidatoCasaVidro($nome)
 
 
 /* =========================================================
-   ❤️ CRIAR RELAÇÕES DOS NOVOS PARTICIPANTES
+   ❤️ RELAÇÕES DOS NOVOS PARTICIPANTES
    ========================================================= */
-function inicializarRelacoesEntrantesCasaVidro(
+function criarRelacoesEntrantesCasaVidroV2(
     &$jogadores,
     &$entrantes,
     $meuNome
 ) {
-    $nomesEntrantes = array_map(
-        function ($j) {
-            return $j['nome'] ?? '';
-        },
-        $entrantes
-    );
-
-    /* Relações dos participantes que já estavam na casa com os novos. */
+    /*
+     * Moradores antigos -> entrantes.
+     */
     foreach ($jogadores as &$morador) {
-        $nomeMorador = $morador['nome'] ?? '';
 
-        if (!isset($morador['relacoes']) || !is_array($morador['relacoes'])) {
+        $nomeMorador =
+            $morador['nome']
+            ?? '';
+
+        if (
+            !isset($morador['relacoes']) ||
+            !is_array(
+                $morador['relacoes']
+            )
+        ) {
             $morador['relacoes'] = [];
         }
 
         foreach ($entrantes as $novo) {
-            $nomeNovo = $novo['nome'] ?? '';
+            $nomeNovo =
+                $novo['nome']
+                ?? '';
 
-            if ($nomeNovo === '' || nomeIgual($nomeMorador, $nomeNovo)) {
+            if (
+                $nomeNovo === '' ||
+                nomeIgual(
+                    $nomeMorador,
+                    $nomeNovo
+                )
+            ) {
                 continue;
             }
 
-            if (!isset($morador['relacoes'][$nomeNovo])) {
-                $morador['relacoes'][$nomeNovo] = [
-                    'amizade' => rand(20, 58),
-                    'rivalidade' => rand(0, 24),
-                    'confianca' => rand(18, 55)
+            if (
+                !isset(
+                    $morador[
+                        'relacoes'
+                    ][$nomeNovo]
+                )
+            ) {
+                $morador[
+                    'relacoes'
+                ][$nomeNovo] = [
+                    'amizade' =>
+                        rand(22, 58),
+                    'rivalidade' =>
+                        rand(0, 22),
+                    'confianca' =>
+                        rand(20, 55)
                 ];
             }
         }
     }
+
     unset($morador);
 
-    /* Relações dos novos com moradores antigos e entre eles mesmos. */
+    /*
+     * Entrantes -> moradores e entre si.
+     */
     foreach ($entrantes as &$novo) {
-        $nomeNovo = $novo['nome'] ?? '';
 
-        if (!isset($novo['relacoes']) || !is_array($novo['relacoes'])) {
+        $nomeNovo =
+            $novo['nome']
+            ?? '';
+
+        if (
+            !isset($novo['relacoes']) ||
+            !is_array(
+                $novo['relacoes']
+            )
+        ) {
             $novo['relacoes'] = [];
         }
 
         foreach ($jogadores as $morador) {
-            $nomeMorador = $morador['nome'] ?? '';
 
-            if ($nomeMorador === '' || nomeIgual($nomeNovo, $nomeMorador)) {
+            $nomeMorador =
+                $morador['nome']
+                ?? '';
+
+            if (
+                $nomeMorador === '' ||
+                nomeIgual(
+                    $nomeNovo,
+                    $nomeMorador
+                )
+            ) {
                 continue;
             }
 
-            $novo['relacoes'][$nomeMorador] = [
-                'amizade' => rand(20, 58),
-                'rivalidade' => rand(0, 24),
-                'confianca' => rand(18, 55)
-            ];
+            if (
+                !isset(
+                    $novo[
+                        'relacoes'
+                    ][$nomeMorador]
+                )
+            ) {
+                $novo[
+                    'relacoes'
+                ][$nomeMorador] = [
+                    'amizade' =>
+                        rand(22, 58),
+                    'rivalidade' =>
+                        rand(0, 22),
+                    'confianca' =>
+                        rand(20, 55)
+                ];
+            }
         }
 
         foreach ($entrantes as $outro) {
-            $nomeOutro = $outro['nome'] ?? '';
 
-            if ($nomeOutro === '' || nomeIgual($nomeNovo, $nomeOutro)) {
+            $nomeOutro =
+                $outro['nome']
+                ?? '';
+
+            if (
+                $nomeOutro === '' ||
+                nomeIgual(
+                    $nomeNovo,
+                    $nomeOutro
+                )
+            ) {
                 continue;
             }
 
-            $novo['relacoes'][$nomeOutro] = [
-                'amizade' => rand(28, 65),
-                'rivalidade' => rand(0, 18),
-                'confianca' => rand(25, 60)
-            ];
+            if (
+                !isset(
+                    $novo[
+                        'relacoes'
+                    ][$nomeOutro]
+                )
+            ) {
+                $novo[
+                    'relacoes'
+                ][$nomeOutro] = [
+                    'amizade' =>
+                        rand(28, 65),
+                    'rivalidade' =>
+                        rand(0, 18),
+                    'confianca' =>
+                        rand(25, 60)
+                ];
+            }
         }
 
-        if (!nomeIgual($nomeNovo, $meuNome)) {
+        if (
+            !nomeIgual(
+                $nomeNovo,
+                $meuNome
+            )
+        ) {
             if (
-                !isset($_SESSION['relacoes_jogador']) ||
-                !is_array($_SESSION['relacoes_jogador'])
+                !isset(
+                    $_SESSION[
+                        'relacoes_jogador'
+                    ]
+                ) ||
+                !is_array(
+                    $_SESSION[
+                        'relacoes_jogador'
+                    ]
+                )
             ) {
-                $_SESSION['relacoes_jogador'] = [];
+                $_SESSION[
+                    'relacoes_jogador'
+                ] = [];
             }
 
-            if (!isset($_SESSION['relacoes_jogador'][$nomeNovo])) {
-                $_SESSION['relacoes_jogador'][$nomeNovo] = 0;
+            if (
+                !isset(
+                    $_SESSION[
+                        'relacoes_jogador'
+                    ][$nomeNovo]
+                )
+            ) {
+                $_SESSION[
+                    'relacoes_jogador'
+                ][$nomeNovo] = 0;
             }
         }
     }
+
     unset($novo);
 }
 
@@ -562,14 +983,30 @@ function inicializarRelacoesEntrantesCasaVidro(
 /* =========================================================
    🚪 COLOCAR OS 2 VENCEDORES NA CASA
    ========================================================= */
-function integrarVencedoresCasaVidro(&$jogadores, $meuNome)
-{
-    $ranking = $_SESSION['casa_vidro_ranking'] ?? [];
-    $vencedores = $_SESSION['casa_vidro_vencedores'] ?? [];
+function integrarVencedoresCasaVidroV2(
+    &$jogadores,
+    $meuNome
+) {
+    inicializarCasaVidroV2();
 
     if (
-        !is_array($ranking) ||
-        !is_array($vencedores) ||
+        estadoCasaVidro()
+        !== 'resultado'
+    ) {
+        return false;
+    }
+
+    $ranking =
+        calcularResultadoCasaVidroV2();
+
+    $vencedores =
+        $_SESSION[
+            'casa_vidro_vencedores'
+        ]
+        ?? [];
+
+    if (
+        empty($ranking) ||
         count($vencedores) < 2
     ) {
         return false;
@@ -578,47 +1015,84 @@ function integrarVencedoresCasaVidro(&$jogadores, $meuNome)
     $entrantes = [];
 
     foreach ($vencedores as $nome) {
-        $candidato = buscarCandidatoCasaVidro($nome);
+
+        /*
+         * Não duplica se o botão for enviado duas vezes.
+         */
+        $jaExiste = false;
+
+        foreach ($jogadores as $j) {
+            if (
+                nomeIgual(
+                    $j['nome'] ?? '',
+                    $nome
+                )
+            ) {
+                $jaExiste = true;
+                break;
+            }
+        }
+
+        if ($jaExiste) {
+            continue;
+        }
+
+        $candidato =
+            buscarCandidatoCasaVidroV2(
+                $nome
+            );
 
         if (!$candidato) {
             continue;
         }
 
-        /* Remove dado interno usado apenas na votação. */
-        unset($candidato['_casa_vidro_forca_voto']);
-
-        $pct = (float)($ranking[$nome] ?? 25);
-        $popularidadeAntes = (int)($candidato['popularidade'] ?? 50);
-
-        $novaPopularidade = limitar(
-            (int)round(
-                max(
-                    $popularidadeAntes,
-                    48 + (($pct - 20) * 0.9)
-                )
-            ),
-            0,
-            100
+        unset(
+            $candidato[
+                '_casa_vidro_forca_voto'
+            ]
         );
 
-        $candidato['popularidade'] = $novaPopularidade;
+        /*
+         * O percentual da votação não é usado como
+         * barra de popularidade visível.
+         */
+        $candidato['popularidade'] =
+            limitar(
+                (int)(
+                    $candidato[
+                        'popularidade'
+                    ]
+                    ?? 50
+                )
+                + rand(1, 5),
+                0,
+                100
+            );
 
-        $candidato['historico_popularidade'][] = [
-            'rodada' => (int)($_SESSION['rodada'] ?? 1),
-            'antes' => $popularidadeAntes,
-            'variacao' => $novaPopularidade - $popularidadeAntes,
-            'motivo' => 'entrou pela Casa de Vidro',
-            'depois' => $novaPopularidade
-        ];
+        $candidato['origem'] =
+            'casa_vidro';
 
-        $entrantes[] = $candidato;
+        $entrantes[] =
+            $candidato;
+    }
+
+    /*
+     * Se os dois já tiverem sido adicionados por um duplo
+     * envio, apenas finaliza o estado.
+     */
+    if (empty($entrantes)) {
+        $_SESSION[
+            'casa_vidro_estado'
+        ] = 'finalizada';
+
+        return true;
     }
 
     if (count($entrantes) < 2) {
         return false;
     }
 
-    inicializarRelacoesEntrantesCasaVidro(
+    criarRelacoesEntrantesCasaVidroV2(
         $jogadores,
         $entrantes,
         $meuNome
@@ -628,67 +1102,84 @@ function integrarVencedoresCasaVidro(&$jogadores, $meuNome)
         $jogadores[] = $novo;
     }
 
-    removerParticipantesDuplicados(
-        $jogadores,
-        $meuNome
-    );
-
-    garantirEstruturaParticipantes(
-        $jogadores
-    );
-
-    garantirMeuJogadorNaLista(
-        $jogadores
-    );
-
-    registrarNomesTemporadaCasaVidro(
-        $jogadores
-    );
-
-    $_SESSION['jogadores'] = array_values($jogadores);
-
-    $_SESSION['casa_vidro_realizada'] = true;
-    $_SESSION['casa_vidro_ativa'] = false;
-    $_SESSION['casa_vidro_finalizada_rodada'] = (int)($_SESSION['rodada'] ?? 1);
-
-    $nomesVencedores = array_values(
-        array_map(
-            function ($j) {
-                return $j['nome'] ?? '';
-            },
-            $entrantes
+    if (
+        function_exists(
+            'removerParticipantesDuplicados'
         )
-    );
-
-    $_SESSION['casa_vidro_feed_pendente'] = [
-        'vencedores' => $nomesVencedores,
-        'ranking' => $ranking,
-        'rodada' => (int)($_SESSION['rodada'] ?? 1)
-    ];
+    ) {
+        removerParticipantesDuplicados(
+            $jogadores,
+            $meuNome
+        );
+    }
 
     if (
-        !isset($_SESSION['evento_extra']) ||
-        !is_array($_SESSION['evento_extra'])
+        function_exists(
+            'garantirEstruturaParticipantes'
+        )
+    ) {
+        garantirEstruturaParticipantes(
+            $jogadores
+        );
+    }
+
+    if (
+        function_exists(
+            'garantirMeuJogadorNaLista'
+        )
+    ) {
+        garantirMeuJogadorNaLista(
+            $jogadores
+        );
+    }
+
+    $_SESSION['jogadores'] =
+        array_values(
+            $jogadores
+        );
+
+    $_SESSION[
+        'casa_vidro_estado'
+    ] = 'finalizada';
+
+    $_SESSION[
+        'casa_vidro_finalizada_rodada'
+    ] =
+        (int)(
+            $_SESSION['rodada']
+            ?? 3
+        );
+
+    if (
+        !isset(
+            $_SESSION['evento_extra']
+        ) ||
+        !is_array(
+            $_SESSION['evento_extra']
+        )
     ) {
         $_SESSION['evento_extra'] = [];
     }
 
+    $nomesEntrantes =
+        array_values(
+            array_map(
+                function ($j) {
+                    return
+                        $j['nome']
+                        ?? '';
+                },
+                $entrantes
+            )
+        );
+
     $_SESSION['evento_extra'][] =
-        '🏠 ' . implode(' e ', $nomesVencedores) .
-        ' foram escolhidos pelo público e entraram oficialmente no BBB Simulator pela Casa de Vidro.';
-
-    $faseRetorno =
-        $_SESSION['casa_vidro_fase_retorno'] ?? 'queridometro';
-
-    if ($faseRetorno === 'casa_vidro' || $faseRetorno === '') {
-        $faseRetorno = 'queridometro';
-    }
-
-    $_SESSION['fase_semana'] = $faseRetorno;
-
-    unset(
-        $_SESSION['casa_vidro_fase_retorno']
-    );
+        '🏠 '
+        . implode(
+            ' e ',
+            $nomesEntrantes
+        )
+        . ' entraram oficialmente na casa pela Casa de Vidro durante a Festa da Rodada 3.';
 
     return true;
 }

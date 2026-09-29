@@ -94,6 +94,47 @@ $totalPostsFeed = count(
 
             </button>
 
+            <?php
+$hostAtual =
+    strtolower(
+        $_SERVER['HTTP_HOST']
+        ?? ''
+    );
+
+$ehLocal =
+    str_contains(
+        $hostAtual,
+        'localhost'
+    ) ||
+    str_contains(
+        $hostAtual,
+        '127.0.0.1'
+    );
+?>
+
+<?php if ($ehLocal): ?>
+
+    <a
+        href="modo_teste.php"
+        style="
+            margin-left:auto;
+            text-decoration:none;
+            padding:10px 14px;
+            border-radius:12px;
+            color:#fff;
+            font-weight:800;
+            background:linear-gradient(
+                90deg,
+                #d00074,
+                #7535ea
+            );
+        "
+    >
+        🧪 DEV
+    </a>
+
+<?php endif; ?>
+
         </div>
 
     </div>

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../logica/consequencias_sociais.php';
+
 /** @var array $jogadores */
 /** @var string $meuNome */
 /** @var int $qtdVIP */
@@ -16,7 +18,6 @@ if (isset($_POST['definir_vip'])) {
 
     garantirMeuJogadorNaLista($jogadores);
 
-    /* Remove vazio, duplicado e o próprio líder */
     $selecionados = array_values(
         array_unique(
             array_filter(
@@ -48,7 +49,6 @@ if (isset($_POST['definir_vip'])) {
             $j['estatisticas'] = [];
         }
 
-        /* Líder sempre está no VIP */
         if ($j['nome'] == $lider) {
 
             $j['status']['vip'] = true;
@@ -77,14 +77,26 @@ if (isset($_POST['definir_vip'])) {
 
     unset($j);
 
+    /* Escolher alguém para o VIP gera gratidão. */
+    foreach ($selecionados as $nomeVIP) {
+        aplicarConsequenciaSocial(
+            $jogadores,
+            $lider,
+            $nomeVIP,
+            'vip',
+            'vip|' .
+            ($_SESSION['rodada'] ?? 1) .
+            '|' . $lider .
+            '|' . $nomeVIP,
+            "$lider colocou $nomeVIP no VIP."
+        );
+    }
+
     garantirMeuJogadorNaLista($jogadores);
 
     $_SESSION['jogadores'] = $jogadores;
     $_SESSION['vip_definido'] = true;
     $_SESSION['fase_semana'] = 'anjo';
-
-
-    /* Montar listas para o Ao Vivo */
 
     $vipLista = [];
     $xepaLista = [];
@@ -123,6 +135,19 @@ if (isset($_POST['definir_monstro'])) {
     $anjo = $_SESSION['anjo'] ?? '';
     $selecionados = $_POST['monstro'] ?? [];
 
+    $selecionados = array_values(
+        array_unique(
+            array_filter(
+                $selecionados,
+                function ($nome) use ($anjo) {
+                    return
+                        trim((string)$nome) !== '' &&
+                        !nomeIgual($nome, $anjo);
+                }
+            )
+        )
+    );
+
     if (count($selecionados) > 2) {
 
         $_SESSION['evento_extra'][] =
@@ -134,9 +159,20 @@ if (isset($_POST['definir_monstro'])) {
 
     foreach ($jogadores as &$j) {
 
+        if (!isset($j['status']) || !is_array($j['status'])) {
+            $j['status'] = [];
+        }
+
         $j['status']['monstro'] = false;
 
-        if (in_array($j['nome'], $selecionados)) {
+        if (
+            in_array(
+                $j['nome'] ?? '',
+                $selecionados,
+                true
+            )
+        ) {
+            $nomeAlvo = $j['nome'] ?? '';
 
             $j['status']['monstro'] = true;
 
@@ -153,13 +189,16 @@ if (isset($_POST['definir_monstro'])) {
                     ($j['popularidade'] ?? 50) - rand(3, 8)
                 );
 
-            alterarAfinidade(
+            aplicarConsequenciaSocial(
                 $jogadores,
-                $j['nome'],
                 $anjo,
-                -5,
-                8,
-                -5
+                $nomeAlvo,
+                'monstro',
+                'monstro|' .
+                ($_SESSION['rodada'] ?? 1) .
+                '|' . $anjo .
+                '|' . $nomeAlvo,
+                "$anjo colocou $nomeAlvo no Monstro."
             );
         }
     }
@@ -212,6 +251,20 @@ if (isset($_POST['definir_imunidade_anjo'])) {
     unset($j);
 
     garantirMeuJogadorNaLista($jogadores);
+
+    $anjoAtual = $_SESSION['anjo'] ?? '';
+
+    aplicarConsequenciaSocial(
+        $jogadores,
+        $anjoAtual,
+        $imunizado,
+        'imunidade',
+        'imunidade_anjo|' .
+        ($_SESSION['rodada'] ?? 1) .
+        '|' . $anjoAtual .
+        '|' . $imunizado,
+        "$anjoAtual imunizou $imunizado."
+    );
 
     $_SESSION['jogadores'] = $jogadores;
     $_SESSION['imune'] = $imunizado;

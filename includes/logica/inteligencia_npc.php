@@ -33,6 +33,32 @@ function garantirMemoriaNPC()
     ) {
         $_SESSION['ultimas_decisoes_npc'] = [];
     }
+
+    /* Memória curta para evitar ações e alvos repetitivos. */
+    if (
+        !isset($_SESSION['historico_acoes_npc']) ||
+        !is_array($_SESSION['historico_acoes_npc'])
+    ) {
+        $_SESSION['historico_acoes_npc'] = [];
+    }
+
+    /*
+     * Fase 2: acontecimentos que mudam o estado emocional/estratégico
+     * do NPC por algumas rodadas.
+     */
+    if (
+        !isset($_SESSION['memoria_perdas_npc']) ||
+        !is_array($_SESSION['memoria_perdas_npc'])
+    ) {
+        $_SESSION['memoria_perdas_npc'] = [];
+    }
+
+    if (
+        !isset($_SESSION['memoria_eliminacoes_processadas_npc']) ||
+        !is_array($_SESSION['memoria_eliminacoes_processadas_npc'])
+    ) {
+        $_SESSION['memoria_eliminacoes_processadas_npc'] = [];
+    }
 }
 
 
@@ -283,6 +309,9 @@ function registrarMemoriaSocialNPC(
             'me_indicou' => 0,
             'me_colocou_monstro' => 0,
             'me_atacou_discordia' => 0,
+            'me_elogiou_discordia' => 0,
+            'me_deu_emoji_positivo' => 0,
+            'me_deu_emoji_negativo' => 0,
             'rompeu_comigo' => 0,
             'brigou_comigo' => 0,
             'espalhou_fofoca' => 0,
@@ -374,6 +403,7 @@ function pesoBaseMemoriaNPC($tipo)
         'me_indicou' => 34,
         'me_colocou_monstro' => 22,
         'me_atacou_discordia' => 19,
+        'me_deu_emoji_negativo' => 12,
         'rompeu_comigo' => 28,
         'brigou_comigo' => 18,
         'espalhou_fofoca' => 24,
@@ -381,6 +411,8 @@ function pesoBaseMemoriaNPC($tipo)
         'me_colocou_paredao' => 30,
 
         /* Positivos */
+        'me_elogiou_discordia' => 14,
+        'me_deu_emoji_positivo' => 9,
         'me_imunizou' => 28,
         'me_colocou_vip' => 13,
         'me_defendeu' => 17,
@@ -411,6 +443,9 @@ function taxaRetencaoMemoriaNPC($tipo)
         'votou_em_mim',
         'me_colocou_monstro',
         'me_atacou_discordia',
+        'me_elogiou_discordia',
+        'me_deu_emoji_positivo',
+        'me_deu_emoji_negativo',
         'espalhou_fofoca',
         'me_colocou_vip',
         'me_defendeu'
@@ -550,6 +585,7 @@ function impactoNegativoMemoriaNPC(
             'me_indicou',
             'me_colocou_monstro',
             'me_atacou_discordia',
+            'me_deu_emoji_negativo',
             'rompeu_comigo',
             'brigou_comigo',
             'espalhou_fofoca',
@@ -568,6 +604,8 @@ function impactoPositivoMemoriaNPC(
         $observador,
         $alvo,
         [
+            'me_elogiou_discordia',
+            'me_deu_emoji_positivo',
             'me_imunizou',
             'me_colocou_vip',
             'me_defendeu',
@@ -1428,6 +1466,8 @@ function escolherAlvoNPCInteligente(
     $contexto = 'voto',
     $bloqueados = []
 ) {
+    sincronizarMemoriasAutomaticasNPC($jogadores);
+
     $ranking =
         ranquearAlvosNPCInteligente(
             $jogadores,
@@ -1435,6 +1475,13 @@ function escolherAlvoNPCInteligente(
             $contexto,
             $bloqueados
         );
+
+    $ranking = ajustarRankingAlvosPorMomentoNPC(
+        $ranking,
+        $jogadores,
+        $npc,
+        $contexto
+    );
 
     if (empty($ranking)) {
         return null;
@@ -1496,6 +1543,8 @@ function escolherVariosAlvosNPCInteligentes(
     $quantidade,
     $bloqueados = []
 ) {
+    sincronizarMemoriasAutomaticasNPC($jogadores);
+
     $quantidade =
         max(
             0,
@@ -1513,6 +1562,13 @@ function escolherVariosAlvosNPCInteligentes(
             $contexto,
             $bloqueados
         );
+
+    $ranking = ajustarRankingAlvosPorMomentoNPC(
+        $ranking,
+        $jogadores,
+        $npc,
+        $contexto
+    );
 
     $escolhidos =
         array_slice(
@@ -1535,87 +1591,620 @@ function escolherVariosAlvosNPCInteligentes(
 
 
 /* =========================================================
-   💬 ALVO PARA INTERAÇÕES
-   Decide se o NPC tende a procurar aliado ou rival
-   de acordo com personalidade e momento.
+   🎭 MEMÓRIA CURTA DE AÇÕES — NPCs 2.0
    ========================================================= */
 
-function alvosRecentesInteracaoNPC(
-    $npc,
-    $limite = 2
-) {
+function nomeAcaoInteracaoNPC($acao, $ehRival = false, $ehAliado = false)
+{
+    $acao = (int)$acao;
+    if ($acao === 1) return 'conversar';
+    if ($acao === 2) return $ehRival ? 'fofoca' : 'aproximacao';
+    if ($acao === 3) return 'discutir';
+    if ($acao === 4) return 'alianca';
+    return 'outra';
+}
+
+function registrarAcaoRecenteNPC($npc, $acao, $alvo, $ehRival = false, $ehAliado = false)
+{
     garantirMemoriaNPC();
 
-    $recentes = [];
+    $npc = trim((string)$npc);
+    $alvo = trim((string)$alvo);
+    if ($npc === '' || $alvo === '') return;
 
-    $historico =
-        array_reverse(
-            $_SESSION[
-                'ultimas_decisoes_npc'
-            ] ?? []
+    if (!isset($_SESSION['historico_acoes_npc'][$npc]) || !is_array($_SESSION['historico_acoes_npc'][$npc])) {
+        $_SESSION['historico_acoes_npc'][$npc] = [];
+    }
+
+    $_SESSION['historico_acoes_npc'][$npc][] = [
+        'rodada' => (int)($_SESSION['rodada'] ?? 1),
+        'fase' => (string)($_SESSION['fase_semana'] ?? ''),
+        'acao' => nomeAcaoInteracaoNPC($acao, $ehRival, $ehAliado),
+        'alvo' => $alvo
+    ];
+
+    if (count($_SESSION['historico_acoes_npc'][$npc]) > 12) {
+        $_SESSION['historico_acoes_npc'][$npc] = array_slice($_SESSION['historico_acoes_npc'][$npc], -12);
+    }
+}
+
+function obterHistoricoAcoesNPC($npc, $limite = 6)
+{
+    garantirMemoriaNPC();
+    $historico = $_SESSION['historico_acoes_npc'][$npc] ?? [];
+    if (!is_array($historico)) return [];
+    return array_slice($historico, -max(1, (int)$limite));
+}
+
+function contarAcaoRecenteNPC($npc, $acao, $limite = 6)
+{
+    $total = 0;
+    foreach (obterHistoricoAcoesNPC($npc, $limite) as $item) {
+        if (($item['acao'] ?? '') === $acao) $total++;
+    }
+    return $total;
+}
+
+function contarAlvoRecenteNPC($npc, $alvo, $limite = 5)
+{
+    $total = 0;
+    foreach (obterHistoricoAcoesNPC($npc, $limite) as $item) {
+        $historico = $item['alvo'] ?? '';
+        $igual = function_exists('nomeIgual') ? nomeIgual($historico, $alvo) : ($historico === $alvo);
+        if ($igual) $total++;
+    }
+    return $total;
+}
+
+function ultimaAcaoNPC($npc)
+{
+    $h = obterHistoricoAcoesNPC($npc, 1);
+    return $h[0]['acao'] ?? '';
+}
+
+function ultimoAlvoNPC($npc)
+{
+    $h = obterHistoricoAcoesNPC($npc, 1);
+    return $h[0]['alvo'] ?? '';
+}
+
+function sortearOpcaoPorPesoNPC($pesos)
+{
+    if (empty($pesos) || !is_array($pesos)) return null;
+
+    $normalizados = [];
+    $total = 0;
+    foreach ($pesos as $chave => $peso) {
+        $peso = max(1, (int)round($peso));
+        $normalizados[$chave] = $peso;
+        $total += $peso;
+    }
+
+    $sorteio = rand(1, max(1, $total));
+    $acumulado = 0;
+    foreach ($normalizados as $chave => $peso) {
+        $acumulado += $peso;
+        if ($sorteio <= $acumulado) return $chave;
+    }
+    return array_key_first($normalizados);
+}
+
+function escolherAcaoInteracaoNPC($jogadores, $npc, $alvo, $meuNome, $perfil, $ehRival = false, $ehAliado = false)
+{
+    garantirMemoriaNPC();
+    sincronizarMemoriasAutomaticasNPC($jogadores);
+
+    $pesos = [
+        1 => 20 + (($perfil['emocao'] ?? 50) * 0.30),
+        2 => 12 + (($perfil['fofoca'] ?? 50) * 0.52),
+        3 => 10 + (($perfil['treta'] ?? 50) * 0.55),
+        4 => 12 + (($perfil['alianca'] ?? 50) * 0.55)
+    ];
+
+    if ($ehRival) {
+        $pesos[1] += 2;  $pesos[2] += 28; $pesos[3] += 38; $pesos[4] -= 24;
+    } elseif ($ehAliado) {
+        $pesos[1] += 28; $pesos[2] -= 18; $pesos[3] -= 30; $pesos[4] += 38;
+    } else {
+        $pesos[1] += 8; $pesos[4] += 8;
+    }
+
+    /* Fase 2: acontecimentos da temporada alteram a reação. */
+    $pesos = ajustarPesosAcaoPorMomentoNPC(
+        $pesos,
+        $jogadores,
+        $npc,
+        $alvo,
+        $perfil
+    );
+
+    /* Fase 1: evita repetição imediata. */
+    foreach ([1,2,3,4] as $acao) {
+        $nomeAcao = nomeAcaoInteracaoNPC($acao, $ehRival, $ehAliado);
+        $vezes = contarAcaoRecenteNPC($npc, $nomeAcao, 6);
+        if ($vezes >= 1) $pesos[$acao] *= pow(0.62, $vezes);
+        if (ultimaAcaoNPC($npc) === $nomeAcao) $pesos[$acao] *= 0.28;
+    }
+
+    $mesmoAlvo = contarAlvoRecenteNPC($npc, $alvo, 5);
+    if ($mesmoAlvo >= 2) {
+        $pesos[1] *= 1.35; $pesos[4] *= 1.20;
+        $pesos[2] *= 0.72; $pesos[3] *= 0.68;
+    }
+
+    foreach ($pesos as $acao => $peso) {
+        $pesos[$acao] = max(2, $peso + rand(-6, 6));
+    }
+
+    return (int)sortearOpcaoPorPesoNPC($pesos);
+}
+
+function ajustarRankingAlvosPorMemoriaNPC($ranking, $npc)
+{
+    if (empty($ranking) || !is_array($ranking)) return $ranking;
+
+    $ultimo = ultimoAlvoNPC($npc);
+    foreach ($ranking as $nome => &$score) {
+        $score -= contarAlvoRecenteNPC($npc, $nome, 5) * 13;
+        $igual = $ultimo !== '' && (function_exists('nomeIgual') ? nomeIgual($ultimo, $nome) : ($ultimo === $nome));
+        if ($igual) $score -= 18;
+        $score += rand(0, 6);
+    }
+    unset($score);
+    arsort($ranking);
+    return $ranking;
+}
+
+/* =========================================================
+   🧠 NPCs 2.0 — FASE 2
+   ACONTECIMENTOS COM CONSEQUÊNCIAS
+   ========================================================= */
+
+function nomesDeValorMemoriaNPC($valor)
+{
+    $nomes = [];
+
+    if (is_string($valor) || is_numeric($valor)) {
+        $nome = trim((string)$valor);
+        if ($nome !== '') $nomes[] = $nome;
+        return $nomes;
+    }
+
+    if (!is_array($valor)) {
+        return $nomes;
+    }
+
+    foreach ($valor as $item) {
+        foreach (nomesDeValorMemoriaNPC($item) as $nome) {
+            $nomes[] = $nome;
+        }
+    }
+
+    return array_values(array_unique(array_filter($nomes)));
+}
+
+
+function nomeIgualMemoriaNPC($a, $b)
+{
+    if (function_exists('nomeIgual')) {
+        return nomeIgual($a, $b);
+    }
+
+    return mb_strtolower(trim((string)$a), 'UTF-8') ===
+        mb_strtolower(trim((string)$b), 'UTF-8');
+}
+
+
+/* =========================================================
+   🔄 SINCRONIZAR ACONTECIMENTOS IMPORTANTES
+   =========================================================
+   Esta função transforma estados normais do jogo em memórias:
+   - indicação do Líder;
+   - Monstro;
+   - imunidade do Anjo;
+   - VIP dado pelo Líder;
+   - indicação via Big Fone, quando o dono está identificado.
+
+   As chaves únicas impedem que F5 duplique lembranças.
+   ========================================================= */
+function sincronizarMemoriasAutomaticasNPC($jogadores)
+{
+    garantirMemoriaNPC();
+
+    $rodada = (int)($_SESSION['rodada'] ?? 1);
+
+    /* 👑 Indicação direta do Líder */
+    $lider = trim((string)($_SESSION['lider'] ?? ''));
+    $indicacaoLider = trim((string)($_SESSION['indicacao_lider'] ?? ''));
+
+    if ($lider !== '' && $indicacaoLider !== '' && !nomeIgualMemoriaNPC($lider, $indicacaoLider)) {
+        registrarMemoriaSocialNPC(
+            $indicacaoLider,
+            $lider,
+            'me_indicou',
+            1,
+            "$lider indicou $indicacaoLider ao Paredão.",
+            "auto|indicacao_lider|$rodada|$lider|$indicacaoLider"
         );
+    }
 
-    foreach ($historico as $item) {
+    /* 👹 Monstro */
+    $anjo = trim((string)($_SESSION['anjo'] ?? ''));
+    if ($anjo !== '') {
+        foreach (nomesDeValorMemoriaNPC($_SESSION['monstro'] ?? []) as $nomeMonstro) {
+            if ($nomeMonstro === '' || nomeIgualMemoriaNPC($nomeMonstro, $anjo)) continue;
 
-        if (
-            !isset($item['npc']) ||
-            $item['npc'] !== $npc
-        ) {
-            continue;
-        }
-
-        $contexto =
-            $item['contexto'] ?? '';
-
-        if (
-            $contexto !== 'discordia_negativo' &&
-            $contexto !== 'interacao_aliado'
-        ) {
-            continue;
-        }
-
-        $alvo =
-            trim(
-                (string)($item['escolhido'] ?? '')
+            registrarMemoriaSocialNPC(
+                $nomeMonstro,
+                $anjo,
+                'me_colocou_monstro',
+                1,
+                "$anjo colocou $nomeMonstro no Monstro.",
+                "auto|monstro|$rodada|$anjo|$nomeMonstro"
             );
+        }
+    }
 
-        if (
-            $alvo === '' ||
-            in_array($alvo, $recentes, true)
-        ) {
+    /* 🛡️ Imunidade dada pelo Anjo */
+    $imune = trim((string)($_SESSION['imune'] ?? ''));
+    if ($anjo !== '' && $imune !== '' && !nomeIgualMemoriaNPC($anjo, $imune)) {
+        registrarMemoriaSocialNPC(
+            $imune,
+            $anjo,
+            'me_imunizou',
+            1,
+            "$anjo imunizou $imune.",
+            "auto|imunidade|$rodada|$anjo|$imune"
+        );
+    }
+
+    /* 🟡 VIP dado pelo Líder */
+    if ($lider !== '' && !empty($_SESSION['vip_definido'])) {
+        foreach ($jogadores as $j) {
+            $nome = trim((string)($j['nome'] ?? ''));
+            if ($nome === '' || nomeIgualMemoriaNPC($nome, $lider)) continue;
+
+            if (!empty($j['status']['vip'])) {
+                registrarMemoriaSocialNPC(
+                    $nome,
+                    $lider,
+                    'me_colocou_vip',
+                    1,
+                    "$lider colocou $nome no VIP.",
+                    "auto|vip|$rodada|$lider|$nome"
+                );
+            }
+        }
+    }
+
+    /* ☎️ Indicação do Big Fone */
+    $donoBigFone = trim((string)($_SESSION['bigfone_dono_poder'] ?? ''));
+    $indicacaoBigFone = trim((string)($_SESSION['indicacao_bigfone'] ?? ''));
+
+    if (
+        $donoBigFone !== '' &&
+        $indicacaoBigFone !== '' &&
+        !nomeIgualMemoriaNPC($donoBigFone, $indicacaoBigFone)
+    ) {
+        registrarMemoriaSocialNPC(
+            $indicacaoBigFone,
+            $donoBigFone,
+            'me_colocou_paredao',
+            1,
+            "$donoBigFone colocou $indicacaoBigFone em risco pelo Big Fone.",
+            "auto|bigfone|$rodada|$donoBigFone|$indicacaoBigFone"
+        );
+    }
+
+    sincronizarPerdasDeAliadosNPC($jogadores);
+}
+
+
+/* =========================================================
+   💔 ELIMINAÇÃO DE ALIADO
+   ========================================================= */
+function sincronizarPerdasDeAliadosNPC($jogadores)
+{
+    garantirMemoriaNPC();
+
+    $historico = $_SESSION['historico_eliminados'] ?? [];
+    if (!is_array($historico) || empty($historico)) return;
+
+    $rodadaAtual = (int)($_SESSION['rodada'] ?? 1);
+
+    foreach ($historico as $eliminado) {
+        $eliminado = trim((string)$eliminado);
+        if ($eliminado === '') continue;
+
+        if (!empty($_SESSION['memoria_eliminacoes_processadas_npc'][$eliminado])) {
             continue;
         }
 
-        $recentes[] = $alvo;
+        foreach ($jogadores as $npc) {
+            $nomeNPC = trim((string)($npc['nome'] ?? ''));
+            if ($nomeNPC === '' || nomeIgualMemoriaNPC($nomeNPC, $eliminado)) continue;
 
-        if (count($recentes) >= $limite) {
+            $rel = $npc['relacoes'][$eliminado] ?? [];
+            $amizade = (float)($rel['amizade'] ?? 0);
+            $confianca = (float)($rel['confianca'] ?? 0);
+            $rivalidade = (float)($rel['rivalidade'] ?? 0);
+            $romance = (float)($npc['romances'][$eliminado] ?? 0);
+
+            $vinculo =
+                $amizade +
+                $confianca -
+                ($rivalidade * 1.25) +
+                ($romance * 0.80);
+
+            /* Só vira "perda de aliado" se o vínculo realmente era relevante. */
+            if ($vinculo < 72) continue;
+
+            $forca = 1;
+            if ($vinculo >= 115) $forca = 2;
+            if ($vinculo >= 155 || $romance >= 60) $forca = 3;
+
+            if (!isset($_SESSION['memoria_perdas_npc'][$nomeNPC])) {
+                $_SESSION['memoria_perdas_npc'][$nomeNPC] = [];
+            }
+
+            $_SESSION['memoria_perdas_npc'][$nomeNPC][] = [
+                'nome' => $eliminado,
+                'rodada' => max(1, $rodadaAtual - 1),
+                'forca' => $forca,
+                'vinculo' => $vinculo
+            ];
+
+            if (count($_SESSION['memoria_perdas_npc'][$nomeNPC]) > 6) {
+                $_SESSION['memoria_perdas_npc'][$nomeNPC] =
+                    array_slice($_SESSION['memoria_perdas_npc'][$nomeNPC], -6);
+            }
+        }
+
+        $_SESSION['memoria_eliminacoes_processadas_npc'][$eliminado] = true;
+    }
+}
+
+
+function impactoPerdaAliadoNPC($npc)
+{
+    garantirMemoriaNPC();
+
+    $eventos = $_SESSION['memoria_perdas_npc'][$npc] ?? [];
+    if (!is_array($eventos)) return 0.0;
+
+    $rodadaAtual = (int)($_SESSION['rodada'] ?? 1);
+    $total = 0.0;
+
+    foreach ($eventos as $evento) {
+        $idade = max(0, $rodadaAtual - (int)($evento['rodada'] ?? $rodadaAtual));
+        $forca = max(1, (int)($evento['forca'] ?? 1));
+
+        /* A perda pesa bastante nas duas semanas seguintes e depois diminui. */
+        $total += (18 * $forca) * pow(0.68, $idade);
+    }
+
+    return $total;
+}
+
+
+/* =========================================================
+   🎯 MEMÓRIA DOMINANTE SOBRE UMA PESSOA
+   ========================================================= */
+function memoriaDominanteNPC($npc, $tipo = 'negativa')
+{
+    garantirMemoriaNPC();
+
+    $memorias = $_SESSION['memoria_npc'][$npc] ?? [];
+    if (!is_array($memorias)) {
+        return ['alvo' => null, 'impacto' => 0.0];
+    }
+
+    $melhorAlvo = null;
+    $melhorImpacto = 0.0;
+
+    foreach ($memorias as $alvo => $dados) {
+        $impacto =
+            $tipo === 'positiva'
+                ? impactoPositivoMemoriaNPC($npc, $alvo)
+                : impactoNegativoMemoriaNPC($npc, $alvo);
+
+        if ($impacto > $melhorImpacto) {
+            $melhorImpacto = $impacto;
+            $melhorAlvo = $alvo;
+        }
+    }
+
+    return [
+        'alvo' => $melhorAlvo,
+        'impacto' => $melhorImpacto
+    ];
+}
+
+
+/* =========================================================
+   🧭 MOMENTO ATUAL DO NPC
+   ========================================================= */
+function momentoEstrategicoNPC($jogadores, $npc)
+{
+    sincronizarMemoriasAutomaticasNPC($jogadores);
+
+    $neg = memoriaDominanteNPC($npc, 'negativa');
+    $pos = memoriaDominanteNPC($npc, 'positiva');
+
+    $paredao = false;
+    foreach (nomesDeValorMemoriaNPC($_SESSION['paredao'] ?? []) as $nomeParedao) {
+        if (nomeIgualMemoriaNPC($nomeParedao, $npc)) {
+            $paredao = true;
             break;
         }
     }
 
-    return $recentes;
+    $monstro = false;
+    foreach (nomesDeValorMemoriaNPC($_SESSION['monstro'] ?? []) as $nomeMonstro) {
+        if (nomeIgualMemoriaNPC($nomeMonstro, $npc)) {
+            $monstro = true;
+            break;
+        }
+    }
+
+    return [
+        'paredao' => $paredao,
+        'monstro' => $monstro,
+        'ressentimento_alvo' => $neg['alvo'],
+        'ressentimento' => (float)$neg['impacto'],
+        'gratidao_alvo' => $pos['alvo'],
+        'gratidao' => (float)$pos['impacto'],
+        'perda_aliado' => impactoPerdaAliadoNPC($npc)
+    ];
 }
 
+
+/* =========================================================
+   🎭 AJUSTAR AÇÃO PELO MOMENTO
+   ========================================================= */
+function ajustarPesosAcaoPorMomentoNPC(
+    $pesos,
+    $jogadores,
+    $npc,
+    $alvo,
+    $perfil
+) {
+    $momento = momentoEstrategicoNPC($jogadores, $npc);
+
+    $dadosNPC = buscarParticipanteInteligenciaNPC($jogadores, $npc);
+    $personalidade = $dadosNPC['personalidade'] ?? 'Neutro';
+
+    $ehRessentimento =
+        !empty($momento['ressentimento_alvo']) &&
+        nomeIgualMemoriaNPC($momento['ressentimento_alvo'], $alvo);
+
+    $ehGratidao =
+        !empty($momento['gratidao_alvo']) &&
+        nomeIgualMemoriaNPC($momento['gratidao_alvo'], $alvo);
+
+    /* Foi alvo de alguém: tende a confrontar ou falar sobre isso. */
+    if ($ehRessentimento) {
+        $forca = min(55, $momento['ressentimento'] * 0.28);
+        $pesos[2] += $forca * 0.75;
+        $pesos[3] += $forca;
+        $pesos[4] -= min(25, $forca * 0.45);
+    }
+
+    /* Foi ajudado: aumenta chance de aproximação e lealdade. */
+    if ($ehGratidao) {
+        $forca = min(50, $momento['gratidao'] * 0.28);
+        $pesos[1] += $forca * 0.70;
+        $pesos[4] += $forca;
+        $pesos[3] -= min(30, $forca * 0.55);
+    }
+
+    /* Emparedado: reage conforme a personalidade. */
+    if (!empty($momento['paredao'])) {
+        if (in_array($personalidade, ['Estrategista', 'Manipulador', 'Líder Nato', 'Falso'], true)) {
+            $pesos[4] += 42;
+            $pesos[1] += 18;
+            $pesos[3] -= 8;
+        } elseif (in_array($personalidade, ['Explosivo', 'Barraqueiro'], true)) {
+            $pesos[3] += 34;
+            $pesos[2] += 16;
+        } else {
+            $pesos[4] += 24;
+            $pesos[1] += 18;
+        }
+    }
+
+    /* Monstro aumenta irritação principalmente em perfis reativos. */
+    if (!empty($momento['monstro'])) {
+        if (in_array($personalidade, ['Explosivo', 'Barraqueiro', 'Emocional'], true)) {
+            $pesos[3] += 20;
+            $pesos[2] += 10;
+        } else {
+            $pesos[1] += 8;
+            $pesos[4] += 10;
+        }
+    }
+
+    /* Perdeu aliado: procura reconstruir rede social nas rodadas seguintes. */
+    $perda = (float)($momento['perda_aliado'] ?? 0);
+    if ($perda > 4) {
+        $pesos[4] += min(38, $perda * 0.85);
+        $pesos[1] += min(24, $perda * 0.55);
+
+        if ($personalidade === 'Emocional') {
+            $pesos[1] += min(18, $perda * 0.45);
+        }
+
+        if (!in_array($personalidade, ['Explosivo', 'Barraqueiro'], true)) {
+            $pesos[3] -= min(12, $perda * 0.25);
+        }
+    }
+
+    foreach ($pesos as $acao => $peso) {
+        $pesos[$acao] = max(2, $peso);
+    }
+
+    return $pesos;
+}
+
+
+/* =========================================================
+   🎯 AJUSTAR ALVO PELO MOMENTO
+   ========================================================= */
+function ajustarRankingAlvosPorMomentoNPC(
+    $ranking,
+    $jogadores,
+    $npc,
+    $contexto
+) {
+    if (empty($ranking) || !is_array($ranking)) return $ranking;
+
+    $momento = momentoEstrategicoNPC($jogadores, $npc);
+    $positivo = contextoPositivoNPC($contexto);
+
+    $ressentido = $momento['ressentimento_alvo'] ?? null;
+    $grato = $momento['gratidao_alvo'] ?? null;
+
+    foreach ($ranking as $nome => &$score) {
+        if ($ressentido && nomeIgualMemoriaNPC($nome, $ressentido)) {
+            if (!$positivo) {
+                $score += min(60, ((float)$momento['ressentimento']) * 0.22);
+            } else {
+                $score -= min(45, ((float)$momento['ressentimento']) * 0.18);
+            }
+        }
+
+        if ($grato && nomeIgualMemoriaNPC($nome, $grato)) {
+            if ($positivo) {
+                $score += min(55, ((float)$momento['gratidao']) * 0.22);
+            } else {
+                $score -= min(50, ((float)$momento['gratidao']) * 0.20);
+            }
+        }
+    }
+
+    unset($score);
+    arsort($ranking);
+    return $ranking;
+}
+
+
+/* =========================================================
+   💬 ALVO PARA INTERAÇÕES
+   Decide se o NPC tende a procurar aliado ou rival
+   de acordo com personalidade e momento.
+   ========================================================= */
 
 function escolherAlvoInteracaoNPC(
     $jogadores,
     $npc,
     $meuNome = ''
 ) {
-    $dadosNPC =
-        buscarParticipanteInteligenciaNPC(
-            $jogadores,
-            $npc
-        );
+    sincronizarMemoriasAutomaticasNPC($jogadores);
 
-    if (!$dadosNPC) {
-        return null;
-    }
+    $dadosNPC = buscarParticipanteInteligenciaNPC($jogadores, $npc);
+    if (!$dadosNPC) return null;
 
-    $personalidade =
-        $dadosNPC['personalidade']
-        ?? 'Neutro';
-
+    $personalidade = $dadosNPC['personalidade'] ?? 'Neutro';
     $tendencias = [
         'Estrategista' => ['aliado' => 60, 'rival' => 40],
         'Explosivo' => ['aliado' => 25, 'rival' => 75],
@@ -1630,78 +2219,51 @@ function escolherAlvoInteracaoNPC(
         'Neutro' => ['aliado' => 50, 'rival' => 50]
     ];
 
-    $t =
-        $tendencias[$personalidade]
-        ?? $tendencias['Neutro'];
+    $t = $tendencias[$personalidade] ?? $tendencias['Neutro'];
+    $momento = momentoEstrategicoNPC($jogadores, $npc);
 
-    $contexto =
-        rand(1, 100)
-        <= $t['rival']
-        ? 'discordia_negativo'
-        : 'interacao_aliado';
+    $chanceRival = (int)$t['rival'];
 
-    $bloqueados = [$npc];
-
-    /*
-     * Evita procurar sempre a mesma pessoa.
-     * O último alvo costuma ser bloqueado, mas não 100%:
-     * rivalidades e alianças fortes ainda podem gerar insistência.
-     */
-    $recentes =
-        alvosRecentesInteracaoNPC(
-            $npc,
-            2
-        );
-
-    $totalCandidatos =
-        max(
-            0,
-            count($jogadores) - 1
-        );
-
-    if (
-        $totalCandidatos >= 3 &&
-        !empty($recentes)
-    ) {
-        if (rand(1, 100) <= 72) {
-            $bloqueados[] =
-                $recentes[0];
-        }
-
-        if (
-            isset($recentes[1]) &&
-            $totalCandidatos >= 5 &&
-            rand(1, 100) <= 38
-        ) {
-            $bloqueados[] =
-                $recentes[1];
-        }
+    if (($momento['ressentimento'] ?? 0) >= 25) {
+        $chanceRival += 15;
     }
 
-    $escolhido =
-        escolherAlvoNPCInteligente(
-            $jogadores,
-            $npc,
-            $contexto,
-            array_values(
-                array_unique($bloqueados)
-            )
-        );
-
-    /*
-     * Se os bloqueios deixarem o NPC sem alvo válido,
-     * tenta novamente usando apenas ele próprio como bloqueado.
-     */
-    if ($escolhido === null) {
-        $escolhido =
-            escolherAlvoNPCInteligente(
-                $jogadores,
-                $npc,
-                $contexto,
-                [$npc]
-            );
+    if (!empty($momento['paredao']) && in_array($personalidade, ['Explosivo', 'Barraqueiro'], true)) {
+        $chanceRival += 12;
     }
 
+    if (($momento['perda_aliado'] ?? 0) >= 10) {
+        $chanceRival -= 10;
+    }
+
+    if (($momento['gratidao'] ?? 0) >= 25) {
+        $chanceRival -= 8;
+    }
+
+    $chanceRival = max(10, min(90, $chanceRival));
+    $contexto = rand(1,100) <= $chanceRival ? 'discordia_negativo' : 'interacao_aliado';
+
+    $ranking = ranquearAlvosNPCInteligente($jogadores, $npc, $contexto, [$npc]);
+    $ranking = ajustarRankingAlvosPorMemoriaNPC($ranking, $npc);
+    $ranking = ajustarRankingAlvosPorMomentoNPC($ranking, $jogadores, $npc, $contexto);
+    if (empty($ranking)) return null;
+
+    $nomes = array_keys($ranking);
+    $escolhido = $nomes[0];
+
+    if (count($nomes) >= 2) {
+        $top = array_slice($nomes, 0, min(3, count($nomes)));
+        $melhor = (float)($ranking[$top[0]] ?? 0);
+        $pesos = [];
+        foreach ($top as $indice => $nome) {
+            $score = (float)($ranking[$nome] ?? 0);
+            $distancia = max(0, $melhor - $score);
+            $pesos[$nome] = max(5, 100 - ($distancia * 3) - ($indice * 12));
+        }
+        $escolhido = sortearOpcaoPorPesoNPC($pesos);
+    }
+
+    registrarDecisaoNPC($npc, 'interacao', $escolhido, $ranking);
     return $escolhido;
 }
 
