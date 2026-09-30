@@ -150,6 +150,62 @@ function configuracoesConsequenciasSociais()
             'memoria' => 'me_elogiou_discordia',
             'forca_memoria' => 1
         ]
+,
+
+        'discordia_premio_forte' => [
+            'amizade' => 10,
+            'rivalidade' => -4,
+            'confianca' => 9,
+            'visivel_min' => 9,
+            'visivel_max' => 12,
+            'direcao' => 'mutua',
+            'memoria' => 'me_elogiou_discordia',
+            'forca_memoria' => 2
+        ],
+
+        'discordia_premio' => [
+            'amizade' => 6,
+            'rivalidade' => -2,
+            'confianca' => 5,
+            'visivel_min' => 5,
+            'visivel_max' => 8,
+            'direcao' => 'mutua',
+            'memoria' => 'me_elogiou_discordia',
+            'forca_memoria' => 1
+        ],
+
+        'discordia_respeito' => [
+            'amizade' => 2,
+            'rivalidade' => 1,
+            'confianca' => 2,
+            'visivel_min' => 1,
+            'visivel_max' => 3,
+            'direcao' => 'mutua',
+            'memoria' => 'me_elogiou_discordia',
+            'forca_memoria' => 1
+        ],
+
+        'discordia_critica' => [
+            'amizade' => -6,
+            'rivalidade' => 5,
+            'confianca' => -4,
+            'visivel_min' => -8,
+            'visivel_max' => -5,
+            'direcao' => 'mutua',
+            'memoria' => 'me_atacou_discordia',
+            'forca_memoria' => 1
+        ],
+
+        'discordia_critica_forte' => [
+            'amizade' => -11,
+            'rivalidade' => 10,
+            'confianca' => -8,
+            'visivel_min' => -13,
+            'visivel_max' => -9,
+            'direcao' => 'mutua',
+            'memoria' => 'me_atacou_discordia',
+            'forca_memoria' => 2
+        ]
     ];
 }
 

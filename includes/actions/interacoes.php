@@ -325,6 +325,18 @@ if (
 
         $evento =
             "😡 $meuNome discutiu com $alvo e o clima pesou.";
+
+        if (function_exists('registrarHistoricoTemporada')) {
+            registrarHistoricoTemporada(
+                'treta',
+                'Treta na casa',
+                "$meuNome e $alvo tiveram uma discussão importante.",
+                [$meuNome, $alvo],
+                '🔥',
+                null,
+                'discussao|' . $meuNome . '|' . $alvo
+            );
+        }
     }
 
 

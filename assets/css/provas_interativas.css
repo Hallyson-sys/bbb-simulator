@@ -23,3 +23,866 @@
 .memoria-campo input:focus{border-color:rgba(0,220,255,.55);box-shadow:0 0 16px rgba(0,220,255,.13)}
 .btn-confirmar-memoria{width:100%;min-height:54px;border:none;border-radius:16px;font-size:15px;font-weight:900;cursor:pointer}
 @media(max-width:600px){.reflexo-area,.memoria-area{padding:18px}.memoria-campos{grid-template-columns:1fr}.memoria-emoji{width:54px;height:54px;font-size:29px}.reflexo-status{font-size:19px}.btn-reflexo{min-height:70px;font-size:18px}}
+
+/* =========================================================
+   🔢 SEQUÊNCIA LÓGICA — PREMIUM
+   ========================================================= */
+.logica-area{
+    margin:26px 0;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.logica-intro.premium{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:18px;
+    padding:18px 20px;
+    border-radius:22px;
+    background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 0 25px rgba(0,0,0,.22), inset 0 0 16px rgba(255,255,255,.02);
+}
+
+.logica-intro strong{
+    display:block;
+    margin-bottom:8px;
+    font-size:21px;
+    color:#ffd86b;
+    letter-spacing:.4px;
+}
+
+.logica-intro span{
+    display:block;
+    line-height:1.6;
+    font-size:14px;
+    color:rgba(255,255,255,.82);
+}
+
+.logica-resumo-premium{
+    min-width:88px;
+    padding:14px 14px;
+    border-radius:18px;
+    background:linear-gradient(135deg,rgba(255,0,150,.18),rgba(0,190,255,.10));
+    border:1px solid rgba(255,255,255,.12);
+    text-align:center;
+    box-shadow:0 0 18px rgba(255,0,150,.10);
+}
+
+.logica-resumo-premium b{
+    display:block;
+    font-size:30px;
+    line-height:1;
+    color:#fff;
+}
+
+.logica-resumo-premium small{
+    display:block;
+    margin-top:5px;
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    opacity:.72;
+}
+
+.form-logica{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.logica-card{
+    position:relative;
+    overflow:hidden;
+    padding:22px;
+    border-radius:24px;
+    background:linear-gradient(160deg,rgba(10,14,35,.96),rgba(18,10,35,.96));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 10px 30px rgba(0,0,0,.28),0 0 24px rgba(255,0,180,.06);
+}
+
+.logica-card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(90deg,rgba(255,0,180,.07),rgba(0,220,255,.04),rgba(255,204,0,.05));
+    pointer-events:none;
+}
+
+.logica-card-topo,
+.logica-padrao-bloco,
+.logica-opcoes{
+    position:relative;
+    z-index:1;
+}
+
+.logica-card-topo{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.logica-numero{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:7px 12px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:#fff;
+    background:linear-gradient(135deg,rgba(255,0,150,.22),rgba(0,180,255,.18));
+    border:1px solid rgba(255,255,255,.10);
+}
+
+.logica-badge-questao{
+    padding:7px 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.10);
+    font-size:11px;
+    font-weight:800;
+    color:#ffd86b;
+}
+
+.logica-badge-questao.destaque{
+    color:#fff;
+    background:linear-gradient(135deg,rgba(255,184,0,.18),rgba(255,70,130,.16));
+    border-color:rgba(255,210,90,.28);
+}
+
+.logica-barra-progresso{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    margin-bottom:16px;
+}
+
+.logica-barra-progresso span{
+    height:7px;
+    border-radius:999px;
+    background:rgba(255,255,255,.09);
+}
+
+.logica-barra-progresso span.ativo{
+    background:linear-gradient(90deg,#ff00cc,#00d9ff,#ffd86b);
+    box-shadow:0 0 12px rgba(255,0,204,.18);
+}
+
+.logica-padrao-bloco{
+    margin-bottom:18px;
+    padding:18px;
+    border-radius:20px;
+    background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.07);
+}
+
+.logica-padrao-bloco.destaque-bloco{
+    border-color:rgba(255,210,90,.20);
+    box-shadow:0 0 18px rgba(255,193,7,.05);
+}
+
+.logica-label-padrao{
+    margin-bottom:10px;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:1.3px;
+    opacity:.68;
+}
+
+.logica-padrao{
+    text-align:center;
+    font-size:31px;
+    line-height:1.4;
+    font-weight:900;
+    letter-spacing:1.2px;
+    margin-bottom:10px;
+    background:linear-gradient(90deg,#ff9966,#ff4ecd,#7cf0ff,#ffe27a);
+    background-size:300%;
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    animation:brilhoLogica 6s linear infinite;
+}
+
+@keyframes brilhoLogica{
+    0%{background-position:0% 50%}
+    100%{background-position:300% 50%}
+}
+
+.logica-dica{
+    text-align:center;
+    font-size:13px;
+    line-height:1.5;
+    color:rgba(255,255,255,.72);
+}
+
+.logica-opcoes{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+}
+
+.logica-opcao{
+    position:relative;
+    display:block;
+    cursor:pointer;
+}
+
+.logica-opcao input{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+}
+
+.logica-opcao span{
+    min-height:66px;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    gap:4px;
+    padding:14px 12px;
+    border-radius:16px;
+    font-size:17px;
+    font-weight:800;
+    color:#f8f8ff;
+    background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.10);
+    transition:all .22s ease;
+}
+
+.logica-opcao span small{
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.58);
+}
+
+.logica-opcao span strong{
+    font-size:18px;
+    color:#fff;
+}
+
+.logica-opcao:hover span{
+    transform:translateY(-2px) scale(1.01);
+    border-color:rgba(255,0,170,.35);
+    box-shadow:0 10px 24px rgba(0,0,0,.22),0 0 18px rgba(255,0,170,.14);
+    background:linear-gradient(135deg,rgba(255,0,170,.11),rgba(0,200,255,.07));
+}
+
+.logica-opcao input:checked + span{
+    color:#ffffff;
+    border-color:rgba(255,215,90,.55);
+    background:linear-gradient(135deg,rgba(255,170,0,.24),rgba(255,0,130,.18));
+    box-shadow:0 0 18px rgba(255,170,0,.18),0 0 24px rgba(255,0,130,.14);
+    transform:translateY(-1px) scale(1.01);
+}
+
+.btn-confirmar-logica{
+    width:100%;
+    margin-top:4px;
+    min-height:58px;
+    border:none;
+    border-radius:18px;
+    font-size:16px;
+    font-weight:900;
+    letter-spacing:.4px;
+    cursor:pointer;
+    color:#fff;
+    background:linear-gradient(135deg,#ff8a00,#ff2fb3,#5f7cff);
+    box-shadow:0 10px 25px rgba(0,0,0,.25),0 0 22px rgba(255,47,179,.22);
+    transition:all .25s ease;
+}
+
+.btn-confirmar-logica:hover{
+    transform:translateY(-2px) scale(1.01);
+    box-shadow:0 14px 30px rgba(0,0,0,.28),0 0 28px rgba(255,47,179,.32);
+}
+
+.btn-confirmar-logica:active{
+    transform:scale(.99);
+}
+
+/* =========================================================
+   🎯 CAMINHO ESTRATÉGICO
+   ========================================================= */
+.estrategia-area{
+    margin:26px 0;
+    padding:22px;
+    border-radius:22px;
+    background:radial-gradient(circle at top,rgba(255,0,160,.13),rgba(0,0,0,.18));
+    border:1px solid rgba(255,255,255,.11);
+}
+
+.estrategia-topo{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:18px;
+    margin-bottom:16px;
+}
+
+.estrategia-label{
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:1.3px;
+    opacity:.75;
+}
+
+.estrategia-progresso{
+    display:flex;
+    gap:7px;
+    margin-top:8px;
+}
+
+.estrategia-ponto{
+    width:34px;
+    height:7px;
+    border-radius:999px;
+    background:rgba(255,255,255,.11);
+}
+
+.estrategia-ponto.ativo{
+    background:linear-gradient(90deg,#ff00cc,#00d9ff);
+    box-shadow:0 0 12px rgba(255,0,204,.22);
+}
+
+.estrategia-score{
+    min-width:115px;
+    padding:12px 16px;
+    border-radius:16px;
+    text-align:center;
+    background:rgba(0,0,0,.26);
+    border:1px solid rgba(255,255,255,.10);
+}
+
+.estrategia-score small{
+    display:block;
+    font-size:9px;
+    letter-spacing:1px;
+    opacity:.65;
+}
+
+.estrategia-score strong{
+    display:block;
+    margin-top:3px;
+    font-size:30px;
+}
+
+.estrategia-feedback{
+    margin-bottom:16px;
+    padding:13px 15px;
+    border-radius:14px;
+    background:rgba(255,215,0,.07);
+    border:1px solid rgba(255,215,0,.16);
+    line-height:1.45;
+}
+
+.estrategia-opcoes{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+}
+
+.estrategia-card{
+    min-height:190px;
+    padding:18px 14px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.10);
+    background:rgba(0,0,0,.25);
+    color:inherit;
+    cursor:pointer;
+    transition:.22s;
+}
+
+.estrategia-card:hover{
+    transform:translateY(-5px);
+}
+
+.estrategia-card.risco-baixo:hover{
+    border-color:rgba(0,255,150,.45);
+    box-shadow:0 0 18px rgba(0,255,150,.08);
+}
+
+.estrategia-card.risco-medio:hover{
+    border-color:rgba(255,215,0,.45);
+    box-shadow:0 0 18px rgba(255,215,0,.08);
+}
+
+.estrategia-card.risco-alto:hover{
+    border-color:rgba(255,60,120,.50);
+    box-shadow:0 0 20px rgba(255,60,120,.10);
+}
+
+.estrategia-emoji{
+    font-size:33px;
+}
+
+.estrategia-card strong{
+    font-size:15px;
+}
+
+.estrategia-card small{
+    min-height:40px;
+    line-height:1.4;
+    opacity:.74;
+}
+
+.estrategia-card em{
+    margin-top:5px;
+    font-size:9px;
+    font-style:normal;
+    font-weight:900;
+    letter-spacing:1px;
+    opacity:.60;
+}
+
+.estrategia-historico{
+    margin-top:18px;
+    padding-top:16px;
+    border-top:1px solid rgba(255,255,255,.09);
+    text-align:left;
+}
+
+.estrategia-historico h3{
+    margin-bottom:9px;
+    font-size:13px;
+}
+
+.estrategia-historico p{
+    margin:5px 0;
+    font-size:11px;
+    line-height:1.4;
+    opacity:.72;
+}
+
+/* =========================================================
+   ⚡ DESEMPATE — SEQUÊNCIA LÓGICA
+   ========================================================= */
+.desempate-logica-cabecalho{
+    padding:20px;
+    border-radius:22px;
+    background:linear-gradient(135deg,rgba(255,190,40,.12),rgba(255,80,120,.08));
+    border:1px solid rgba(255,210,90,.22);
+    box-shadow:0 0 24px rgba(255,190,40,.08);
+}
+
+.desempate-logica-cabecalho > span{
+    display:inline-block;
+    margin-bottom:10px;
+    padding:7px 12px;
+    border-radius:999px;
+    background:rgba(255,210,90,.12);
+    color:#ffd76a;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:1px;
+}
+
+.desempate-logica-cabecalho h2{
+    margin:0 0 10px;
+    font-size:26px;
+    color:#fff;
+}
+
+.desempate-logica-cabecalho p{
+    margin:0 0 8px;
+    font-size:15px;
+    line-height:1.6;
+    color:rgba(255,255,255,.88);
+}
+
+.desempate-logica-cabecalho small{
+    color:rgba(255,255,255,.65);
+    font-size:12px;
+}
+
+.desempate-card{
+    border-color:rgba(255,210,90,.25);
+    box-shadow:0 0 26px rgba(255,210,90,.08);
+}
+
+.btn-desempate-logica{
+    background:linear-gradient(135deg,#ffb300,#ff5a5f,#ff2fb3);
+}
+
+@media(max-width:700px){
+    .logica-intro.premium{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .logica-opcoes{
+        grid-template-columns:1fr;
+    }
+
+    .estrategia-opcoes{
+        grid-template-columns:1fr;
+    }
+
+    .estrategia-card{
+        min-height:145px;
+    }
+}
+
+@media(max-width:500px){
+    .logica-card{
+        padding:18px;
+        border-radius:18px;
+    }
+
+    .logica-card-topo{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .logica-padrao{
+        font-size:23px;
+        line-height:1.5;
+    }
+
+    .logica-opcao span{
+        min-height:58px;
+        font-size:16px;
+    }
+
+    .btn-confirmar-logica{
+        font-size:15px;
+        min-height:54px;
+    }
+
+    .desempate-logica-cabecalho h2{
+        font-size:22px;
+    }
+
+    .estrategia-topo{
+        align-items:flex-start;
+    }
+
+    .estrategia-score{
+        min-width:95px;
+    }
+}
+
+/* =========================================================
+   🎯 CAMINHO ESTRATÉGICO — REFINO VISUAL
+   Deixa as escolhas mais legíveis e integradas ao visual do jogo.
+   ========================================================= */
+
+.estrategia-area{
+    margin:28px 0 22px;
+    padding:24px;
+    border-radius:24px;
+    background:
+        radial-gradient(circle at 15% 0%,rgba(255,0,145,.10),transparent 32%),
+        radial-gradient(circle at 90% 15%,rgba(0,210,255,.07),transparent 30%),
+        linear-gradient(155deg,rgba(15,13,35,.94),rgba(8,8,24,.96));
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:
+        0 18px 42px rgba(0,0,0,.26),
+        inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.estrategia-topo{
+    margin-bottom:20px;
+    padding-bottom:17px;
+    border-bottom:1px solid rgba(255,255,255,.075);
+}
+
+.estrategia-label{
+    color:rgba(255,255,255,.72);
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:1.5px;
+}
+
+.estrategia-progresso{
+    gap:6px;
+    margin-top:9px;
+}
+
+.estrategia-ponto{
+    width:42px;
+    height:6px;
+    background:rgba(255,255,255,.09);
+}
+
+.estrategia-ponto.ativo{
+    background:linear-gradient(90deg,#ff2d8f,#a23cff,#18c8ff);
+    box-shadow:0 0 14px rgba(211,45,255,.20);
+}
+
+.estrategia-score{
+    min-width:108px;
+    padding:11px 15px;
+    border-radius:15px;
+    background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.025));
+    border:1px solid rgba(255,255,255,.09);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.estrategia-score small{
+    color:rgba(255,255,255,.58);
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:1.2px;
+}
+
+.estrategia-score strong{
+    margin-top:4px;
+    font-size:28px;
+    line-height:1;
+    color:#fff;
+}
+
+.estrategia-feedback{
+    margin:0 0 16px;
+    padding:13px 15px;
+    border-radius:13px;
+    text-align:left;
+    font-size:13px;
+    line-height:1.5;
+    color:rgba(255,255,255,.87);
+    background:rgba(255,205,70,.055);
+    border:1px solid rgba(255,205,70,.14);
+}
+
+.estrategia-form{
+    margin:0;
+}
+
+.estrategia-opcoes{
+    display:flex;
+    flex-direction:column;
+    gap:11px;
+}
+
+/*
+   O card vira uma linha organizada:
+   [ ícone ] [ título + explicação ] [ risco ]
+*/
+.estrategia-card{
+    width:100%;
+    min-height:82px;
+    margin:0;
+    padding:14px 16px;
+
+    display:grid;
+    grid-template-columns:48px minmax(0,1fr) auto;
+    grid-template-areas:
+        "emoji titulo risco"
+        "emoji descricao risco";
+    column-gap:13px;
+    row-gap:3px;
+    align-items:center;
+
+    text-align:left;
+    border-radius:17px;
+    border:1px solid rgba(255,255,255,.09);
+    color:#fff;
+    background:
+        linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.018));
+    box-shadow:
+        0 8px 20px rgba(0,0,0,.15),
+        inset 0 1px 0 rgba(255,255,255,.025);
+
+    cursor:pointer;
+    transition:
+        transform .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease,
+        background .18s ease;
+}
+
+.estrategia-card:hover{
+    transform:translateY(-2px);
+    background:linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,255,255,.025));
+}
+
+.estrategia-card:active{
+    transform:translateY(0) scale(.995);
+}
+
+.estrategia-emoji{
+    grid-area:emoji;
+    width:46px;
+    height:46px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:13px;
+    font-size:22px;
+    background:rgba(255,255,255,.055);
+    border:1px solid rgba(255,255,255,.075);
+}
+
+.estrategia-card strong{
+    grid-area:titulo;
+    align-self:end;
+    display:block;
+    margin:0;
+    color:#fff;
+    font-size:14px;
+    font-weight:800;
+    line-height:1.25;
+    letter-spacing:.05px;
+}
+
+.estrategia-card small{
+    grid-area:descricao;
+    align-self:start;
+    display:block;
+    min-height:0;
+    margin:0;
+    color:rgba(255,255,255,.64);
+    font-size:11px;
+    font-weight:500;
+    line-height:1.35;
+}
+
+.estrategia-card em{
+    grid-area:risco;
+    justify-self:end;
+    margin:0;
+    padding:7px 10px;
+    border-radius:999px;
+    font-size:9px;
+    font-style:normal;
+    font-weight:900;
+    line-height:1;
+    letter-spacing:.85px;
+    white-space:nowrap;
+    opacity:1;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+}
+
+/* BAIXO */
+.estrategia-card.risco-baixo{
+    border-color:rgba(42,214,142,.14);
+}
+
+.estrategia-card.risco-baixo .estrategia-emoji{
+    background:rgba(42,214,142,.075);
+    border-color:rgba(42,214,142,.12);
+}
+
+.estrategia-card.risco-baixo em{
+    color:#75e8b6;
+    background:rgba(42,214,142,.075);
+    border-color:rgba(42,214,142,.14);
+}
+
+.estrategia-card.risco-baixo:hover{
+    border-color:rgba(42,214,142,.34);
+    box-shadow:0 10px 24px rgba(0,0,0,.18),0 0 18px rgba(42,214,142,.055);
+}
+
+/* MÉDIO */
+.estrategia-card.risco-medio{
+    border-color:rgba(255,197,70,.14);
+}
+
+.estrategia-card.risco-medio .estrategia-emoji{
+    background:rgba(255,197,70,.07);
+    border-color:rgba(255,197,70,.12);
+}
+
+.estrategia-card.risco-medio em{
+    color:#ffd776;
+    background:rgba(255,197,70,.075);
+    border-color:rgba(255,197,70,.14);
+}
+
+.estrategia-card.risco-medio:hover{
+    border-color:rgba(255,197,70,.34);
+    box-shadow:0 10px 24px rgba(0,0,0,.18),0 0 18px rgba(255,197,70,.05);
+}
+
+/* ALTO */
+.estrategia-card.risco-alto{
+    border-color:rgba(255,79,132,.15);
+}
+
+.estrategia-card.risco-alto .estrategia-emoji{
+    background:rgba(255,79,132,.075);
+    border-color:rgba(255,79,132,.13);
+}
+
+.estrategia-card.risco-alto em{
+    color:#ff91b3;
+    background:rgba(255,79,132,.08);
+    border-color:rgba(255,79,132,.15);
+}
+
+.estrategia-card.risco-alto:hover{
+    border-color:rgba(255,79,132,.38);
+    box-shadow:0 10px 24px rgba(0,0,0,.18),0 0 20px rgba(255,79,132,.06);
+}
+
+.estrategia-historico{
+    margin-top:17px;
+    padding:15px 16px 3px;
+    border-top:1px solid rgba(255,255,255,.075);
+    text-align:left;
+}
+
+.estrategia-historico h3{
+    margin:0 0 9px;
+    color:rgba(255,255,255,.86);
+    font-size:12px;
+}
+
+.estrategia-historico p{
+    margin:6px 0;
+    color:rgba(255,255,255,.58);
+    font-size:11px;
+    line-height:1.45;
+}
+
+@media(max-width:620px){
+    .estrategia-area{
+        padding:18px;
+        border-radius:20px;
+    }
+
+    .estrategia-topo{
+        align-items:flex-start;
+    }
+
+    .estrategia-card{
+        min-height:0;
+        padding:14px;
+        grid-template-columns:42px minmax(0,1fr);
+        grid-template-areas:
+            "emoji titulo"
+            "emoji descricao"
+            "risco risco";
+    }
+
+    .estrategia-emoji{
+        width:40px;
+        height:40px;
+        font-size:20px;
+    }
+
+    .estrategia-card em{
+        justify-self:start;
+        margin-top:7px;
+    }
+}

@@ -1181,5 +1181,17 @@ function integrarVencedoresCasaVidroV2(
         )
         . ' entraram oficialmente na casa pela Casa de Vidro durante a Festa da Rodada 3.';
 
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'entrada_especial',
+            'Entrada pela Casa de Vidro',
+            implode(' e ', $nomesEntrantes) . ' entraram oficialmente na casa.',
+            $nomesEntrantes,
+            '🚪',
+            (int)($_SESSION['rodada'] ?? 3),
+            'casa_vidro_entrada'
+        );
+    }
+
     return true;
 }

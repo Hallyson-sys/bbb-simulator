@@ -2705,3 +2705,284 @@ max-height: 520px !important;
 overflow-y: auto !important;
 }
 }
+/* =========================================================
+   🔥 JOGO DA DISCÓRDIA 2.0
+   ========================================================= */
+
+.discordia-cabecalho {
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    padding: 26px 24px;
+    margin-bottom: 22px;
+    background:
+        radial-gradient(circle at 15% 10%, rgba(255, 0, 102, .17), transparent 35%),
+        radial-gradient(circle at 85% 85%, rgba(114, 0, 255, .17), transparent 34%),
+        rgba(8, 8, 22, .72);
+    border: 1px solid rgba(255, 255, 255, .10);
+}
+
+.discordia-cabecalho::after {
+    content: "";
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ff0066, #9b38ff, transparent);
+    opacity: .75;
+}
+
+.discordia-cabecalho-filme {
+    background:
+        linear-gradient(135deg, rgba(255, 174, 0, .10), transparent 42%),
+        radial-gradient(circle at 85% 20%, rgba(255, 0, 102, .18), transparent 36%),
+        rgba(8, 8, 22, .82);
+}
+
+.discordia-selo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    margin-bottom: 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .10);
+    background: rgba(255, 255, 255, .06);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    opacity: .88;
+}
+
+.discordia-cabecalho h3 {
+    margin: 0 0 8px;
+    font-size: clamp(24px, 3vw, 34px);
+}
+
+.discordia-cabecalho p {
+    margin: 0 auto;
+    max-width: 680px;
+    opacity: .78;
+}
+
+.discordia-form {
+    display: grid;
+    gap: 18px;
+}
+
+.discordia-filme-abertura {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 204, 0, .18);
+    background: linear-gradient(135deg, rgba(255, 204, 0, .08), rgba(255, 0, 102, .06));
+}
+
+.discordia-claquete {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    border-radius: 17px;
+    font-size: 30px;
+    background: rgba(0, 0, 0, .28);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+
+.discordia-filme-abertura strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 17px;
+}
+
+.discordia-filme-abertura p {
+    margin: 0;
+    opacity: .72;
+}
+
+.discordia-categorias-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.discordia-categoria-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 205px;
+    padding: 18px;
+    border-radius: 20px;
+    background: rgba(11, 11, 29, .74);
+    border: 1px solid rgba(255, 255, 255, .10);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .18);
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.discordia-categoria-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, .19);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .26);
+}
+
+.discordia-card-positivo::before,
+.discordia-card-negativo::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+}
+
+.discordia-card-positivo::before {
+    background: linear-gradient(180deg, #00f0c8, #6e5cff);
+}
+
+.discordia-card-negativo::before {
+    background: linear-gradient(180deg, #ff376d, #b200ff);
+}
+
+.discordia-categoria-topo {
+    display: flex;
+    gap: 13px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.discordia-categoria-emoji {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .08);
+    font-size: 24px;
+}
+
+.discordia-categoria-card h4 {
+    margin: 1px 0 5px;
+    font-size: 17px;
+}
+
+.discordia-categoria-card p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    opacity: .70;
+}
+
+.discordia-select-label {
+    display: block;
+    margin: 0 0 7px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    opacity: .62;
+}
+
+.discordia-categoria-select {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 13px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 13px;
+    outline: none;
+    background: #101022;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.discordia-categoria-select:focus {
+    border-color: rgba(183, 78, 255, .72);
+    box-shadow: 0 0 0 3px rgba(160, 0, 255, .12);
+}
+
+.discordia-categoria-select option:disabled {
+    color: #707080;
+}
+
+.discordia-grid-filme .discordia-categoria-card:nth-child(1) {
+    box-shadow: inset 0 0 28px rgba(255, 196, 0, .035), 0 10px 28px rgba(0, 0, 0, .18);
+}
+
+.discordia-grid-filme .discordia-categoria-card:nth-child(2) {
+    box-shadow: inset 0 0 28px rgba(255, 0, 85, .045), 0 10px 28px rgba(0, 0, 0, .18);
+}
+
+.discordia-aviso-escolhas {
+    padding: 11px 14px;
+    border-radius: 13px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .07);
+    text-align: center;
+    font-size: 12px;
+    opacity: .70;
+}
+
+.discordia-confirmar {
+    margin-top: 2px;
+}
+
+@media (max-width: 760px) {
+    .discordia-categorias-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .discordia-filme-abertura {
+        align-items: flex-start;
+    }
+
+    .discordia-categoria-card {
+        min-height: auto;
+    }
+}
+
+/* =========================================================
+   👤 ACESSO AO PERFIL DO PARTICIPANTE
+   ========================================================= */
+
+.perfil-participante-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    margin-top: 10px;
+    padding: 7px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    background: linear-gradient(135deg, rgba(255, 0, 122, .20), rgba(122, 0, 255, .24), rgba(0, 212, 255, .18));
+    color: #fff;
+    text-decoration: none;
+    font-size: 10.5px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: .15px;
+    white-space: nowrap;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10), 0 6px 14px rgba(0, 0, 0, .20);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.perfil-participante-btn:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0, 212, 255, .55);
+    background: linear-gradient(135deg, rgba(255, 0, 122, .34), rgba(122, 0, 255, .38), rgba(0, 212, 255, .30));
+    box-shadow: 0 8px 18px rgba(122, 0, 255, .22), 0 0 14px rgba(0, 212, 255, .14);
+}
+
+.perfil-participante-btn:active {
+    transform: scale(.97);
+}
+
+.relacao-percebida-card {
+    font-weight: 600;
+}

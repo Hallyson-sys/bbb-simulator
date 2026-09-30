@@ -13,6 +13,10 @@
 
     <h2>🎮 Controle da Semana</h2>
 
+    <div style="margin-bottom: 14px;">
+        <a href="temporada.php" class="btn" style="display:inline-block;text-decoration:none;">📖 Temporada</a>
+    </div>
+
     <div class="box">
         🎯 Fase atual:
         <b>

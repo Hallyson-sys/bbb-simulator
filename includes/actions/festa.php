@@ -221,6 +221,18 @@ if ($acao == 'pedir_namoro' && $alvo) {
             ajustarRelacaoJogador($alvo, 8);
 
             $evento = "💍 $meuNome pediu $alvo em namoro... e $alvo aceitou! Nasce um casal na casa.";
+
+            if (function_exists('registrarHistoricoTemporada')) {
+                registrarHistoricoTemporada(
+                    'romance_oficial',
+                    'Romance oficial',
+                    "$meuNome pediu $alvo em namoro, e o pedido foi aceito.",
+                    [$meuNome, $alvo],
+                    '💕',
+                    null,
+                    'namoro'
+                );
+            }
         } else {
             alterarRomance($jogadores, $meuNome, $alvo, -6);
             alterarRomance($jogadores, $alvo, $meuNome, -4);

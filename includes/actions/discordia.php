@@ -155,6 +155,81 @@ if (isset($_POST['fazer_discordia'])) {
 
 
     /* =========================
+       🎬/🎭 TEMAS COM CATEGORIAS
+    ========================= */
+
+    if (function_exists('temaDiscordiaEhCategorias') && temaDiscordiaEhCategorias($tema)) {
+        $configTema = configuracaoTemaDiscordia($tema);
+        $categorias = $configTema['categorias'] ?? [];
+        $escolhas = [];
+        $usados = [];
+        $erroCategorias = '';
+
+        foreach ($categorias as $chaveCategoria => $categoria) {
+            $campo = 'categoria_' . $chaveCategoria;
+            $alvo = trim((string)($_POST[$campo] ?? ''));
+            $permiteSi = !empty($categoria['permite_si']);
+
+            if ($alvo === '') {
+                $erroCategorias = 'Escolha um participante para todas as categorias.';
+                break;
+            }
+
+            if (nomeIgual($alvo, $meuNome) && !$permiteSi) {
+                $erroCategorias = 'Você não pode escolher a si mesmo nessa categoria.';
+                break;
+            }
+
+            if (in_array($alvo, $usados, true)) {
+                $erroCategorias = 'Use participantes diferentes em cada categoria.';
+                break;
+            }
+
+            $escolhas[$chaveCategoria] = $alvo;
+            $usados[] = $alvo;
+        }
+
+        if ($erroCategorias !== '') {
+            $_SESSION['evento_extra'][] = '⚠️ ' . $erroCategorias;
+            header('Location: jogo.php');
+            exit;
+        }
+
+        $partesEvento = [];
+
+        foreach ($escolhas as $chaveCategoria => $alvo) {
+            $categoria = $categorias[$chaveCategoria] ?? [];
+            $efeito = $categoria['efeito'] ?? 'negativo';
+
+            if (!nomeIgual($alvo, $meuNome)) {
+                aplicarEfeitoCategoriaDiscordia(
+                    $jogadores,
+                    $meuNome,
+                    $alvo,
+                    $efeito,
+                    'discordia|' .
+                    ($_SESSION['rodada'] ?? 1) .
+                    '|' . $tema . '|' . $chaveCategoria . '|' .
+                    $meuNome . '|' . $alvo,
+                    $meuNome . ' colocou ' . $alvo . ' como ' . ($categoria['nome'] ?? $chaveCategoria) . ' no Jogo da Discórdia.'
+                );
+
+                if (function_exists('registrarRelacaoMarcante')) {
+                    registrarRelacaoMarcante($jogadores, $meuNome, $alvo);
+                    registrarRelacaoMarcante($jogadores, $alvo, $meuNome);
+                }
+            }
+
+            $partesEvento[] = ($categoria['emoji'] ?? '•') . ' ' .
+                ($categoria['nome'] ?? $chaveCategoria) . ': ' . $alvo;
+        }
+
+        $evento = ($configTema['titulo'] ?? '🔥 Jogo da Discórdia') .
+            ' — ' . $meuNome . ': ' . implode(' | ', $partesEvento) . '.';
+    }
+
+
+    /* =========================
        🏆 PÓDIO
     ========================= */
 

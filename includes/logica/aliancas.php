@@ -152,6 +152,18 @@ function criarAliancaEntre(&$jogadores, $nomeA, $nomeB, $nomeAlianca = null)
     alterarAfinidade($jogadores, $nomeA, $nomeB, 8, -4, 10);
     alterarAfinidade($jogadores, $nomeB, $nomeA, 8, -4, 10);
 
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'alianca_criada',
+            'Nova aliança',
+            "$nomeA e $nomeB oficializaram a aliança $nomeAlianca.",
+            [$nomeA, $nomeB],
+            '🤝',
+            null,
+            'alianca_criada|' . $nomeAlianca
+        );
+    }
+
     return "🤝 $nomeA e $nomeB oficializaram a aliança <b>$nomeAlianca</b>.";
 }
 
@@ -172,6 +184,18 @@ function entrarEmAlianca(&$jogadores, $nome, $alianca)
             alterarAfinidade($jogadores, $nome, $membro['nome'], 5, -2, 6);
             alterarAfinidade($jogadores, $membro['nome'], $nome, 4, -2, 5);
         }
+    }
+
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'alianca_entrada',
+            'Mudança de aliança',
+            "$nome entrou para a aliança $alianca.",
+            [$nome],
+            '🤝',
+            null,
+            'entrada|' . $alianca . '|' . $nome
+        );
     }
 
     return "🤝 $nome entrou para a aliança <b>$alianca</b>.";
@@ -195,6 +219,18 @@ function romperAlianca(&$jogadores, $nome, $motivo = "a confiança desmoronou")
             alterarAfinidade($jogadores, $nome, $membro['nome'], -8, 8, -10);
             alterarAfinidade($jogadores, $membro['nome'], $nome, -6, 6, -8);
         }
+    }
+
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'alianca_rompida',
+            'Aliança rompida',
+            "$nome saiu da aliança $alianca porque $motivo.",
+            [$nome],
+            '💥',
+            null,
+            'rompimento|' . $alianca . '|' . $nome
+        );
     }
 
     return "💥 $nome rompeu com a aliança <b>$alianca</b>: $motivo.";

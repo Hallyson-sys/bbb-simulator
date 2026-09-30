@@ -64,6 +64,19 @@ $totalPostsFeed = count(
 
             <button
                 type="button"
+                class="header-save-btn"
+                id="btnAbrirSave2"
+                onclick="abrirSave2()"
+            >
+                <span class="header-save-icon">💾</span>
+                <span class="header-save-info">
+                    <strong id="saveStatusTexto">Save</strong>
+                    <small id="saveStatusHora">Preparando autosave...</small>
+                </span>
+            </button>
+
+            <button
+                type="button"
                 class="header-feed-btn"
                 onclick="abrirFeedPublico()"
             >

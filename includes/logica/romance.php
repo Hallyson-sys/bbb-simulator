@@ -408,6 +408,18 @@ function tentarPedidoNamoroNPC(
         );
 
 
+        if (function_exists('registrarHistoricoTemporada')) {
+            registrarHistoricoTemporada(
+                'romance_oficial',
+                'Romance oficial',
+                "$nomeNPC pediu $nomeAlvo em namoro, e o pedido foi aceito.",
+                [$nomeNPC, $nomeAlvo],
+                '💕',
+                null,
+                'namoro'
+            );
+        }
+
         return
             "💍 $nomeNPC pediu $nomeAlvo em namoro, e o pedido foi aceito!";
     }

@@ -5,6 +5,17 @@
 /** @var string $meuNome */
 /** @var array $EMOJIS_QUERIDOMETRO */
 
+$sugestoesQueridometro =
+    $_SESSION['queridometro_sugestao'] ?? [];
+
+$previewQueridometroAtivo =
+    !empty($_SESSION['queridometro_preview_ativo']);
+
+$erroQueridometro =
+    $_SESSION['queridometro_erro'] ?? '';
+
+unset($_SESSION['queridometro_erro']);
+
 ?>
 
 <?php if ($fase == 'queridometro' && !isset($_SESSION['queridometro_feito'])): ?>
@@ -16,10 +27,29 @@
                 <h2>💖 Queridômetro da Casa</h2>
                 <p>
                     Escolha um emoji para cada participante.
-                    Isso muda principalmente sua relação com eles.
+                    Você pode preencher automaticamente e revisar tudo antes de enviar.
                 </p>
             </div>
         </div>
+
+        <?php if ($previewQueridometroAtivo): ?>
+            <div class="queridometro-preview-aviso">
+                <span>✨</span>
+                <div>
+                    <strong>Sugestões automáticas preenchidas!</strong>
+                    <small>
+                        Os emojis abaixo foram escolhidos com base nas suas relações atuais.
+                        Você pode trocar qualquer um antes de confirmar.
+                    </small>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($erroQueridometro !== ''): ?>
+            <div class="queridometro-erro">
+                ⚠️ <?php echo htmlspecialchars($erroQueridometro); ?>
+            </div>
+        <?php endif; ?>
 
         <details class="legenda-box" open>
 
@@ -71,6 +101,9 @@
                         $classe = 'negativo';
                     }
 
+                    $emojiSugerido =
+                        $sugestoesQueridometro[$nome] ?? '';
+
                     ?>
 
                     <div class="card-querido <?php echo $classe; ?>">
@@ -80,11 +113,11 @@
                             <div>
 
                                 <h3>
-                                    <?php echo $nome; ?>
+                                    <?php echo htmlspecialchars($nome); ?>
                                 </h3>
 
                                 <span>
-                                    <?php echo $j['personalidade'] ?? 'Participante'; ?>
+                                    <?php echo htmlspecialchars($j['personalidade'] ?? 'Participante'); ?>
                                 </span>
 
                             </div>
@@ -99,12 +132,13 @@
 
                             <?php foreach ($EMOJIS_QUERIDOMETRO as $emoji => $dados): ?>
 
-                                <label title="<?php echo $dados['nome']; ?>">
+                                <label title="<?php echo htmlspecialchars($dados['nome']); ?>">
 
                                     <input
                                         type="radio"
-                                        name="queridometro[<?php echo $nome; ?>]"
-                                        value="<?php echo $emoji; ?>"
+                                        name="queridometro[<?php echo htmlspecialchars($nome, ENT_QUOTES); ?>]"
+                                        value="<?php echo htmlspecialchars($emoji, ENT_QUOTES); ?>"
+                                        <?php echo $emojiSugerido === $emoji ? 'checked' : ''; ?>
                                         required
                                     >
 
@@ -124,22 +158,28 @@
 
             </div>
 
-            <button
-                type="submit"
-                name="auto_queridometro"
-                class="btn-confirmar-querido"
-                formnovalidate
-            >
-                ⚡ Preencher Automaticamente pelo Relacionamento
-            </button>
+            <div class="queridometro-acoes">
 
-            <button
-                type="submit"
-                name="enviar_queridometro"
-                class="btn-confirmar-querido"
-            >
-                💟 Enviar Queridômetro Manualmente
-            </button>
+                <button
+                    type="submit"
+                    name="auto_queridometro_preview"
+                    class="btn-confirmar-querido btn-auto-querido"
+                    formnovalidate
+                >
+                    ⚡ Preencher Automaticamente
+                    <small>Usa suas relações atuais, mas não envia ainda</small>
+                </button>
+
+                <button
+                    type="submit"
+                    name="enviar_queridometro"
+                    class="btn-confirmar-querido btn-enviar-querido"
+                >
+                    💟 Enviar Queridômetro
+                    <small>Confirma exatamente os emojis selecionados acima</small>
+                </button>
+
+            </div>
 
         </form>
 
@@ -182,7 +222,7 @@
                 <div class="resultado-querido-card">
 
                     <h3>
-                        <?php echo $nomeQ; ?>
+                        <?php echo htmlspecialchars($nomeQ); ?>
                     </h3>
 
                     <?php if (!empty($resultadoQ)): ?>

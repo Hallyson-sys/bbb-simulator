@@ -948,6 +948,12 @@ function simularRodadaEspectador(
                 $eliminado
             )
         ) {
+            if (!isset($_SESSION['participantes_eliminados_dados']) || !is_array($_SESSION['participantes_eliminados_dados'])) {
+                $_SESSION['participantes_eliminados_dados'] = [];
+            }
+
+            $_SESSION['participantes_eliminados_dados'][$eliminado] = $j;
+
             unset($jogadores[$i]);
             break;
         }

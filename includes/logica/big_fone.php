@@ -1069,4 +1069,21 @@ function finalizarAtendimentoBigFone(
 
     $_SESSION['bigfone_aconteceu_rodada'] =
         $_SESSION['rodada'] ?? 1;
+
+    if (function_exists('registrarHistoricoTemporada')) {
+        $descricaoHistorico = "$atendente atendeu ao Big Fone.";
+        if ($textoPoder != '') {
+            $descricaoHistorico .= ' ' . trim(strip_tags($textoPoder));
+        }
+
+        registrarHistoricoTemporada(
+            'big_fone',
+            'Big Fone',
+            $descricaoHistorico,
+            [$atendente],
+            '☎️',
+            null,
+            'big_fone'
+        );
+    }
 }

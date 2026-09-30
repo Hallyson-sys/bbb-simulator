@@ -121,6 +121,18 @@ if (isset($_POST['definir_vip'])) {
     $_SESSION['evento_extra'][] =
         "🍞 Xepa: " . implode(", ", $xepaLista) . ".";
 
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'vip_xepa',
+            'VIP e Xepa',
+            'VIP: ' . implode(', ', $vipLista) . '. Xepa: ' . implode(', ', $xepaLista) . '.',
+            array_merge($vipLista, $xepaLista),
+            '🍽️',
+            null,
+            'vip_xepa'
+        );
+    }
+
     header("Location: jogo.php");
     exit;
 }
@@ -217,6 +229,18 @@ if (isset($_POST['definir_monstro'])) {
         implode(" e ", $selecionados) .
         ".";
 
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'monstro',
+            'Castigo do Monstro',
+            "$anjo escolheu " . implode(' e ', $selecionados) . ' para o Monstro.',
+            array_merge([$anjo], $selecionados),
+            '👹',
+            null,
+            'monstro'
+        );
+    }
+
     header("Location: jogo.php");
     exit;
 }
@@ -274,6 +298,18 @@ if (isset($_POST['definir_imunidade_anjo'])) {
         "🛡️ O Anjo " .
         $_SESSION['anjo'] .
         " imunizou $imunizado antes da formação do paredão.";
+
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'imunidade',
+            'Imunidade do Anjo',
+            ($_SESSION['anjo'] ?? 'O Anjo') . " imunizou $imunizado.",
+            [$_SESSION['anjo'] ?? '', $imunizado],
+            '🛡️',
+            null,
+            'imunidade_anjo'
+        );
+    }
 
     $_SESSION['fase_semana'] = 'paredao';
 

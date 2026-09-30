@@ -65,18 +65,25 @@ $statusRomanceCard = statusRomance(
 );
 ?>
 
-<p class="afinidade-card">
-    ❤️ Afinidade: <?php echo $relacaoComVoce; ?>
+<?php
+$relacaoVisualCard = function_exists('relacaoPercebidaComJogadorPerfil')
+    ? relacaoPercebidaComJogadorPerfil($jogadores, $j, $meuNome)
+    : [
+        'icone' => '😶',
+        'texto' => 'Clima indefinido'
+    ];
+?>
+
+<p class="afinidade-card relacao-percebida-card">
+    <?php echo htmlspecialchars($relacaoVisualCard['icone'] ?? '😶', ENT_QUOTES, 'UTF-8'); ?>
+    <?php echo htmlspecialchars($relacaoVisualCard['texto'] ?? 'Clima indefinido', ENT_QUOTES, 'UTF-8'); ?>
 </p>
 
+<?php if ($statusRomanceCard != ''): ?>
 <p class="romance-card">
-    💕 Romance: <?php echo $romanceComVoce; ?>
-    <?php
-    if ($statusRomanceCard != '') {
-        echo " — " . $statusRomanceCard;
-    }
-    ?>
+    <?php echo htmlspecialchars($statusRomanceCard, ENT_QUOTES, 'UTF-8'); ?>
 </p>
+<?php endif; ?>
 
 <?php endif; ?>
 
@@ -91,6 +98,10 @@ $statusRomanceCard = statusRomance(
     <?php if (!empty($j['alianca'])) echo "<div class='alianca-status'>🤝 " . $j['alianca'] . "</div>"; ?>
 
 </div>
+
+<a class="perfil-participante-btn" href="perfil.php?nome=<?php echo rawurlencode($j['nome'] ?? ''); ?>">
+    👤 Perfil
+</a>
 
             </div>
 

@@ -1,11 +1,10 @@
 <?php
 
 /* =========================================================
-   😇 ACTION — PROVA DO ANJO
+   😇 ACTION — PROVA DO ANJO 2.0
    ========================================================= */
 
 require_once __DIR__ . '/../logica/premios_provas.php';
-
 
 if (
     !isset($jogadores) ||
@@ -18,8 +17,12 @@ if (
     return;
 }
 
-
+/* Permite abrir a tela de resultado depois que a prova já foi encerrada. */
 if (provaAnjoFinalizadaNaRodadaAtual()) {
+    if (!empty($_GET['resultado']) && !empty($_SESSION['resultado_prova_anjo'])) {
+        return;
+    }
+
     if (($_SESSION['fase_semana'] ?? '') === 'anjo') {
         $_SESSION['fase_semana'] = 'monstro';
     }
@@ -28,12 +31,8 @@ if (provaAnjoFinalizadaNaRodadaAtual()) {
     exit;
 }
 
-
 if (empty($participantes)) {
-    if (
-        !isset($_SESSION['evento_extra']) ||
-        !is_array($_SESSION['evento_extra'])
-    ) {
+    if (!isset($_SESSION['evento_extra']) || !is_array($_SESSION['evento_extra'])) {
         $_SESSION['evento_extra'] = [];
     }
 
@@ -50,38 +49,27 @@ if (empty($participantes)) {
     exit;
 }
 
+$dadosProvaAction = prepararProvaAnjo();
+$provaAction = $dadosProvaAction['prova'];
 
 /* =========================================================
-   👑 LÍDER NÃO PARTICIPA
+   👑 LÍDER NÃO PARTICIPA, MAS VÊ O RESULTADO
    ========================================================= */
 
 if ($meuNome === $lider) {
-    $campeaoNome =
-        sortearNPCAnjo(
-            $participantes,
-            $meuNome
-        );
+    $ranking = gerarRankingProvaAnjo($participantes, $meuNome, null);
+    $campeaoNome = (string)($ranking[0]['nome'] ?? '');
 
-    if (
-        !isset($_SESSION['evento_extra']) ||
-        !is_array($_SESSION['evento_extra'])
-    ) {
+    if (!isset($_SESSION['evento_extra']) || !is_array($_SESSION['evento_extra'])) {
         $_SESSION['evento_extra'] = [];
     }
 
     $_SESSION['evento_extra'][] =
         "👑 $lider já é Líder e ficou fora da Prova do Anjo.";
 
-    finalizarProvaAnjo(
-        $jogadores,
-        $campeaoNome,
-        $lider
-    );
+    finalizarProvaAnjo($jogadores, $campeaoNome, $lider);
+    salvarResultadoVisualProvaAnjo($ranking, $provaAction, $meuNome, false);
 
-    /*
-     * Normalmente será NPC neste caso.
-     * A função só paga se o campeão for o jogador.
-     */
     premiarMoedasPorProva(
         'anjo',
         $campeaoNome,
@@ -89,35 +77,26 @@ if ($meuNome === $lider) {
         15
     );
 
-    header('Location: jogo.php');
+    header('Location: prova_anjo.php?resultado=1');
     exit;
 }
-
 
 if (!isset($_POST['jogar'])) {
     return;
 }
 
-
 /* =========================================================
-   😇 RESOLVER PROVA
+   🎮 RESOLVER MINIGAME
    ========================================================= */
 
-$venceu =
-    jogadorVenceuProvaAnjo(
-        $_POST
-    );
+$pontuacaoJogador = normalizarPontuacaoJogadorAnjo($_POST);
+$ranking = gerarRankingProvaAnjo(
+    $participantes,
+    $meuNome,
+    $pontuacaoJogador
+);
 
-if ($venceu) {
-    $campeaoNome = $meuNome;
-} else {
-    $campeaoNome =
-        sortearNPCAnjo(
-            $participantes,
-            $meuNome
-        );
-}
-
+$campeaoNome = (string)($ranking[0]['nome'] ?? '');
 
 /* =========================================================
    🏆 FINALIZAR PROVA
@@ -129,11 +108,12 @@ finalizarProvaAnjo(
     $lider
 );
 
-
-/* =========================================================
-   🪙 BÔNUS POR VENCER A PROVA
-   Somente o jogador principal recebe.
-   ========================================================= */
+salvarResultadoVisualProvaAnjo(
+    $ranking,
+    $provaAction,
+    $meuNome,
+    true
+);
 
 premiarMoedasPorProva(
     'anjo',
@@ -142,6 +122,5 @@ premiarMoedasPorProva(
     15
 );
 
-
-header('Location: jogo.php');
+header('Location: prova_anjo.php?resultado=1');
 exit;

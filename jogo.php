@@ -1,428 +1,169 @@
 <?php
 
-
-
-
-
-
-
 ini_set('display_errors', 1);
 
-
-
 error_reporting(E_ALL);
-
-
-
-
-
-
 
 session_start();
 
 
-
 /* =========================================================
-
-
-
    🧭 NAVEGAÇÃO
-
-
-
    ========================================================= */
-
-
 
 require_once __DIR__ . '/includes/actions/navegacao.php';
 
-
-
 require_once __DIR__ . '/includes/helpers/render.php';
 
-
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
-   🧠 LÓGICA DO JOGO
-
-
-
+🧠 LÓGICA DO JOGO
    ========================================================= */
 
 
 
 require_once __DIR__ . '/includes/logica/utilitarios.php';
-
-
+require_once __DIR__ . '/includes/logica/historico_temporada.php';
+require_once __DIR__ . '/includes/logica/perfil_participante.php';
 
 require_once __DIR__ . '/includes/logica/semana.php';
 
-
-
 require_once __DIR__ . '/includes/logica/participantes.php';
-
-
 
 require_once __DIR__ . '/includes/logica/inicializacao.php';
 require_once __DIR__ . '/includes/logica/casa_vidro.php';
 require_once __DIR__ . '/includes/logica/paredao_falso.php';
 
-
-
 require_once __DIR__ . '/includes/logica/relacoes.php';
-
-
 
 require_once __DIR__ . '/includes/logica/popularidade.php';
 
-
-
 require_once __DIR__ . '/includes/logica/romance.php';
-
-
 
 require_once __DIR__ . '/includes/logica/aliancas.php';
 
-
-
 require_once __DIR__ . '/includes/logica/inteligencia_npc.php';
-
-
 
 require_once __DIR__ . '/includes/logica/curinga.php';
 
-
-
 require_once __DIR__ . '/includes/logica/big_fone.php';
-
-
 
 require_once __DIR__ . '/includes/logica/bate_volta.php';
 
-
-
 require_once __DIR__ . '/includes/logica/paredao.php';
-
-
 
 require_once __DIR__ . '/includes/logica/loja_publico.php';
 
-
-
 require_once __DIR__ . '/includes/logica/interacoes.php';
-
-
 
 require_once __DIR__ . '/includes/logica/discordia.php';
 
-
-
 require_once __DIR__ . '/includes/logica/festa.php';
-
-
 
 require_once __DIR__ . '/includes/logica/confessionario.php';
 
-
-
 require_once __DIR__ . '/includes/logica/fofoca_vt.php';
-
-
 
 require_once __DIR__ . '/includes/logica/queridometro.php';
 
-
-
 require_once __DIR__ . '/includes/logica/feed_publico.php';
-
-
 
 require_once __DIR__ . '/includes/logica/feed_inteligente.php';
 
-
-
 require_once __DIR__ . '/includes/logica/espectador.php';
 
-
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    🔄 FLUXO DO JOGO
-
-
-
    ========================================================= */
-
-
 
 require_once __DIR__ . '/includes/fluxo/estado_fases.php';
 
-
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    👥 CARREGAR E PREPARAR PARTICIPANTES
-
-
-
    ========================================================= */
-
-
 
 if (!isset($_SESSION['jogadores'])) {
 
-
-
     header('Location: index.php');
-
-
 
     exit;
 
-
-
 }
-
-
-
-
-
-
 
 $jogadores = $_SESSION['jogadores'];
 
-
-
 $meuNome = trim($_SESSION['meu_nome'] ?? '');
-
-
-
-
-
-
 
 if (
 
-
-
     !empty($_SESSION['paredao_falso_ativo']) &&
-
-
 
     ($_SESSION['fase_semana'] ?? '') === 'quarto_secreto' &&
 
-
-
     !empty($_SESSION['falso_eliminado']) &&
-
-
 
     nomeIgual(
 
-
-
         $_SESSION['falso_eliminado'],
-
-
 
         $meuNome
 
-
-
     )
-
-
 
 ) {
 
-
-
     header('Location: quarto_secreto.php');
-
-
 
     exit;
 
-
-
 }
-
-
-
-
-
-
 
 removerParticipantesDuplicados(
 
-
-
     $jogadores,
-
-
 
     $meuNome
 
-
-
 );
-
-
-
-
-
-
 
 garantirEstruturaParticipantes(
 
-
-
     $jogadores
 
-
-
 );
-
-
-
-
-
-
 
 $_SESSION['jogadores'] = $jogadores;
 
-
-
-
-
-
-
 $rodada = $_SESSION['rodada'] ?? 1;
-
-
-
-
-
-
 
 $meuJogadorAtual = atualizarEstadoDoMeuJogador(
 
-
-
     $jogadores,
-
-
 
     $meuNome
 
-
-
 );
-
-
-
-
-
-
 
 garantirRelacoesIniciaisJogador(
 
-
-
     $jogadores,
-
-
 
     $meuNome
 
-
-
 );
 
-
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    📅 ESTADO DA SEMANA
-
-
-
    ========================================================= */
-
-
 
 garantirEstadoSemana();
 
-
-
-
-
-
-
 $fase = $_SESSION['fase_semana'];
-
-
-
-
-
-
 
 garantirInicioRodadaQueridometro(
 
-
-
     $fase
 
-
-
 );
-
-
-
-
-
-
 
 /* =========================================================
    🏠 CASA DE VIDRO 2.0
@@ -434,27 +175,11 @@ verificarFluxoCasaVidro(
     $rodada
 );
 
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    📣 GARANTIR O AO VIVO
-
-
-
    ========================================================= */
 
-
-
 if (
-
 
 
     !isset($_SESSION['evento_extra']) ||
@@ -476,23 +201,8 @@ if (
 }
 
 
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    🪙 MOEDAS DO PÚBLICO
-
-
-
    ========================================================= */
 
 
@@ -506,10 +216,6 @@ if (!isset($_SESSION['moedas_publico'])) {
 
 
 }
-
-
-
-
 
 
 
@@ -528,23 +234,8 @@ $_SESSION['moedas_publico'] = max(
 );
 
 
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    🎥 LIMPAR FALAS ANTIGAS DO CONFESSIONÁRIO DO AO VIVO
-
-
-
    ========================================================= */
 
 
@@ -592,15 +283,6 @@ $_SESSION['evento_extra'] = array_values(
 );
 
 
-
-
-
-
-
-
-
-
-
 /* =========================================================
 
 
@@ -624,11 +306,6 @@ $qtdVIP = calcularQtdVIP(
 );
 
 
-
-
-
-
-
 sincronizarImunidadesGlobais(
 
 
@@ -640,17 +317,7 @@ sincronizarImunidadesGlobais(
 );
 
 
-
-
-
-
-
 $_SESSION['jogadores'] = $jogadores;
-
-
-
-
-
 
 
 verificarBonusMarcosMoedas(
@@ -664,11 +331,6 @@ verificarBonusMarcosMoedas(
 );
 
 
-
-
-
-
-
 $mostrarLojaPublico = lojaPublicoDisponivelRodada(
 
 
@@ -680,24 +342,9 @@ $mostrarLojaPublico = lojaPublicoDisponivelRodada(
 );
 
 
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    🔄 TRANSIÇÕES GERAIS DE FASE
-
-
-
-   ========================================================= */
+ ========================================================= */
 
 
 
@@ -711,12 +358,6 @@ prepararAcoesInteracoes(
 
 );
 
-
-
-
-
-
-
 processarDiscordiaConcluida(
 
 
@@ -726,12 +367,6 @@ processarDiscordiaConcluida(
 
 
 );
-
-
-
-
-
-
 
 processarEntradaEliminacao(
 
@@ -743,12 +378,6 @@ processarEntradaEliminacao(
 
 );
 
-
-
-
-
-
-
 processarEntradaQuartoSecreto(
 
 
@@ -758,12 +387,6 @@ processarEntradaQuartoSecreto(
 
 
 );
-
-
-
-
-
-
 
 prepararTemaDiscordia(
 
@@ -775,39 +398,15 @@ prepararTemaDiscordia(
 
 );
 
-
-
-
-
-
-
-
-
-
-
 /*
-
-
 
  * Retornos automáticos NÃO redirecionam.
 
-
-
  * Apenas sincronizam fase_semana.
-
-
 
  */
 
-
-
 require_once __DIR__ . '/includes/fluxo/retornos_automaticos.php';
-
-
-
-
-
-
 
 prepararEstadoConfessionario(
 
@@ -827,42 +426,15 @@ prepararEstadoConfessionario(
 
 );
 
-
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    🔄 RECARREGAR ESTADO APÓS OS FLUXOS
-
-
-
    ========================================================= */
-
 
 
 $jogadores = $_SESSION['jogadores'];
 
 
-
-
-
-
-
 $fase = $_SESSION['fase_semana'] ?? $fase;
-
-
-
-
-
 
 
 garantirMeuJogadorNaLista(
@@ -876,11 +448,6 @@ garantirMeuJogadorNaLista(
 );
 
 
-
-
-
-
-
 garantirEstruturaParticipantes(
 
 
@@ -892,11 +459,6 @@ garantirEstruturaParticipantes(
 );
 
 
-
-
-
-
-
 $meuNome = trim(
 
 
@@ -906,12 +468,6 @@ $meuNome = trim(
 
 
 );
-
-
-
-
-
-
 
 ordenarParticipantesParaExibicao(
 
@@ -927,18 +483,7 @@ ordenarParticipantesParaExibicao(
 
 );
 
-
-
-
-
-
-
 $_SESSION['jogadores'] = $jogadores;
-
-
-
-
-
 
 
 sincronizarFasesFinais(
@@ -955,175 +500,68 @@ sincronizarFasesFinais(
 
 );
 
-
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    🎮 ACTIONS
-
-
-
    ========================================================= */
 
 
 
 require_once __DIR__ . '/includes/actions/espectador.php';
 
-
-
 require_once __DIR__ . '/includes/actions/festa.php';
-
-
 
 require_once __DIR__ . '/includes/actions/interacoes.php';
 
-
-
 require_once __DIR__ . '/includes/actions/curinga.php';
-
-
 
 require_once __DIR__ . '/includes/actions/paredao.php';
 
-
-
 require_once __DIR__ . '/includes/actions/bate_volta.php';
-
-
 
 require_once __DIR__ . '/includes/actions/discordia.php';
 
-
-
-
-
-
-
 /*
-
-
 
  * IMPORTANTE:
 
-
-
  * VIP/Xepa de Líder NPC é processado somente aqui,
 
-
-
  * depois do clique em "Ver VIP e Xepa do Líder".
-
-
 
  */
 
 
-
 require_once __DIR__ . '/includes/actions/vip_xepa.php';
-
-
-
-
-
-
 
 require_once __DIR__ . '/includes/actions/avancar_fase.php';
 
-
-
 require_once __DIR__ . '/includes/actions/queridometro.php';
-
-
 
 require_once __DIR__ . '/includes/actions/controle_semana.php';
 
-
-
 require_once __DIR__ . '/includes/actions/loja_publico.php';
-
-
 
 require_once __DIR__ . '/includes/actions/feed_casa.php';
 
-
-
-
-
-
-
-
-
-
-
 /* =========================================================
-
-
-
    🤖 DECISÕES AUTOMÁTICAS DOS NPCs
-
-
-
-   ========================================================= */
-
-
+========================================================= */
 
 if (empty($_SESSION['modo_espectador'])) {
 
-
-
     require_once __DIR__ . '/includes/fluxo/decisoes_automaticas.php';
-
-
 
 }
 
-
-
-
-
-
-
 /* Recarrega o estado caso uma decisão automática tenha alterado a sessão. */
-
-
 
 $jogadores = $_SESSION['jogadores'] ?? $jogadores;
 
-
-
 $fase = $_SESSION['fase_semana'] ?? $fase;
 
-
-
-
-
-
-
 /* =========================================================
-
-
-
    📱 ATUALIZAR REAÇÃO DO PÚBLICO
-
-
-
    ========================================================= */
-
-
-
-
-
-
 
    atualizarFeedPublico(
 
@@ -1146,11 +584,6 @@ $fase = $_SESSION['fase_semana'] ?? $fase;
 
 
 );
-
-
-
-
-
 
 
 atualizarFeedPublicoInteligente(
@@ -1187,12 +620,6 @@ atualizarFeedPublicoInteligente(
 
 <html lang="pt-br">
 
-
-
-
-
-
-
 <head>
 
 
@@ -1215,27 +642,15 @@ atualizarFeedPublicoInteligente(
 
 <link rel="stylesheet" href="assets/css/feed_publico.css">
 
+<link rel="stylesheet" href="assets/css/save_2.css">
+
 
 
 </head>
 
-
-
-
-
-
-
 <body>
 
-
-
-
-
-
-
 <?php
-
-
 
 render('layout/header', [
 
@@ -1255,18 +670,7 @@ render('layout/header', [
 
 ?>
 
-
-
-
-
-
-
 <div class="container">
-
-
-
-
-
 
 
     <?php
@@ -1292,11 +696,6 @@ render('layout/header', [
     ?>
 
 
-
-
-
-
-
     <?php
 
 
@@ -1316,11 +715,6 @@ render('layout/header', [
     ) {
 
 
-
-
-
-
-
         render('components/jogador_eliminado', [
 
 
@@ -1336,17 +730,7 @@ render('layout/header', [
         ]);
 
 
-
-
-
-
-
     } elseif (!empty($_SESSION['modo_espectador'])) {
-
-
-
-
-
 
 
         render('components/espectador', [
@@ -1416,11 +800,6 @@ render('layout/header', [
     ?>
 
 
-
-
-
-
-
     <div class="right">
 
 
@@ -1468,24 +847,11 @@ render('layout/header', [
         ?>
 
 
-
-
-
-
-
     </div>
 
 
 
-
-
-
-
 </div>
-
-
-
-
 
 
 
@@ -1516,10 +882,7 @@ render('components/feed_publico', [
 ?>
 
 
-
-
-
-
+<?php render('components/save_2'); ?>
 
 <div class="popup-bg" id="popupReset">
 
@@ -1528,129 +891,55 @@ render('components/feed_publico', [
     <div class="popup-box">
 
 
-
-
-
-
-
         <h3>🔄 Novo Jogo</h3>
 
-
-
-
-
-
-
         <p>Deseja encerrar a temporada atual e começar tudo novamente?</p>
-
-
-
-
-
-
 
         <div class="popup-botoes">
 
 
-
-
-
-
-
             <button class="cancelar" onclick="fecharPopup()">
-
-
 
                 Cancelar
 
-
-
             </button>
 
-
-
-
-
-
-
-            <form method="POST" style="width:100%;" onsubmit="localStorage.removeItem('bbb_simulator_save_v1')">
-
-
+            <form method="POST" style="width:100%;" >
 
                 <button class="confirmar" name="novo_jogo">
 
-
-
                     Sim, Reiniciar
-
-
 
                 </button>
 
-
-
             </form>
-
-
-
-
-
-
 
         </div>
 
-
-
     </div>
-
-
 
 </div>
 
 
-
-
-
-
-
 <script>
-
-
 
 const qtdVIP = <?= $qtdVIP ?? 0 ?>;
 
-
-
 const acaoSelecionada = <?= json_encode($_SESSION['acao_selecionada'] ?? '') ?>;
-
-
 
 </script>
 
 
-
-
-
-
-
 <script src="assets/js/jogo.js"></script>
-
-
 
 <script src="assets/js/feed_publico.js"></script>
 
-
+<script src="assets/js/save_core.js"></script>
 
 <script src="assets/js/autosave.js"></script>
 
 
-
-
-
-
-
 </body>
-
 
 
 </html>

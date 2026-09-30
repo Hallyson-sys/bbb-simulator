@@ -6,6 +6,7 @@ error_reporting(E_ALL);
 session_start();
 
 require_once __DIR__ . '/includes/logica/utilitarios.php';
+require_once __DIR__ . '/includes/logica/historico_temporada.php';
 require_once __DIR__ . '/includes/logica/participantes.php';
 require_once __DIR__ . '/includes/logica/inicializacao.php';
 require_once __DIR__ . '/includes/logica/casa_vidro.php';
@@ -71,6 +72,16 @@ if (
 
     $_SESSION['evento_extra'][] =
         '🏠 A votação da Casa de Vidro está aberta. O resultado será revelado antes da Festa da Rodada 3.';
+
+    registrarHistoricoTemporada(
+        'casa_vidro',
+        'Casa de Vidro',
+        'A Casa de Vidro foi anunciada e o público começou a decidir quem entraria no jogo.',
+        [],
+        '🏠',
+        $rodada,
+        'anuncio'
+    );
 
     header('Location: jogo.php');
     exit;

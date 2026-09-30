@@ -429,6 +429,18 @@ function retornarFalsoEliminadoParaCasa(&$jogadores)
     $_SESSION['evento_extra'][] =
         "🚪 PAREDÃO FALSO! <b>$nome</b> voltou do Quarto Secreto para a casa.";
 
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'retorno_paredao_falso',
+            'Retorno do Quarto Secreto',
+            "$nome voltou para a casa depois do Paredão Falso.",
+            [$nome],
+            '🚪',
+            (int)($_SESSION['rodada'] ?? 1),
+            'retorno_paredao_falso'
+        );
+    }
+
     $_SESSION['paredao_falso_ativo'] = false;
     $_SESSION['paredao_falso_retorno_realizado'] = true;
     $_SESSION['paredao_falso_ultimo_retorno'] = $nome;

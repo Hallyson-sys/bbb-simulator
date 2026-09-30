@@ -28,41 +28,18 @@
         <div id="mensagemIndex" class="mensagem-index" hidden></div>
 
         <!-- =================================================
-             💾 SAVE LOCAL
+             💾 SAVE 2.0 - 3 SLOTS
         ================================================== -->
-        <section class="save-card-index" id="saveCardIndex" hidden>
-            <div class="save-card-topo">
-                <span class="save-icone">💾</span>
-
+        <section class="saves-index" id="savesIndex" hidden>
+            <div class="saves-index-titulo">
+                <span>💾</span>
                 <div>
-                    <small>TEMPORADA EM ANDAMENTO</small>
-                    <h2 id="saveNome">Seu jogo salvo</h2>
+                    <small>SUAS TEMPORADAS</small>
+                    <h2>Continuar jogo</h2>
                 </div>
             </div>
 
-            <div class="save-resumo">
-                <span id="saveRodada">🔥 Rodada -</span>
-                <span id="saveParticipantes">👥 - participantes</span>
-                <span id="saveData">🕒 Save recente</span>
-            </div>
-
-            <div class="save-botoes">
-                <button
-                    type="button"
-                    class="btn-save-continuar"
-                    onclick="continuarSaveBBB()"
-                >
-                    ▶ CONTINUAR TEMPORADA
-                </button>
-
-                <button
-                    type="button"
-                    class="btn-save-apagar"
-                    onclick="apagarSaveBBB()"
-                >
-                    🗑 Apagar Save
-                </button>
-            </div>
+            <div class="save-slots-index" id="saveSlotsIndex"></div>
         </section>
 
         <div class="separador-index" id="separadorIndex" hidden>
@@ -219,6 +196,7 @@
 
 </div>
 
+<script src="assets/js/save_core.js"></script>
 <script src="assets/js/index_save.js"></script>
 
 <script>
@@ -240,9 +218,6 @@ function entrarNaCasa(){
         );
         return;
     }
-
-    // Ao iniciar uma NOVA temporada, o save anterior deixa de valer.
-    localStorage.removeItem("bbb_simulator_save_v1");
 
     const overlay = document.getElementById("entradaCasa");
 

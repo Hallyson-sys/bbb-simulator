@@ -1,91 +1,40 @@
 <?php
 
 /* =========================================================
-   😇 LÓGICA DA PROVA DO ANJO
+   😇 LÓGICA DA PROVA DO ANJO — MINIGAMES 2.0
    ========================================================= */
 
 function obterProvasAnjo()
 {
     return [
         1 => [
-            'titulo' => '🔑 Chaves da Sorte',
-            'texto' => 'Escolha uma chave. A chave certa abre o colar do Anjo.',
-            'max' => 20,
-            'tipo' => 'select',
-            'label' => 'Chave'
+            'slug' => 'memoria',
+            'titulo' => '🧠 Memória do Anjo',
+            'texto' => 'Encontre todos os pares antes que o tempo pese contra você.',
+            'categoria' => 'Memória',
+            'dificuldade' => 'Média'
         ],
         2 => [
-            'titulo' => '⚡ Quiz Turbo',
-            'texto' => 'Responda corretamente para tentar conquistar o Anjo.',
-            'tipo' => 'quiz'
+            'slug' => 'caixas',
+            'titulo' => '🎁 Caixas Misteriosas',
+            'texto' => 'Escolha três caixas. Elas podem aumentar, manter ou reduzir sua pontuação.',
+            'categoria' => 'Sorte + estratégia',
+            'dificuldade' => 'Imprevisível'
         ],
         3 => [
-            'titulo' => '🎁 Presente Certo',
-            'texto' => 'Escolha um presente. Um deles guarda o colar do Anjo.',
-            'max' => 5,
-            'tipo' => 'botoes',
-            'label' => '🎁 Presente'
+            'slug' => 'sequencia',
+            'titulo' => '⚡ Sequência Relâmpago',
+            'texto' => 'Memorize os sinais e repita a ordem correta em três rodadas cada vez mais rápidas.',
+            'categoria' => 'Atenção',
+            'dificuldade' => 'Alta'
         ],
         4 => [
-            'titulo' => '🌟 Estrela Premiada',
-            'texto' => 'Escolha uma estrela. A estrela iluminada vence a prova.',
-            'max' => 4,
-            'tipo' => 'botoes',
-            'label' => '⭐ Estrela'
-        ],
-        5 => [
-            'titulo' => '🦋 Borboleta Azul',
-            'texto' => 'Escolha uma borboleta. Uma delas carrega o poder do Anjo.',
-            'max' => 3,
-            'tipo' => 'botoes',
-            'label' => '🦋 Borboleta'
-        ],
-        6 => [
-            'titulo' => '🔮 Cristal do Anjo',
-            'texto' => 'Escolha um cristal. O cristal correto revela o vencedor.',
-            'max' => 4,
-            'tipo' => 'botoes',
-            'label' => '🔮 Cristal'
-        ],
-        7 => [
-            'titulo' => '☁️ Nuvem da Sorte',
-            'texto' => 'Escolha uma nuvem. Uma delas esconde o colar do Anjo.',
-            'max' => 5,
-            'tipo' => 'botoes',
-            'label' => '☁️ Nuvem'
-        ],
-        8 => [
-            'titulo' => '🪽 Asas do Anjo',
-            'texto' => 'Escolha uma asa. A asa certa te leva até o colar.',
-            'max' => 3,
-            'tipo' => 'botoes',
-            'label' => '🪽 Asa'
-        ],
-        9 => [
-            'titulo' => '🌈 Arco da Proteção',
-            'texto' => 'Escolha uma cor do arco. Uma delas ativa a proteção do Anjo.',
-            'max' => 5,
-            'tipo' => 'botoes',
-            'label' => '🌈 Cor'
-        ],
-        10 => [
-            'titulo' => '🕯️ Luz do Anjo',
-            'texto' => 'Escolha uma vela. A vela acesa revela o campeão.',
-            'max' => 4,
-            'tipo' => 'botoes',
-            'label' => '🕯️ Vela'
+            'slug' => 'mira',
+            'titulo' => '🎯 Mira do Anjo',
+            'texto' => 'Pare o marcador o mais perto possível do centro em três tentativas.',
+            'categoria' => 'Precisão',
+            'dificuldade' => 'Média'
         ]
-    ];
-}
-
-function obterPerguntasQuizAnjo()
-{
-    return [
-        ['p' => 'Quanto é 8 + 9?', 'a' => '17', 'op' => ['16', '18', '17', '15']],
-        ['p' => 'Qual letra vem depois do M?', 'a' => 'N', 'op' => ['L', 'N', 'P', 'O']],
-        ['p' => '5 x 4 = ?', 'a' => '20', 'op' => ['15', '25', '20', '18']],
-        ['p' => 'Qual número vem depois do 29?', 'a' => '30', 'op' => ['28', '31', '30', '39']],
-        ['p' => 'Qual palavra combina com proteção?', 'a' => 'Escudo', 'op' => ['Escudo', 'Espelho', 'Fogo', 'Chuva']]
     ];
 }
 
@@ -100,12 +49,10 @@ function sincronizarEstadoProvaAnjoDaRodada()
 
     unset(
         $_SESSION['prova_anjo_tipo'],
-        $_SESSION['caixa_certa'],
-        $_SESSION['quiz_anjo'],
-        $_SESSION['anjo_numero_certo'],
         $_SESSION['prova_anjo_finalizada'],
         $_SESSION['prova_anjo_finalizada_rodada'],
-        $_SESSION['anjo_autoimune_sorteado_rodada']
+        $_SESSION['anjo_autoimune_sorteado_rodada'],
+        $_SESSION['resultado_prova_anjo']
     );
 
     $_SESSION['prova_anjo_rodada'] = $rodadaAtual;
@@ -154,7 +101,7 @@ function prepararProvaAnjo()
     $provas = obterProvasAnjo();
 
     if (!isset($_SESSION['prova_anjo_tipo'])) {
-        $_SESSION['prova_anjo_tipo'] = rand(1, count($provas));
+        $_SESSION['prova_anjo_tipo'] = array_rand($provas);
     }
 
     $tipo = (int)$_SESSION['prova_anjo_tipo'];
@@ -164,70 +111,146 @@ function prepararProvaAnjo()
         $_SESSION['prova_anjo_tipo'] = 1;
     }
 
-    if ($tipo === 1 && !isset($_SESSION['caixa_certa'])) {
-        $_SESSION['caixa_certa'] = rand(1, 20);
-    }
-
-    if ($tipo >= 3 && $tipo <= 10 && !isset($_SESSION['anjo_numero_certo'])) {
-        $maximo = (int)($provas[$tipo]['max'] ?? 5);
-        $_SESSION['anjo_numero_certo'] = rand(1, max(1, $maximo));
-    }
-
-    if ($tipo === 2 && !isset($_SESSION['quiz_anjo'])) {
-        $perguntas = obterPerguntasQuizAnjo();
-        $_SESSION['quiz_anjo'] = $perguntas[array_rand($perguntas)];
-    }
-
     return [
         'tipo' => $tipo,
         'prova' => $provas[$tipo]
     ];
 }
 
-function sortearNPCAnjo($participantes, $meuNome)
+function obterBonusPersonalidadeProvaAnjo($personalidade, $slug)
 {
-    if (empty($participantes)) {
-        return '';
+    $personalidade = (string)$personalidade;
+
+    $bonus = [
+        'memoria' => [
+            'Estrategista' => 10,
+            'Manipulador' => 5,
+            'Líder Nato' => 4,
+            'Planta' => -3,
+            'Explosivo' => -2
+        ],
+        'caixas' => [
+            'Estrategista' => 3,
+            'Manipulador' => 3,
+            'Emocional' => 2,
+            'Explosivo' => 2,
+            'Planta' => -1
+        ],
+        'sequencia' => [
+            'Estrategista' => 8,
+            'Líder Nato' => 5,
+            'Manipulador' => 4,
+            'Explosivo' => 2,
+            'Emocional' => -3
+        ],
+        'mira' => [
+            'Explosivo' => 7,
+            'Líder Nato' => 5,
+            'Estrategista' => 3,
+            'Emocional' => -2,
+            'Planta' => -2
+        ]
+    ];
+
+    return (int)($bonus[$slug][$personalidade] ?? 0);
+}
+
+function simularPontuacaoNPCAnjo($jogador, $slug)
+{
+    /*
+     * A personalidade só inclina discretamente o desempenho.
+     * Sorte continua pesando bastante para que a prova não fique previsível.
+     */
+    $base = rand(45, 88);
+    $bonus = obterBonusPersonalidadeProvaAnjo(
+        $jogador['personalidade'] ?? 'Neutro',
+        $slug
+    );
+
+    if (rand(1, 100) <= 10) {
+        $base += rand(5, 12); // momento excepcional
     }
 
-    $npcs = [];
+    if (rand(1, 100) <= 8) {
+        $base -= rand(6, 14); // erro inesperado
+    }
 
-    foreach ($participantes as $p) {
-        if (($p['nome'] ?? '') !== $meuNome) {
-            $npcs[] = $p;
+    return max(18, min(100, $base + $bonus));
+}
+
+function normalizarPontuacaoJogadorAnjo($post)
+{
+    if ((string)($post['minigame_concluido'] ?? '') !== '1') {
+        return 0;
+    }
+
+    $pontuacao = (int)($post['pontuacao_anjo'] ?? 0);
+    return max(0, min(100, $pontuacao));
+}
+
+function gerarRankingProvaAnjo($participantes, $meuNome, $pontuacaoJogador = null)
+{
+    $dados = prepararProvaAnjo();
+    $slug = (string)($dados['prova']['slug'] ?? 'memoria');
+    $ranking = [];
+
+    foreach ($participantes as $participante) {
+        $nome = (string)($participante['nome'] ?? 'Participante');
+        $ehJogador = $meuNome !== '' && $nome === $meuNome && $pontuacaoJogador !== null;
+
+        $pontos = $ehJogador
+            ? (int)$pontuacaoJogador
+            : simularPontuacaoNPCAnjo($participante, $slug);
+
+        $ranking[] = [
+            'nome' => $nome,
+            'pontos' => $pontos,
+            'eh_jogador' => $ehJogador,
+            'desempate' => random_int(1, 1000000)
+        ];
+    }
+
+    usort($ranking, function ($a, $b) {
+        if ($a['pontos'] === $b['pontos']) {
+            return $b['desempate'] <=> $a['desempate'];
+        }
+
+        return $b['pontos'] <=> $a['pontos'];
+    });
+
+    foreach ($ranking as $indice => &$item) {
+        $item['posicao'] = $indice + 1;
+        unset($item['desempate']);
+    }
+    unset($item);
+
+    return $ranking;
+}
+
+function salvarResultadoVisualProvaAnjo($ranking, $prova, $meuNome, $participou)
+{
+    $campeao = $ranking[0]['nome'] ?? '';
+    $posicaoJogador = null;
+    $pontosJogador = null;
+
+    foreach ($ranking as $item) {
+        if (($item['nome'] ?? '') === $meuNome) {
+            $posicaoJogador = (int)($item['posicao'] ?? 0);
+            $pontosJogador = (int)($item['pontos'] ?? 0);
+            break;
         }
     }
 
-    if (!empty($npcs)) {
-        $campeao = $npcs[array_rand($npcs)];
-        return $campeao['nome'] ?? '';
-    }
-
-    $campeao = $participantes[array_rand($participantes)];
-    return $campeao['nome'] ?? '';
-}
-
-function jogadorVenceuProvaAnjo($post)
-{
-    $dadosProva = prepararProvaAnjo();
-    $tipo = (int)$dadosProva['tipo'];
-
-    if ($tipo === 1) {
-        $chave = (int)($post['caixa'] ?? 0);
-        return $chave === (int)($_SESSION['caixa_certa'] ?? 0);
-    }
-
-    if ($tipo === 2) {
-        $resposta = (string)($post['quiz'] ?? '');
-        return $resposta === (string)($_SESSION['quiz_anjo']['a'] ?? '');
-    }
-
-    if ($tipo >= 3 && $tipo <= 10) {
-        $escolha = (int)($post['escolha'] ?? 0);
-        return $escolha === (int)($_SESSION['anjo_numero_certo'] ?? 0);
-    }
-
-    return false;
+    $_SESSION['resultado_prova_anjo'] = [
+        'rodada' => (int)($_SESSION['rodada'] ?? 1),
+        'campeao' => $campeao,
+        'ranking' => $ranking,
+        'prova' => $prova,
+        'participou' => (bool)$participou,
+        'posicao_jogador' => $posicaoJogador,
+        'pontos_jogador' => $pontosJogador,
+        'autoimune' => !empty($_SESSION['anjo_autoimune'])
+    ];
 }
 
 function provaAnjoFinalizadaNaRodadaAtual()
@@ -299,6 +322,21 @@ function finalizarProvaAnjo(&$jogadores, $campeaoNome, $lider)
 
     $_SESSION['jogadores'] = array_values($jogadores);
     $_SESSION['anjo'] = $campeaoNome;
+
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'anjo',
+            'Prova do Anjo',
+            $autoimune
+                ? "$campeaoNome venceu a Prova do Anjo e conquistou autoimunidade."
+                : "$campeaoNome venceu a Prova do Anjo.",
+            [$campeaoNome],
+            '😇',
+            null,
+            'anjo'
+        );
+    }
+
     $_SESSION['prova_anjo_finalizada'] = true;
     $_SESSION['prova_anjo_finalizada_rodada'] = (int)($_SESSION['rodada'] ?? 1);
     $_SESSION['fase_semana'] = 'monstro';
@@ -327,29 +365,5 @@ function finalizarProvaAnjo(&$jogadores, $campeaoNome, $lider)
             "😇 $campeaoNome venceu a Prova do Anjo e poderá imunizar alguém antes do paredão.";
     }
 
-    unset(
-        $_SESSION['prova_anjo_tipo'],
-        $_SESSION['caixa_certa'],
-        $_SESSION['quiz_anjo'],
-        $_SESSION['anjo_numero_certo']
-    );
-
     return true;
-}
-
-function textoBotaoAnjo($prova, $i)
-{
-    $label = $prova['label'] ?? 'Opção';
-
-    if (($prova['titulo'] ?? '') === '🌈 Arco da Proteção') {
-        $cores = ['Rosa', 'Azul', 'Dourado', 'Verde', 'Roxo'];
-        return '🌈 ' . ($cores[$i - 1] ?? "Cor $i");
-    }
-
-    if (($prova['titulo'] ?? '') === '🪽 Asas do Anjo') {
-        $letras = ['A', 'B', 'C'];
-        return $label . ' ' . ($letras[$i - 1] ?? $i);
-    }
-
-    return $label . ' ' . $i;
 }

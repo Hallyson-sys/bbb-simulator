@@ -699,6 +699,18 @@ function registrarLiderDaRodada(&$jogadores,$lider,$meuNome)
     if(!isset($_SESSION['evento_extra'])||!is_array($_SESSION['evento_extra'])) $_SESSION['evento_extra']=[];
     $_SESSION['evento_extra'][]="👑 $lider venceu a Prova do Líder.";
     $_SESSION['evento_extra'][]='🗣️ "Parabéns! O reinado começou."';
+
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'lider',
+            'Prova do Líder',
+            "$lider venceu a Prova do Líder.",
+            [$lider],
+            '👑',
+            null,
+            'lider'
+        );
+    }
 }
 
 function textoBotaoProvaLider($tipo,$i)

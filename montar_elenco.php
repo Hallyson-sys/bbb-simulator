@@ -148,6 +148,15 @@ function criarParticipante(
 $erro = '';
 $sucesso = '';
 
+/*
+ * Mensagem de sucesso após um redirecionamento.
+ * Isso permite sair do modo de edição sem perder o feedback.
+ */
+if (isset($_SESSION['mensagem_elenco'])) {
+    $sucesso = (string) $_SESSION['mensagem_elenco'];
+    unset($_SESSION['mensagem_elenco']);
+}
+
 
 
 /* =========================================================
@@ -335,6 +344,21 @@ if (isset($_POST['salvar_edicao'])) {
                 $erro =
                     'Digite uma idade válida.';
 
+            } elseif ($profissao === '') {
+
+                $erro =
+                    'Digite ou escolha uma profissão.';
+
+            } elseif ($estado === '') {
+
+                $erro =
+                    'Escolha um estado.';
+
+            } elseif ($personalidade === '') {
+
+                $erro =
+                    'Escolha uma personalidade.';
+
             } elseif (
                 nomeJaExiste(
                     $nome,
@@ -366,8 +390,17 @@ if (isset($_POST['salvar_edicao'])) {
                 $elenco[$indice]['personalidade'] =
                     $personalidade;
 
-                $sucesso =
+                /*
+                 * Sai do modo de edição depois de salvar.
+                 * Sem esse redirecionamento, o parâmetro ?editar=...
+                 * continuaria na URL e o formulário permaneceria preso
+                 * no participante que acabou de ser alterado.
+                 */
+                $_SESSION['mensagem_elenco'] =
                     "$nome foi atualizado.";
+
+                header('Location: montar_elenco.php');
+                exit;
             }
         }
     }
@@ -1064,14 +1097,21 @@ $porcentagem =
 
                         Profissão
 
-                        <select
+                        <input
+                            type="text"
                             name="profissao_participante"
+                            list="listaProfissoesElenco"
+                            placeholder="Digite ou escolha uma profissão"
+                            maxlength="60"
                             required
+                            value="<?= htmlspecialchars(
+                                $participanteEditar[
+                                    'profissao'
+                                ] ?? ''
+                            ) ?>"
                         >
 
-                            <option value="">
-                                Escolha uma profissão
-                            </option>
+                        <datalist id="listaProfissoesElenco">
 
                             <?php foreach ($profissoes as $opcao): ?>
 
@@ -1079,23 +1119,11 @@ $porcentagem =
                                     value="<?= htmlspecialchars(
                                         $opcao
                                     ) ?>"
-                                    <?= (
-                                        ($participanteEditar[
-                                            'profissao'
-                                        ] ?? '') === $opcao
-                                    )
-                                        ? 'selected'
-                                        : ''
-                                    ?>
-                                >
-                                    <?= htmlspecialchars(
-                                        $opcao
-                                    ) ?>
-                                </option>
+                                ></option>
 
                             <?php endforeach; ?>
 
-                        </select>
+                        </datalist>
 
                     </label>
 

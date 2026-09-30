@@ -259,6 +259,7 @@ echo json_encode(
 </script>
 
 <script src="assets/js/final.js"></script>
+<script src="assets/js/save_core.js"></script>
 <script src="assets/js/autosave.js"></script>
 
 </body>

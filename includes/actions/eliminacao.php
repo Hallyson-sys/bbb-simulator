@@ -31,6 +31,18 @@ if (
         exit;
     }
 
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada(
+            'paredao',
+            'Paredão',
+            'Paredão formado por ' . implode(', ', $paredao) . '.',
+            $paredao,
+            '🔥',
+            $rodada,
+            'paredao_final'
+        );
+    }
+
     contarParedaoResultadoUmaVez(
         $jogadores,
         $paredao,
@@ -80,6 +92,16 @@ if (
         if (!$registrado) {
             $_SESSION['paredao_falso_ativo'] = false;
             $ehParedaoFalso = false;
+        } elseif (function_exists('registrarHistoricoTemporada')) {
+            registrarHistoricoTemporada(
+                'paredao_falso',
+                'Paredão Falso',
+                "$nomeSaida deixou a casa em um Paredão Falso e foi para o Quarto Secreto.",
+                [$nomeSaida],
+                '🎭',
+                $rodada,
+                'paredao_falso_saida'
+            );
         }
     }
 
@@ -96,6 +118,12 @@ if (
             ) {
                 continue;
             }
+
+            if (!isset($_SESSION['participantes_eliminados_dados']) || !is_array($_SESSION['participantes_eliminados_dados'])) {
+                $_SESSION['participantes_eliminados_dados'] = [];
+            }
+
+            $_SESSION['participantes_eliminados_dados'][$nomeSaida] = $j;
 
             if (nomeIgual($nomeSaida, $meuNome)) {
                 $_SESSION['jogador_eliminado'] = true;
@@ -125,6 +153,18 @@ if (
         $_SESSION['historico_eliminados'] = array_values(
             array_unique($_SESSION['historico_eliminados'])
         );
+
+        if (function_exists('registrarHistoricoTemporada')) {
+            registrarHistoricoTemporada(
+                'eliminacao',
+                'Eliminação',
+                "$nomeSaida foi eliminado da temporada.",
+                [$nomeSaida],
+                '❌',
+                $rodada,
+                'eliminacao'
+            );
+        }
     }
 
     $_SESSION['paredao'] = $paredao;
