@@ -55,6 +55,8 @@ require_once __DIR__ . '/includes/logica/loja_publico.php';
 
 require_once __DIR__ . '/includes/logica/interacoes.php';
 
+require_once __DIR__ . '/includes/logica/eventos_convivencia.php';
+
 require_once __DIR__ . '/includes/logica/discordia.php';
 
 require_once __DIR__ . '/includes/logica/festa.php';
@@ -507,6 +509,11 @@ sincronizarFasesFinais(
 
 
 require_once __DIR__ . '/includes/actions/espectador.php';
+
+require_once __DIR__ . '/includes/actions/eventos_convivencia.php';
+
+// Uma cena especial pode surgir ao entrar em Interações ou Festa.
+ecTalvezGerar($jogadores, $meuNome, $fase);
 
 require_once __DIR__ . '/includes/actions/festa.php';
 

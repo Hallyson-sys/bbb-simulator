@@ -8,6 +8,10 @@
 
 <?php if ($fase == 'festa'): ?>
 
+<?php render('components/eventos_convivencia'); ?>
+<?php $ecBloqueia = !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado']); ?>
+<?php if (!$ecBloqueia): ?>
+
 <div class="box">
     <h3>🎉 Festa da Semana</h3>
     <p>Você possui <?php echo $_SESSION['acoes_festa']; ?> ações.</p>
@@ -122,5 +126,7 @@
     <?php endif; ?>
 
 <?php endif; ?>
+
+<?php endif; // !ecBloqueia ?>
 
 <?php endif; ?>

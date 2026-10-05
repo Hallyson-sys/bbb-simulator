@@ -9,6 +9,10 @@
 
 <?php if (strpos($fase, 'interacoes') !== false): ?>
 
+<?php render('components/eventos_convivencia'); ?>
+<?php $ecBloqueia = !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado']); ?>
+<?php if (!$ecBloqueia): ?>
+
     <div class="box">
         <h3>💬 Interações — <?php echo $_SESSION['acoes_restantes']; ?> restantes</h3>
         <p>Você pode fazer suas ações ou continuar a semana quando quiser.</p>
@@ -235,4 +239,6 @@
                         </button>
                     </form>
 
-                <?php endif; ?>
+                <?php endif; // !ecBloqueia ?>
+
+<?php endif; ?>
