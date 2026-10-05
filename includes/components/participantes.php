@@ -5,7 +5,11 @@
 /** @var int $rodada */
 
 ?>
-<div class="left-col">
+<div class="left-col mobile-panel" id="mobileCasa" data-mobile-panel="casa">
+
+    <button type="button" class="mobile-panel-toggle" data-mobile-toggle="casa" aria-expanded="false">
+        <span>👥 <strong>Participantes</strong></span><span class="mobile-panel-chevron">⌄</span>
+    </button>
 
     <div class="left">
 

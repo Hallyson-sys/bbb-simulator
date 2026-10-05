@@ -1,0 +1,151 @@
+/* =========================================================
+   📱 BBB SIMULATOR — INTERFACE MOBILE 2.0
+   Camada isolada: não altera o layout desktop.
+   ========================================================= */
+
+.mobile-bottom-nav,
+.mobile-panel-toggle,
+.mobile-current-hero,
+.mobile-menu-btn,
+.mobile-header-menu,
+.mobile-action-dock { display: none; }
+
+@media (max-width: 768px) {
+    :root { --mobile-nav-h: 68px; --mobile-action-h: 58px; }
+
+    html { scroll-padding-top: 84px; }
+    body {
+        padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 14px);
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Header compacto */
+    .top-header {
+        position: sticky;
+        top: 0;
+        z-index: 9000;
+        padding: 10px 12px !important;
+        margin: 0 !important;
+        overflow: visible;
+        backdrop-filter: blur(18px);
+    }
+    .top-header .header-content { gap: 8px; }
+    .top-header .logo-area { gap: 9px; min-width: 0; }
+    .top-header .bbb-icon {
+        width: 40px !important; height: 40px !important; min-width: 40px !important;
+        border-radius: 13px !important; font-size: 20px !important;
+    }
+    .top-header .brand-text h1 { font-size: 19px !important; line-height: 1.05; }
+    .top-header .sub-info { margin-top: 4px; gap: 5px; font-size: 10px !important; white-space: nowrap; }
+    .top-header .sub-info .dot, .top-header .header-coins { display: none; }
+    .top-header .header-actions { display: none !important; }
+
+    .mobile-menu-btn {
+        display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px;
+        margin-left: auto; border: 1px solid rgba(255,255,255,.14); border-radius: 14px;
+        background: rgba(255,255,255,.07); color: #fff; font-size: 21px; cursor: pointer;
+    }
+    .mobile-header-menu {
+        position: absolute; display: grid; right: 12px; top: calc(100% + 7px); width: min(280px, calc(100vw - 24px));
+        padding: 8px; border: 1px solid rgba(255,255,255,.13); border-radius: 18px;
+        background: rgba(9,8,25,.97); box-shadow: 0 22px 60px rgba(0,0,0,.55); backdrop-filter: blur(20px);
+    }
+    .mobile-header-menu[hidden] { display: none; }
+    .mobile-header-menu a, .mobile-header-menu button {
+        min-height: 46px; display: flex; align-items: center; width: 100%; padding: 10px 12px;
+        border: 0; border-radius: 12px; background: transparent; color: #fff; text-decoration: none;
+        font: 700 13px 'Poppins', Arial, sans-serif; text-align: left; cursor: pointer;
+    }
+    .mobile-header-menu a:active, .mobile-header-menu button:active { background: rgba(255,255,255,.09); }
+    .mobile-header-menu .mobile-menu-danger { color: #ff91a8; }
+
+    /* Conteúdo: dinâmica primeiro */
+    .container { display: flex !important; flex-direction: column; padding: 10px !important; gap: 10px !important; }
+    .container > .center { order: 1; }
+    .container > .left-col { order: 2; }
+    .container > .right { order: 3; }
+    .left-col { width: 100%; gap: 10px; }
+    .left, .center, .right, .aliancas-mini-box {
+        width: 100%; max-width: 100%; border-radius: 19px !important;
+    }
+    .center, .right, .left { padding: 13px !important; }
+    .desktop-panel-title { display: none; }
+
+    /* Hero da fase atual */
+    .mobile-current-hero {
+        display: block; margin: -2px -2px 13px; padding: 15px 14px;
+        border: 1px solid rgba(255,255,255,.1); border-radius: 17px;
+        background: linear-gradient(135deg, rgba(255,0,122,.17), rgba(0,229,255,.08));
+    }
+    .mobile-current-kicker { display: block; margin-bottom: 5px; color: #75efff; font-size: 9px; font-weight: 900; letter-spacing: 1.4px; }
+    .mobile-current-hero h2 { margin: 0 0 4px !important; font-size: 22px !important; line-height: 1.15; }
+    .mobile-current-hero p { margin: 0; color: rgba(255,255,255,.65); font-size: 11px; }
+
+    /* Painéis recolhíveis */
+    .mobile-panel-toggle {
+        display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px;
+        padding: 10px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 15px;
+        background: rgba(255,255,255,.055); color: #fff; font: 700 14px 'Poppins', Arial, sans-serif; cursor: pointer;
+    }
+    .left-col > .mobile-panel-toggle { margin-bottom: 0; }
+    .right > .mobile-panel-toggle { margin-bottom: 10px; }
+    .mobile-panel-chevron { font-size: 19px; transition: transform .2s ease; }
+    .mobile-panel:not(.mobile-collapsed) > .mobile-panel-toggle .mobile-panel-chevron { transform: rotate(180deg); }
+    .left-col.mobile-collapsed > :not(.mobile-panel-toggle) { display: none !important; }
+    .right.mobile-collapsed > :not(.mobile-panel-toggle) { display: none !important; }
+    .left-col.mobile-collapsed, .right.mobile-collapsed { padding: 0 !important; background: transparent; border: 0; box-shadow: none; }
+
+    /* Participantes: dois cards; 1 coluna em aparelhos estreitos */
+    .players-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 9px !important; }
+    .card { min-height: 0 !important; padding: 11px 9px !important; }
+    .perfil-participante-btn { min-height: 44px; display: flex !important; align-items: center; justify-content: center; }
+
+    /* Controles touch */
+    button, .btn, select, input[type="submit"], input[type="button"], .participante-btn, .emoji-btn, a.perfil-participante-btn {
+        min-height: 44px;
+    }
+    select, input, textarea { font-size: 16px !important; }
+    .emoji-btn { min-height: 48px; font-size: 23px !important; }
+
+    /* Navegação inferior */
+    .mobile-bottom-nav {
+        position: fixed; z-index: 9500; left: 0; right: 0; bottom: 0;
+        display: grid; grid-template-columns: repeat(5, 1fr); height: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom));
+        padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+        border-top: 1px solid rgba(255,255,255,.12); background: rgba(7,6,20,.94);
+        box-shadow: 0 -14px 40px rgba(0,0,0,.45); backdrop-filter: blur(20px);
+    }
+    .mobile-nav-item {
+        min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+        border: 0; border-radius: 13px; background: transparent; color: rgba(255,255,255,.64); text-decoration: none; cursor: pointer;
+    }
+    .mobile-nav-item span { font-size: 20px; line-height: 1; }
+    .mobile-nav-item small { font-size: 9px; font-weight: 800; white-space: nowrap; }
+    .mobile-nav-item.ativo { color: #fff; background: linear-gradient(135deg, rgba(255,0,122,.19), rgba(122,0,255,.16)); }
+
+    /* Ação principal fixa: JS espelha o botão real da fase */
+    .mobile-action-dock {
+        position: fixed; z-index: 9400; left: 10px; right: 10px;
+        bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 8px);
+        padding: 6px; border: 1px solid rgba(255,255,255,.12); border-radius: 17px;
+        background: rgba(8,7,22,.92); box-shadow: 0 12px 38px rgba(0,0,0,.48); backdrop-filter: blur(18px);
+    }
+    .mobile-action-dock:not([hidden]) { display: block; }
+    .mobile-action-dock button {
+        width: 100%; min-height: 48px; border: 0; border-radius: 13px; color: #fff;
+        background: linear-gradient(90deg, #d00078, #7929e8); font: 900 13px 'Poppins', Arial, sans-serif; cursor: pointer;
+    }
+    body.mobile-has-action { padding-bottom: calc(var(--mobile-nav-h) + var(--mobile-action-h) + env(safe-area-inset-bottom) + 22px); }
+
+    /* Modais respeitam navegação e tela pequena */
+    .save2-overlay, .feed-publico-modal { padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 8px) !important; }
+    .save2-modal { width: 100% !important; max-height: calc(100dvh - var(--mobile-nav-h) - 24px) !important; border-radius: 22px !important; }
+    .save2-slots { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 380px) {
+    .players-grid { grid-template-columns: 1fr !important; }
+    .top-header .brand-text h1 { font-size: 17px !important; }
+    .top-header .sub-info { font-size: 9px !important; }
+    .mobile-nav-item small { font-size: 8px; }
+}

@@ -44,7 +44,7 @@ $totalPostsFeed = count(
 
                     <span class="dot"></span>
 
-                    <span>
+                    <span class="header-coins">
                         🪙 <?= obterMoedasPublico() ?>
                         moedas
                     </span>
@@ -59,6 +59,18 @@ $totalPostsFeed = count(
         <!-- =============================================
              FEED BBB
         ============================================== -->
+
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menu" aria-expanded="false">☰</button>
+
+        <div class="mobile-header-menu" id="mobileHeaderMenu" hidden>
+            <a href="temporada.php">📖 Histórico da Temporada</a>
+            <?php if (!empty($_SESSION['meu_nome'])): ?>
+                <a href="perfil.php?nome=<?= rawurlencode($_SESSION['meu_nome']) ?>">👤 Meu Perfil</a>
+            <?php endif; ?>
+            <button type="button" onclick="abrirFeedPublico(); fecharMenuMobile();">📱 Feed BBB</button>
+            <button type="button" onclick="abrirSave2(); fecharMenuMobile();">💾 Saves</button>
+            <button type="button" class="mobile-menu-danger" onclick="abrirPopup(); fecharMenuMobile();">🔄 Novo Jogo</button>
+        </div>
 
         <div class="header-actions">
 

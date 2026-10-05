@@ -626,6 +626,8 @@ atualizarFeedPublicoInteligente(
 
     <meta charset="UTF-8">
 
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
 
 
     <title>BBB Simulator</title>
@@ -643,6 +645,7 @@ atualizarFeedPublicoInteligente(
 <link rel="stylesheet" href="assets/css/feed_publico.css">
 
 <link rel="stylesheet" href="assets/css/save_2.css">
+<link rel="stylesheet" href="assets/css/responsivo.css?v=2">
 
 
 
@@ -800,7 +803,11 @@ render('layout/header', [
     ?>
 
 
-    <div class="right">
+    <div class="right mobile-panel mobile-collapsed" id="mobileAoVivo" data-mobile-panel="aovivo">
+
+        <button type="button" class="mobile-panel-toggle" data-mobile-toggle="aovivo" aria-expanded="false">
+            <span>📺 <strong>Na Casa</strong></span><span class="mobile-panel-chevron">⌄</span>
+        </button>
 
 
 
@@ -882,6 +889,14 @@ render('components/feed_publico', [
 ?>
 
 
+<?php render('components/mobile_nav', [
+    'meuNome' => $meuNome
+]); ?>
+
+<div class="mobile-action-dock" id="mobileActionDock" hidden>
+    <button type="button" id="mobileActionButton">Continuar →</button>
+</div>
+
 <?php render('components/save_2'); ?>
 
 <div class="popup-bg" id="popupReset">
@@ -931,6 +946,7 @@ const acaoSelecionada = <?= json_encode($_SESSION['acao_selecionada'] ?? '') ?>;
 
 
 <script src="assets/js/jogo.js"></script>
+<script src="assets/js/mobile_2.js?v=2"></script>
 
 <script src="assets/js/feed_publico.js"></script>
 
