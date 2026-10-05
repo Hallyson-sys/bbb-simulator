@@ -380,3 +380,68 @@
         font-size: 8px !important;
     }
 }
+
+/* =========================================================
+   📱 MOBILE 2.0 V1.3 — RESULTADO DO QUERIDÔMETRO
+   Mantém 3 cards por linha, mas transforma cada resultado em
+   um bloco vertical compacto para impedir sobreposição entre colunas.
+   ========================================================= */
+@media (max-width: 768px) {
+    .resultado-querido-card {
+        min-width: 0 !important;
+        padding: 10px 5px !important;
+        border-radius: 15px !important;
+        text-align: center !important;
+        overflow: hidden !important;
+    }
+    .resultado-querido-card h3 {
+        margin: 0 0 8px !important;
+        font-size: clamp(13px, 3.7vw, 17px) !important;
+        line-height: 1.1 !important;
+        text-align: center !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        hyphens: none !important;
+    }
+    .resultado-emojis {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+        min-width: 0 !important;
+    }
+    .resultado-emoji-item {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 2px !important;
+        min-width: 0 !important;
+        min-height: 82px !important;
+        padding: 6px 3px !important;
+        text-align: center !important;
+        overflow: hidden !important;
+    }
+    .resultado-emoji-item span {
+        display: block !important;
+        font-size: 24px !important;
+        line-height: 1 !important;
+    }
+    .resultado-emoji-item small {
+        display: block !important;
+        width: 100% !important;
+        color: #dcdcf0 !important;
+        font-size: clamp(8px, 2.25vw, 10px) !important;
+        line-height: 1.15 !important;
+        text-align: center !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        hyphens: none !important;
+    }
+    .resultado-emoji-item b {
+        display: block !important;
+        margin-top: 1px !important;
+        font-size: 12px !important;
+        line-height: 1 !important;
+        text-align: center !important;
+    }
+}

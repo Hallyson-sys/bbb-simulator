@@ -92,7 +92,15 @@ if (
         if (!$registrado) {
             $_SESSION['paredao_falso_ativo'] = false;
             $ehParedaoFalso = false;
-        } elseif (function_exists('registrarHistoricoTemporada')) {
+        } elseif (
+            function_exists('registrarHistoricoTemporada') &&
+            nomeIgual($nomeSaida, $meuNome)
+        ) {
+            /*
+             * Só revela a natureza falsa da eliminação no histórico
+             * quando o próprio jogador foi enviado ao Quarto Secreto.
+             * Para NPCs, a surpresa permanece oculta até o retorno.
+             */
             registrarHistoricoTemporada(
                 'paredao_falso',
                 'Paredão Falso',
@@ -184,7 +192,13 @@ if (isset($_POST['continuar'])) {
      * Se for Paredão Falso, o próximo passo não é
      * começar outra rodada. Primeiro vamos ao Quarto Secreto.
      */
-    if (!empty($_SESSION['paredao_falso_ativo'])) {
+    if (
+        !empty($_SESSION['paredao_falso_ativo']) &&
+        !empty($_SESSION['falso_eliminado']) &&
+        $meuNome !== '' &&
+        nomeIgual($_SESSION['falso_eliminado'], $meuNome)
+    ) {
+        /* Só o próprio falso eliminado sabe que existe Quarto Secreto. */
         header("Location: quarto_secreto.php");
         exit;
     }
