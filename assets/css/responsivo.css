@@ -262,3 +262,121 @@
     .topo-card-querido h3 { font-size: 11px !important; }
     .emoji-btn { font-size: 17px !important; }
 }
+
+/* =========================================================
+   📱 MOBILE 2.0 V1.2 — CARDS 3 COLUNAS MAIS HARMÔNICOS
+   Evita palavras cortadas e reorganiza o conteúdo na vertical.
+   ========================================================= */
+@media (max-width: 768px) {
+    .players-grid .card {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 0 !important;
+        text-align: center !important;
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 10px 5px 9px !important;
+    }
+
+    .players-grid .card .avatar {
+        flex: 0 0 auto !important;
+        margin: 0 auto 7px !important;
+    }
+
+    .players-grid .card h3 {
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 0 7px !important;
+        text-align: center !important;
+        font-size: clamp(10px, 2.8vw, 12px) !important;
+        line-height: 1.18 !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        hyphens: none !important;
+    }
+
+    .players-grid .card p {
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 2px 0 !important;
+        text-align: center !important;
+        font-size: clamp(8px, 2.25vw, 10px) !important;
+        line-height: 1.22 !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        hyphens: none !important;
+    }
+
+    .players-grid .card .afinidade-card,
+    .players-grid .card .romance-card {
+        margin-top: 5px !important;
+        font-weight: 700;
+    }
+
+    .players-grid .card .status {
+        width: 100% !important;
+        margin: 8px 0 0 !important;
+        padding: 7px 0 0 !important;
+        align-items: center !important;
+        text-align: center !important;
+        gap: 3px !important;
+        font-size: clamp(8px, 2.25vw, 10px) !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        hyphens: none !important;
+    }
+
+    .players-grid .card .status div {
+        width: 100%;
+        text-align: center;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        hyphens: none !important;
+    }
+
+    .players-grid .perfil-participante-btn {
+        width: 100% !important;
+        margin-top: 9px !important;
+        min-height: 36px !important;
+        align-self: stretch !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Queridômetro: mantém três cards, sem quebrar nomes/profissões no meio. */
+    .topo-card-querido {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+    }
+    .topo-card-querido > div {
+        width: 100% !important;
+        text-align: center !important;
+    }
+    .topo-card-querido h3,
+    .topo-card-querido span {
+        width: 100% !important;
+        text-align: center !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        hyphens: none !important;
+    }
+    .valor-relacao {
+        margin: 5px auto 0 !important;
+        flex: 0 0 auto !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .players-grid .card {
+        padding-inline: 4px !important;
+    }
+    .players-grid .card h3 {
+        font-size: 10px !important;
+    }
+    .players-grid .card p,
+    .players-grid .card .status {
+        font-size: 8px !important;
+    }
+}
