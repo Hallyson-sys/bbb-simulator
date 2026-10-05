@@ -15,15 +15,24 @@
 
 <div class="container">
 
-    <div class="info">
-        <div class="info-card">⭐ Viva essa experiência única</div>
-        <div class="info-card">👥 Conheça novas pessoas</div>
-    </div>
+    <aside class="info info-left" aria-label="Destaques do jogo">
+        <div class="info-card">
+            <span class="info-icon">⭐</span>
+            <div><strong>VIVA A EXPERIÊNCIA</strong><small>Crie sua própria trajetória dentro da casa.</small></div>
+        </div>
+        <div class="info-card">
+            <span class="info-icon">👥</span>
+            <div><strong>CONHEÇA A CASA</strong><small>Forme alianças, rivalidades e relações.</small></div>
+        </div>
+    </aside>
 
     <div class="card">
 
-        <h1 class="titulo">BBB<br>SIMULATOR</h1>
-        <div class="sub">PARA VENCER O JOGO, VALE TUDO</div>
+        <header class="hero-index">
+            <span class="hero-kicker">REALITY • ESTRATÉGIA • SIMULAÇÃO</span>
+            <h1 class="titulo">BBB<br>SIMULATOR</h1>
+            <div class="sub">PARA VENCER O JOGO, VALE TUDO</div>
+        </header>
 
         <div id="mensagemIndex" class="mensagem-index" hidden></div>
 
@@ -44,6 +53,11 @@
 
         <div class="separador-index" id="separadorIndex" hidden>
             <span>NOVA TEMPORADA</span>
+        </div>
+
+        <div class="nova-temporada-cabecalho">
+            <span class="nova-temporada-icone">＋</span>
+            <div><small>COMECE DO ZERO</small><strong>Nova temporada</strong></div>
         </div>
 
         <form
@@ -175,10 +189,16 @@
 
     </div>
 
-    <div class="info">
-        <div class="info-card">🏆 Participe de provas</div>
-        <div class="info-card">👑 Seja o campeão</div>
-    </div>
+    <aside class="info info-right" aria-label="Objetivos do jogo">
+        <div class="info-card">
+            <span class="info-icon">🏆</span>
+            <div><strong>VENÇA AS PROVAS</strong><small>Conquiste liderança, imunidade e poder.</small></div>
+        </div>
+        <div class="info-card">
+            <span class="info-icon">👑</span>
+            <div><strong>CHEGUE À FINAL</strong><small>Supere o paredão e conquiste o público.</small></div>
+        </div>
+    </aside>
 
 </div>
 
