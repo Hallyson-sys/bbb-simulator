@@ -149,3 +149,116 @@
     .top-header .sub-info { font-size: 9px !important; }
     .mobile-nav-item small { font-size: 8px; }
 }
+
+/* =========================================================
+   📱 MOBILE 2.0 V1.1 — GRIDS COM 3 CARDS POR LINHA
+   Participantes + Queridômetro
+   ========================================================= */
+@media (max-width: 768px) {
+    /* Participantes */
+    .players-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 7px !important;
+    }
+    .players-grid .card {
+        min-width: 0 !important;
+        padding: 9px 6px !important;
+        border-radius: 15px !important;
+        overflow: hidden;
+    }
+    .players-grid .card::before { border-radius: 17px !important; }
+    .players-grid .avatar {
+        width: 42px !important;
+        height: 42px !important;
+        margin-bottom: 6px !important;
+        border-width: 2px !important;
+    }
+    .players-grid .card h3 {
+        font-size: 11px !important;
+        line-height: 1.15 !important;
+        margin-bottom: 6px !important;
+        overflow-wrap: anywhere;
+    }
+    .players-grid .card p,
+    .players-grid .card .status {
+        font-size: 9px !important;
+        line-height: 1.18 !important;
+        overflow-wrap: anywhere;
+    }
+    .players-grid .card p { margin: 3px 0 !important; }
+    .players-grid .perfil-participante-btn {
+        min-height: 38px !important;
+        padding: 6px 5px !important;
+        font-size: 10px !important;
+        border-radius: 12px !important;
+        white-space: nowrap;
+    }
+
+    /* Queridômetro: 3 participantes lado a lado */
+    .queridometro-grid,
+    .resultado-querido-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 7px !important;
+        padding-right: 2px !important;
+    }
+    .card-querido {
+        min-width: 0 !important;
+        padding: 9px 6px !important;
+        border-radius: 15px !important;
+    }
+    .topo-card-querido {
+        gap: 4px !important;
+        margin-bottom: 8px !important;
+        align-items: flex-start !important;
+    }
+    .topo-card-querido > div { min-width: 0; }
+    .topo-card-querido h3 {
+        font-size: 12px !important;
+        line-height: 1.15 !important;
+        overflow-wrap: anywhere;
+    }
+    .topo-card-querido span {
+        display: block;
+        margin-top: 3px;
+        font-size: 9px !important;
+        line-height: 1.15 !important;
+        overflow-wrap: anywhere;
+    }
+    .valor-relacao {
+        min-width: 30px !important;
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 10px !important;
+    }
+    .emojis-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 5px !important;
+    }
+    .emoji-btn {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        border-radius: 10px !important;
+        font-size: 18px !important;
+    }
+}
+
+/* Mantém 3 colunas também nos celulares mais estreitos. */
+@media (max-width: 380px) {
+    .players-grid,
+    .queridometro-grid,
+    .resultado-querido-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 5px !important;
+    }
+    .players-grid .card { padding-inline: 5px !important; }
+    .players-grid .avatar { width: 38px !important; height: 38px !important; }
+    .players-grid .card h3 { font-size: 10px !important; }
+    .players-grid .card p,
+    .players-grid .card .status { font-size: 8px !important; }
+    .card-querido { padding-inline: 5px !important; }
+    .topo-card-querido h3 { font-size: 11px !important; }
+    .emoji-btn { font-size: 17px !important; }
+}

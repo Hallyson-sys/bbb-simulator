@@ -6,7 +6,6 @@ error_reporting(E_ALL);
 session_start();
 
 require_once __DIR__ . '/includes/logica/utilitarios.php';
-require_once __DIR__ . '/includes/logica/historico_temporada.php';
 require_once __DIR__ . '/includes/logica/relacoes.php';
 require_once __DIR__ . '/includes/logica/eliminacao.php';
 require_once __DIR__ . '/includes/logica/paredao_falso.php';
