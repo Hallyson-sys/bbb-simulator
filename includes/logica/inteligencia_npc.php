@@ -324,6 +324,16 @@ function registrarMemoriaSocialNPC(
             'me_salvou' => 0,
             'me_aproximou' => 0,
             'flertou_comigo' => 0,
+            'me_apoiou' => 0,
+            'me_contou_segredo' => 0,
+            'fechou_pacto_comigo' => 0,
+            'me_pediu_desculpas' => 0,
+            'cumpriu_tregua' => 0,
+
+            'me_confrontou' => 0,
+            'me_desrespeitou' => 0,
+            'quebrou_tregua' => 0,
+            'me_expos' => 0,
 
             'ultima_rodada' => 0,
             'historico' => []
@@ -409,6 +419,10 @@ function pesoBaseMemoriaNPC($tipo)
         'espalhou_fofoca' => 24,
         'me_puxou_contragolpe' => 32,
         'me_colocou_paredao' => 30,
+        'me_confrontou' => 18,
+        'me_desrespeitou' => 16,
+        'quebrou_tregua' => 26,
+        'me_expos' => 22,
 
         /* Positivos */
         'me_elogiou_discordia' => 14,
@@ -418,7 +432,12 @@ function pesoBaseMemoriaNPC($tipo)
         'me_defendeu' => 17,
         'me_salvou' => 25,
         'me_aproximou' => 10,
-        'flertou_comigo' => 8
+        'flertou_comigo' => 8,
+        'me_apoiou' => 15,
+        'me_contou_segredo' => 16,
+        'fechou_pacto_comigo' => 24,
+        'me_pediu_desculpas' => 18,
+        'cumpriu_tregua' => 14
     ];
 
     return (float)($pesos[$tipo] ?? 0);
@@ -436,7 +455,9 @@ function taxaRetencaoMemoriaNPC($tipo)
         'me_puxou_contragolpe',
         'me_colocou_paredao',
         'me_imunizou',
-        'me_salvou'
+        'me_salvou',
+        'quebrou_tregua',
+        'fechou_pacto_comigo'
     ];
 
     $medios = [
@@ -448,7 +469,14 @@ function taxaRetencaoMemoriaNPC($tipo)
         'me_deu_emoji_negativo',
         'espalhou_fofoca',
         'me_colocou_vip',
-        'me_defendeu'
+        'me_defendeu',
+        'me_confrontou',
+        'me_desrespeitou',
+        'me_expos',
+        'me_apoiou',
+        'me_contou_segredo',
+        'me_pediu_desculpas',
+        'cumpriu_tregua'
     ];
 
     if (in_array($tipo, $fortes, true)) {
@@ -463,10 +491,38 @@ function taxaRetencaoMemoriaNPC($tipo)
 }
 
 
+function multiplicadorRetencaoPersonalidadeNPC($observador)
+{
+    $dados = buscarParticipanteInteligenciaNPC(
+        $_SESSION['jogadores'] ?? [],
+        $observador
+    );
+
+    $personalidade = $dados['personalidade'] ?? 'Neutro';
+
+    $multiplicadores = [
+        'Emocional' => 1.10,
+        'Explosivo' => 1.08,
+        'Barraqueiro' => 1.07,
+        'Estrategista' => 1.04,
+        'Líder Nato' => 1.03,
+        'Fofo' => 1.02,
+        'Manipulador' => 1.01,
+        'Falso' => 0.99,
+        'Influencer' => 0.97,
+        'Planta' => 0.93,
+        'Neutro' => 1.00
+    ];
+
+    return (float)($multiplicadores[$personalidade] ?? 1.00);
+}
+
+
 function fatorEsquecimentoMemoriaNPC(
     $tipo,
     $rodadaEvento,
-    $rodadaAtual = null
+    $rodadaAtual = null,
+    $observador = ''
 ) {
     if ($rodadaAtual === null) {
         $rodadaAtual =
@@ -479,8 +535,12 @@ function fatorEsquecimentoMemoriaNPC(
         (int)$rodadaEvento
     );
 
-    $taxa =
-        taxaRetencaoMemoriaNPC($tipo);
+    $taxa = taxaRetencaoMemoriaNPC($tipo);
+
+    if ($observador !== '') {
+        $taxa *= multiplicadorRetencaoPersonalidadeNPC($observador);
+        $taxa = min(0.965, max(0.58, $taxa));
+    }
 
     return max(
         0.05,
@@ -537,7 +597,9 @@ function impactoMemoriaHistoricaNPC(
                 * $forca
                 * fatorEsquecimentoMemoriaNPC(
                     $tipo,
-                    $rodadaEvento
+                    $rodadaEvento,
+                    null,
+                    $observador
                 );
         }
 
@@ -565,7 +627,9 @@ function impactoMemoriaHistoricaNPC(
             * $quantidade
             * fatorEsquecimentoMemoriaNPC(
                 $tipo,
-                $ultimaRodada
+                $ultimaRodada,
+                null,
+                $observador
             );
     }
 
@@ -590,7 +654,11 @@ function impactoNegativoMemoriaNPC(
             'brigou_comigo',
             'espalhou_fofoca',
             'me_puxou_contragolpe',
-            'me_colocou_paredao'
+            'me_colocou_paredao',
+            'me_confrontou',
+            'me_desrespeitou',
+            'quebrou_tregua',
+            'me_expos'
         ]
     );
 }
@@ -611,9 +679,53 @@ function impactoPositivoMemoriaNPC(
             'me_defendeu',
             'me_salvou',
             'me_aproximou',
-            'flertou_comigo'
+            'flertou_comigo',
+            'me_apoiou',
+            'me_contou_segredo',
+            'fechou_pacto_comigo',
+            'me_pediu_desculpas',
+            'cumpriu_tregua'
         ]
     );
+}
+
+
+/* =========================================================
+   🧠 ÚLTIMA MEMÓRIA MARCANTE ENTRE DUAS PESSOAS
+   Usada pelos Eventos de Convivência para NPCs lembrarem
+   de algo concreto em vez de reagirem apenas a números.
+   ========================================================= */
+function ultimaMemoriaMarcanteNPC($observador, $alvo, $tipo = 'qualquer')
+{
+    $m = obterMemoriaSocialNPC($observador, $alvo);
+    $historico = $m['historico'] ?? [];
+
+    if (!is_array($historico) || empty($historico)) return null;
+
+    $negativos = [
+        'votou_em_mim','me_indicou','me_colocou_monstro','me_atacou_discordia',
+        'me_deu_emoji_negativo','rompeu_comigo','brigou_comigo','espalhou_fofoca',
+        'me_puxou_contragolpe','me_colocou_paredao','me_confrontou',
+        'me_desrespeitou','quebrou_tregua','me_expos'
+    ];
+
+    $positivos = [
+        'me_elogiou_discordia','me_deu_emoji_positivo','me_imunizou','me_colocou_vip',
+        'me_defendeu','me_salvou','me_aproximou','flertou_comigo','me_apoiou',
+        'me_contou_segredo','fechou_pacto_comigo','me_pediu_desculpas','cumpriu_tregua'
+    ];
+
+    for ($i = count($historico) - 1; $i >= 0; $i--) {
+        $evento = $historico[$i];
+        $t = $evento['tipo'] ?? '';
+
+        if ($tipo === 'negativa' && !in_array($t, $negativos, true)) continue;
+        if ($tipo === 'positiva' && !in_array($t, $positivos, true)) continue;
+
+        return $evento;
+    }
+
+    return null;
 }
 
 

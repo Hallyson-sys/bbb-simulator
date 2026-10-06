@@ -153,7 +153,12 @@ $ultimoPost =
                                 <p class="feed-post-texto">
 
                                     <?= htmlspecialchars(
-                                        $post['texto']
+                                        function_exists('ajustarGeneroTextoComElencoBBB')
+                                            ? ajustarGeneroTextoComElencoBBB(
+                                                $post['texto'],
+                                                $jogadores ?? ($_SESSION['jogadores'] ?? [])
+                                            )
+                                            : $post['texto']
                                     ) ?>
 
                                 </p>

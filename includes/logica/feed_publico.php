@@ -746,6 +746,20 @@ function adicionarPostFeedPublico(
 
     $texto = trim((string)$texto);
 
+    /* Corrige artigo/pronome conforme o gênero dos participantes citados. */
+    if (function_exists('ajustarGeneroTextoParticipanteBBB')) {
+        $nomesValidos = array_values(array_filter(array_map('strval', (array)$nomes)));
+        $ajustarPronomes = count($nomesValidos) === 1;
+        foreach ($nomesValidos as $nomeCitado) {
+            $texto = ajustarGeneroTextoParticipanteBBB(
+                $texto,
+                $nomeCitado,
+                $jogadores,
+                $ajustarPronomes
+            );
+        }
+    }
+
     if ($texto === '') {
         return false;
     }

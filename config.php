@@ -2,6 +2,8 @@
 
 session_start();
 
+require_once __DIR__ . '/includes/logica/gramatica.php';
+
 /* =========================================================
    📥 RECEBER E VALIDAR FORMULÁRIO
    ========================================================= */
@@ -105,6 +107,7 @@ $meuJogador = [
     'profissao' => $profissao,
     'estado' => $estado,
     'personalidade' => $personalidadeUser,
+    'genero' => generoNomeConhecidoBBB($nomeUser) ?? 'nao_informado',
     'popularidade' => rand(60, 80),
     'humor' => 60,
     'origem' => 'elenco_inicial',
@@ -168,6 +171,7 @@ for ($i = 0; $i < $qtd - 1; $i++) {
         'profissao' => $profissoesNPC[array_rand($profissoesNPC)],
         'estado' => $estados[array_rand($estados)],
         'personalidade' => $personalidades[array_rand($personalidades)],
+        'genero' => generoNomeConhecidoBBB($nomeAleatorio) ?? 'nao_informado',
         'popularidade' => rand(40, 60),
         'humor' => rand(40, 60),
         'origem' => 'elenco_inicial',

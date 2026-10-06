@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/gramatica.php';
+
 /* =========================================================
    🚀 INICIALIZAÇÃO DO JOGO
    ========================================================= */
@@ -47,6 +49,7 @@ function garantirIdentidadeFixaParticipante(&$jogador)
         'profissao',
         'estado',
         'personalidade',
+        'genero',
         'origem'
     ];
 
@@ -139,6 +142,11 @@ function garantirEstruturaParticipantes(&$jogadores)
         /* =========================
            🔒 IDENTIDADE IMUTÁVEL
            ========================= */
+        /* Gênero gramatical: compatibilidade com saves anteriores. */
+        if (!isset($j['genero']) || normalizarGeneroBBB($j['genero']) === null) {
+            $j['genero'] = generoNomeConhecidoBBB($j['nome'] ?? '') ?? 'nao_informado';
+        }
+
         garantirIdentidadeFixaParticipante($j);
 
 

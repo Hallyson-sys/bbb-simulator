@@ -1,5 +1,5 @@
 <?php
-/* 🎬 EVENTOS DE CONVIVÊNCIA V2 — cenas, segredos, memória e fofocas. */
+/* 🎬 EVENTOS DE CONVIVÊNCIA V4 — cenas, segredos, fofocas e Memória Social. */
 
 function ecDadosParticipante($jogadores, $nome) { foreach ($jogadores as $j) if (($j['nome'] ?? '') === $nome) return $j; return []; }
 function ecFaixaRelacao($valor) { if ($valor >= 55) return 'muito_alta'; if ($valor >= 20) return 'alta'; if ($valor <= -55) return 'muito_baixa'; if ($valor <= -20) return 'baixa'; return 'neutra'; }
@@ -21,6 +21,60 @@ function ecGerarSegredoReal($jogadores,$npc,$meuNome,$modo='ouvido'){
 function ecCriarFofoca(&$jogadores,$origem,$meuNome){ $s=ecGerarSegredoReal($jogadores,$origem,$meuNome,'contado'); $nomes=[]; foreach($jogadores as $j){$n=$j['nome']??'';if($n&&$n!==$origem&&$n!==$meuNome&&!empty($j['eliminado'])===false)$nomes[]=$n;} if(!$nomes)return; $receptor=$nomes[array_rand($nomes)]; $distorcida=random_int(1,100)<=24; $texto=$s['texto']; if($distorcida){$alvo=ecEscolherAlvoProvavel($jogadores,$receptor,$meuNome); if($alvo) $texto="$origem estaria muito inclinado(a) a mirar em $alvo nesta rodada.";} $_SESSION['fofocas_casa'][]=['origem'=>$origem,'portador'=>$receptor,'texto'=>$texto,'verdadeira'=>!$distorcida,'rodada'=>ecRodadaAtual(),'expira_rodada'=>ecRodadaAtual()]; }
 function ecTalvezCircularFofocas(&$jogadores,$meuNome,$fase){ $ch='ec_fofoca_'.$fase.'_'.ecRodadaAtual(); if(!empty($_SESSION[$ch]))return; $_SESSION[$ch]=true; if(random_int(1,100)>45)return; $nomes=[]; foreach($jogadores as $j){$n=$j['nome']??'';if($n&&$n!==$meuNome&&empty($j['eliminado']))$nomes[]=$n;} if($nomes) ecCriarFofoca($jogadores,$nomes[array_rand($nomes)],$meuNome); }
 function ecFofocaParaJogador($jogadores,$npc){ ecGarantirMemoria(); $poss=[]; foreach($_SESSION['fofocas_casa'] as $f) if(($f['portador']??'')===$npc)$poss[]=$f; return $poss?$poss[array_rand($poss)]:null; }
+
+function ecEventoMemoriaSocial($jogadores,$npc,$meuNome,$fase){
+  if(!function_exists('impactoNegativoMemoriaNPC')||!function_exists('impactoPositivoMemoriaNPC')) return null;
+  $neg=(float)impactoNegativoMemoriaNPC($npc,$meuNome);
+  $pos=(float)impactoPositivoMemoriaNPC($npc,$meuNome);
+  $limite=$fase==='festa'?23:28;
+  if(max($neg,$pos)<$limite) return null;
+
+  if($neg>$pos){
+    $ult=function_exists('ultimaMemoriaMarcanteNPC')?ultimaMemoriaMarcanteNPC($npc,$meuNome,'negativa'):null;
+    $lembranca=trim((string)($ult['descricao']??''));
+    $texto="$npc te chama para conversar e deixa claro que uma situação antiga ainda pesa entre vocês.";
+    if($lembranca!=='') $texto.=" “Eu não esqueci disso: {$lembranca}”";
+    return ['memoria_negativa','🔥','Acerto de contas',$fase==='festa'?'FESTA':'VARANDA',$texto,[
+      ['🙏 Reconhecer que a situação pesou',10,6,0,'memoria_pedido_desculpas'],
+      ['🎮 Dizer que aquilo fazia parte do jogo',1,0,0,'memoria_assumida'],
+      ['🔥 Dizer que faria tudo de novo',-11,-4,2,'memoria_rancor']
+    ]];
+  }
+
+  $ult=function_exists('ultimaMemoriaMarcanteNPC')?ultimaMemoriaMarcanteNPC($npc,$meuNome,'positiva'):null;
+  $lembranca=trim((string)($ult['descricao']??''));
+  $texto="$npc relembra uma atitude sua que marcou a relação de vocês e demonstra que ainda leva isso em consideração.";
+  if($lembranca!=='') $texto.=" “Eu lembro disso: {$lembranca}”";
+  return ['memoria_positiva','🤝','Uma dívida de jogo',$fase==='festa'?'FESTA':'ACADEMIA',$texto,[
+    ['🤝 Reafirmar que vocês se protegem',9,6,0,'memoria_pacto'],
+    ['🎯 Pedir reciprocidade quando precisar',5,3,0,'memoria_pacto'],
+    ['🙂 Dizer que não precisa devolver o favor',6,4,0,'memoria_apoio']
+  ]];
+}
+
+function ecRegistrarMemoriaDaEscolha($npc,$meuNome,$eventoId,$delta,$efeito){
+  if(!function_exists('registrarMemoriaSocialNPC')) return;
+  $r=ecRodadaAtual();
+  $tipo=null;$forca=1;$descricao='';
+
+  if($efeito==='memoria_pedido_desculpas'){
+    $tipo='me_pediu_desculpas';$forca=2;$descricao="$meuNome reconheceu um conflito antigo e tentou reparar a relação com $npc.";
+  } elseif($efeito==='memoria_pacto' || ($eventoId==='pacto' && $delta>=5)){
+    $tipo='fechou_pacto_comigo';$forca=2;$descricao="$meuNome reforçou um pacto de proteção com $npc.";
+  } elseif($efeito==='memoria_apoio'){
+    $tipo='me_apoiou';$descricao="$meuNome demonstrou apoio a $npc sem cobrar nada em troca.";
+  } elseif($efeito==='memoria_rancor'){
+    $tipo='me_desrespeitou';$forca=2;$descricao="$meuNome dobrou a aposta durante um acerto de contas com $npc.";
+  } elseif($delta>=7){
+    $tipo='me_apoiou';$descricao="$meuNome teve uma atitude positiva marcante com $npc durante a convivência.";
+  } elseif($delta<=-7){
+    $tipo='me_desrespeitou';$descricao="$meuNome teve uma reação que marcou negativamente $npc durante a convivência.";
+  }
+
+  if($tipo){
+    registrarMemoriaSocialNPC($npc,$meuNome,$tipo,$forca,$descricao,"ec|$r|$eventoId|$npc|$meuNome|$tipo");
+  }
+}
 
 function ecBiblioteca() { return [
 'muito_alta'=>[
@@ -50,11 +104,61 @@ function ecBiblioteca() { return [
 ['segredo','👂','Você ouviu seu nome...','QUARTO','Ao passar pelo quarto, você escuta {npc} falando seu nome em uma conversa estratégica. A pessoa ainda não percebeu que você está por perto.',[['🤫 Continuar ouvindo',0,2,0,'segredo_ouvido'],['🚪 Sair discretamente',1,0,0,null],['😳 Entrar e perguntar o que houve',-5,-2,2,null]]],
 ['madrugada','🌙','Conversa de madrugada','VARANDA','A festa já desacelerou quando {npc} senta ao seu lado: “Aqui dentro é difícil saber o que é jogo e o que é de verdade.”',[['❤️ Falar com sinceridade',10,5,0,null],['🤝 Falar sobre confiança',6,4,0,'fofoca'],['😶 Apenas ouvir',3,2,0,null]]]],
 ]; }
-function ecTalvezGerar(&$jogadores,$meuNome,$fase){ ecLimparMemoriaExpirada(); if(!preg_match('/^interacoes_/',$fase)&&$fase!=='festa')return; ecTalvezCircularFofocas($jogadores,$meuNome,$fase); if(!empty($_SESSION['evento_convivencia_ativo']))return; $ch='ec_tentado_'.$fase.'_'.ecRodadaAtual(); if(!empty($_SESSION[$ch]))return; $_SESSION[$ch]=true; $chance=$fase==='festa'?72:42; if(random_int(1,100)>$chance)return; $cand=[]; foreach($jogadores as $j){$n=$j['nome']??'';if(!$n||$n===$meuNome||!empty($j['eliminado']))continue;$rel=(int)($_SESSION['relacoes_jogador'][$n]??0);$cand[]=[$n,$rel,max(2,abs($rel)+15)];} if(!$cand)return; $total=array_sum(array_column($cand,2));$r=random_int(1,max(1,$total));$esc=$cand[0];foreach($cand as $c){$r-=$c[2];if($r<=0){$esc=$c;break;}} [$npc,$rel]=$esc;$lib=ecBiblioteca();$grupo=$fase==='festa'?'festa':ecFaixaRelacao($rel);if($fase==='festa'&&$rel<=-25&&random_int(1,100)<=55)$evento=$lib['festa'][2];else $evento=$lib[$grupo][array_rand($lib[$grupo])]; $_SESSION['evento_convivencia_ativo']=['id'=>$evento[0],'icone'=>$evento[1],'titulo'=>$evento[2],'camera'=>$evento[3],'texto'=>str_replace('{npc}',$npc,$evento[4]),'opcoes'=>$evento[5],'npc'=>$npc,'fase'=>$fase,'relacao_antes'=>$rel]; }
+function ecTalvezGerar(&$jogadores,$meuNome,$fase){
+  ecLimparMemoriaExpirada();
+  if(!preg_match('/^interacoes_/',$fase)&&$fase!=='festa') return;
+  ecTalvezCircularFofocas($jogadores,$meuNome,$fase);
+  if(!empty($_SESSION['evento_convivencia_ativo'])) return;
+
+  $ch='ec_tentado_'.$fase.'_'.ecRodadaAtual();
+  if(!empty($_SESSION[$ch])) return;
+  $_SESSION[$ch]=true;
+
+  $chance=$fase==='festa'?72:42;
+  if(random_int(1,100)>$chance) return;
+
+  $cand=[];
+  foreach($jogadores as $j){
+    $n=$j['nome']??'';
+    if(!$n||$n===$meuNome||!empty($j['eliminado'])) continue;
+    $rel=(int)($_SESSION['relacoes_jogador'][$n]??0);
+    $mem=0.0;
+    if(function_exists('impactoNegativoMemoriaNPC')) $mem=max($mem,(float)impactoNegativoMemoriaNPC($n,$meuNome));
+    if(function_exists('impactoPositivoMemoriaNPC')) $mem=max($mem,(float)impactoPositivoMemoriaNPC($n,$meuNome));
+    $peso=max(2,abs($rel)+15+(int)min(80,$mem*.45));
+    $cand[]=[$n,$rel,$peso,$mem];
+  }
+  if(!$cand) return;
+
+  $total=array_sum(array_column($cand,2));
+  $r=random_int(1,max(1,$total));
+  $esc=$cand[0];
+  foreach($cand as $c){$r-=$c[2];if($r<=0){$esc=$c;break;}}
+  [$npc,$rel,,$mem]=$esc;
+
+  $evento=null;
+  if($mem>=23 && random_int(1,100)<=68){
+    $evento=ecEventoMemoriaSocial($jogadores,$npc,$meuNome,$fase);
+  }
+
+  if(!$evento){
+    $lib=ecBiblioteca();
+    $grupo=$fase==='festa'?'festa':ecFaixaRelacao($rel);
+    if($fase==='festa'&&$rel<=-25&&random_int(1,100)<=55) $evento=$lib['festa'][2];
+    else $evento=$lib[$grupo][array_rand($lib[$grupo])];
+  }
+
+  $_SESSION['evento_convivencia_ativo']=[
+    'id'=>$evento[0],'icone'=>$evento[1],'titulo'=>$evento[2],'camera'=>$evento[3],
+    'texto'=>str_replace('{npc}',$npc,$evento[4]),'opcoes'=>$evento[5],
+    'npc'=>$npc,'fase'=>$fase,'relacao_antes'=>$rel
+  ];
+}
 function ecProcessarEscolha(&$jogadores,$meuNome,$indice){$e=$_SESSION['evento_convivencia_ativo']??null;if(!$e)return;$op=$e['opcoes'][$indice]??null;if(!$op)return;$npc=$e['npc'];$delta=(int)$op[1];$conf=(int)$op[2];$pop=(int)$op[3];$efeito=$op[4]??null;ajustarRelacaoJogador($npc,$delta);alterarAfinidade($jogadores,$npc,$meuNome,$delta,$delta<0?abs((int)round($delta/2)):0,$conf);if($pop&&function_exists('alterarPopularidadePublica'))alterarPopularidadePublica($jogadores,$meuNome,$pop,$pop,'reagiu a um momento marcante da convivência',true);$extra='';
  if($efeito==='segredo_contado'||$efeito==='segredo_ouvido'){ $s=ecGerarSegredoReal($jogadores,$npc,$meuNome,$efeito==='segredo_contado'?'contado':'ouvido'); ecRegistrarConhecimento($s['tipo'],$s['titulo'],$s['texto'],$s['fonte'],$s['confiabilidade'],$s['expira'],['envolvido'=>$npc]); $extra=' 🔐 Uma nova informação foi adicionada a “O que eu sei”.'; }
  elseif($efeito==='ameaca_direta'){ ecRegistrarConhecimento('ameaca','🎯 Alvo declarado',"$npc declarou diretamente que considera colocar seu nome no próximo Paredão.","Dito diretamente por $npc",'alta',ecRodadaAtual(),['envolvido'=>$npc]);$extra=' 🔐 Você guardou essa declaração na memória.'; }
  elseif($efeito==='fofoca'){ $f=ecFofocaParaJogador($jogadores,$npc); if($f){ecRegistrarConhecimento('fofoca','🗣️ Fofoca que chegou até você',$f['texto'],"Contada por $npc",'media',ecRodadaAtual(),['envolvido'=>$npc,'verdade_interna'=>$f['verdadeira']]);$extra=' 🗣️ Você ouviu uma fofoca — ela pode estar incompleta ou distorcida.';} else {$s=ecGerarSegredoReal($jogadores,$npc,$meuNome,'contado');ecRegistrarConhecimento($s['tipo'],$s['titulo'],$s['texto'],"Impressão compartilhada por $npc",'media',$s['expira'],['envolvido'=>$npc]);$extra=' 🔐 Você registrou essa leitura de jogo.';}}
+ ecRegistrarMemoriaDaEscolha($npc,$meuNome,$e['id']??'evento',$delta,$efeito);
  $msg=$delta>=7?"$npc gostou muito da sua reação.":($delta>0?"O clima com $npc melhorou.":($delta<=-7?"A tensão com $npc aumentou.":($delta<0?"$npc não gostou muito da sua resposta.":'Você preferiu não mexer nessa relação.')));$_SESSION['evento_convivencia_resultado']=['titulo'=>'Consequência da sua escolha','texto'=>$msg.$extra,'icone'=>$delta<0?'⚡':'✨','npc'=>$npc,'fase'=>$e['fase']];unset($_SESSION['evento_convivencia_ativo']);$_SESSION['jogadores']=$jogadores;}
 
 
@@ -127,6 +231,13 @@ function ecProcessarAcaoConhecimento(&$jogadores,$meuNome,$chave,$acao,$destino=
         $delta=$confianca==='alta'?-6:($confianca==='media'?-9:-12);
         ajustarRelacaoJogador($envolvido,$delta);
         alterarAfinidade($jogadores,$envolvido,$meuNome,$delta,abs((int)round($delta/2)),0);
+        if(function_exists('registrarMemoriaSocialNPC')){
+            registrarMemoriaSocialNPC(
+                $envolvido,$meuNome,'me_confrontou',1,
+                "$meuNome confrontou $envolvido usando uma informação que havia descoberto.",
+                'conhecimento|confronto|'.ecRodadaAtual().'|'.$envolvido.'|'.$meuNome.'|'.$chave
+            );
+        }
         ecMarcarConhecimento($idx,'confrontar');
         $_SESSION['evento_extra'][]="💥 Você chamou <b>".htmlspecialchars($envolvido,ENT_QUOTES,'UTF-8')."</b> para conversar depois de uma informação que chegou até você.";
         ecResultadoAcaoConhecimento('💥','Você decidiu confrontar',"Você colocou $envolvido contra a parede sem receber confirmação total do que ouviu. O clima entre vocês ficou mais tenso.");
@@ -140,6 +251,13 @@ function ecProcessarAcaoConhecimento(&$jogadores,$meuNome,$chave,$acao,$destino=
         // Compartilhar informação aproxima o receptor, mas faz o segredo entrar na rede de fofocas.
         ajustarRelacaoJogador($destino,3);
         alterarAfinidade($jogadores,$destino,$meuNome,3,0,3);
+        if(function_exists('registrarMemoriaSocialNPC')){
+            registrarMemoriaSocialNPC(
+                $destino,$meuNome,'me_contou_segredo',1,
+                "$meuNome confiou uma informação estratégica a $destino.",
+                'conhecimento|segredo|'.ecRodadaAtual().'|'.$destino.'|'.$meuNome.'|'.$chave
+            );
+        }
         ecGarantirMemoria();
         $_SESSION['fofocas_casa'][]=[
             'origem'=>$meuNome,
@@ -157,6 +275,13 @@ function ecProcessarAcaoConhecimento(&$jogadores,$meuNome,$chave,$acao,$destino=
                 $vazou=true;
                 ajustarRelacaoJogador($envolvido,-7);
                 alterarAfinidade($jogadores,$envolvido,$meuNome,-7,5,0);
+                if(function_exists('registrarMemoriaSocialNPC')){
+                    registrarMemoriaSocialNPC(
+                        $envolvido,$meuNome,'espalhou_fofoca',2,
+                        "$envolvido descobriu que $meuNome espalhou uma informação que o envolvia.",
+                        'conhecimento|vazamento|'.ecRodadaAtual().'|'.$envolvido.'|'.$meuNome.'|'.$chave
+                    );
+                }
                 $_SESSION['evento_extra'][]="🗣️ Uma informação que você contou a <b>".htmlspecialchars($destino,ENT_QUOTES,'UTF-8')."</b> acabou chegando aos ouvidos de <b>".htmlspecialchars($envolvido,ENT_QUOTES,'UTF-8')."</b>.";
             }
         }

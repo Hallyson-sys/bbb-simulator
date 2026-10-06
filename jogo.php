@@ -22,6 +22,7 @@ require_once __DIR__ . '/includes/helpers/render.php';
 
 
 require_once __DIR__ . '/includes/logica/utilitarios.php';
+require_once __DIR__ . '/includes/logica/gramatica.php';
 require_once __DIR__ . '/includes/logica/historico_temporada.php';
 require_once __DIR__ . '/includes/logica/perfil_participante.php';
 

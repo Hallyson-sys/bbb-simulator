@@ -3,6 +3,7 @@
 session_start();
 
 require_once __DIR__ . '/data/opcoes_participantes.php';
+require_once __DIR__ . '/includes/logica/gramatica.php';
 
 
 /* =========================================================
@@ -114,6 +115,8 @@ function criarParticipante(
         'estado' => $estado,
 
         'personalidade' => $personalidade,
+
+        'genero' => generoNomeConhecidoBBB($nome) ?? 'nao_informado',
 
         'popularidade' => rand(40, 60),
 
@@ -389,6 +392,9 @@ if (isset($_POST['salvar_edicao'])) {
 
                 $elenco[$indice]['personalidade'] =
                     $personalidade;
+
+                $elenco[$indice]['genero'] =
+                    generoNomeConhecidoBBB($nome) ?? 'nao_informado';
 
                 /*
                  * Sai do modo de edição depois de salvar.

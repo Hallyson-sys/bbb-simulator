@@ -218,6 +218,18 @@ function romperAlianca(&$jogadores, $nome, $motivo = "a confiança desmoronou")
         if (!nomeIgual(($membro['nome'] ?? ''), $nome) && ($membro['alianca'] ?? null) == $alianca) {
             alterarAfinidade($jogadores, $nome, $membro['nome'], -8, 8, -10);
             alterarAfinidade($jogadores, $membro['nome'], $nome, -6, 6, -8);
+
+            /* Quem ficou no grupo lembra de quem rompeu a aliança. */
+            if (function_exists('registrarMemoriaSocialNPC')) {
+                registrarMemoriaSocialNPC(
+                    $membro['nome'],
+                    $nome,
+                    'rompeu_comigo',
+                    2,
+                    "$nome rompeu a aliança $alianca e deixou {$membro['nome']} no grupo.",
+                    'alianca_rompida|' . ($_SESSION['rodada'] ?? 1) . '|' . $alianca . '|' . $nome . '|' . $membro['nome']
+                );
+            }
         }
     }
 
