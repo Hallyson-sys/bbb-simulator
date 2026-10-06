@@ -6,7 +6,7 @@
     <button type="button" class="mobile-nav-item" data-mobile-nav="casa" onclick="mobileAbrirPainel('casa', 'mobileCasa', this)">
         <span>👥</span><small>Casa</small>
     </button>
-    <button type="button" class="mobile-nav-item mobile-nav-live" data-mobile-nav="aovivo" onclick="mobileAbrirAoVivo(this)">
+    <button type="button" class="mobile-nav-item mobile-nav-live" data-mobile-nav="aovivo">
         <span class="mobile-live-icon"><i></i>📺</span><small>Ao Vivo</small>
     </button>
     <a class="mobile-nav-item" href="temporada.php">

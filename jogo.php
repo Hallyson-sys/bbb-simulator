@@ -652,7 +652,7 @@ atualizarFeedPublicoInteligente(
 <link rel="stylesheet" href="assets/css/feed_publico.css">
 
 <link rel="stylesheet" href="assets/css/save_2.css">
-<link rel="stylesheet" href="assets/css/responsivo.css?v=2">
+<link rel="stylesheet" href="assets/css/responsivo.css?v=32">
 
 
 
@@ -953,7 +953,7 @@ const acaoSelecionada = <?= json_encode($_SESSION['acao_selecionada'] ?? '') ?>;
 
 
 <script src="assets/js/jogo.js"></script>
-<script src="assets/js/mobile_2.js?v=2"></script>
+<script src="assets/js/mobile_2.js?v=32"></script>
 
 <script src="assets/js/feed_publico.js"></script>
 

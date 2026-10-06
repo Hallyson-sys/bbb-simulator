@@ -1,58 +1,100 @@
 (function () {
     const mq = window.matchMedia('(max-width: 768px)');
 
-    function isMobile() { return mq.matches; }
-
-
-    function rolarLogAoVivoParaFim(comAnimacao) {
-        const log = document.getElementById('aoVivoLog');
-        if (!log) return;
-
-        const destino = Math.max(0, log.scrollHeight - log.clientHeight);
-        if (typeof log.scrollTo === 'function') {
-            log.scrollTo({
-                top: destino,
-                behavior: comAnimacao ? 'smooth' : 'auto'
-            });
-        } else {
-            log.scrollTop = destino;
-        }
+    function isMobile() {
+        return mq.matches;
     }
 
-    function posicionarAoVivoNoUltimo({ rolarPagina = false, animarLog = false } = {}) {
-        const painel = document.querySelector('[data-mobile-panel="aovivo"]');
-        const log = document.getElementById('aoVivoLog');
-        if (!log) return;
-
-        // Aguarda o painel sair de display:none e o navegador recalcular as alturas.
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                rolarLogAoVivoParaFim(animarLog);
-
-                if (rolarPagina && isMobile() && painel) {
-                    painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-
-                // Repete depois da rolagem/animação para neutralizar mudanças tardias de layout
-                // (fontes, imagens e expansão do painel).
-                setTimeout(() => rolarLogAoVivoParaFim(false), 220);
-            });
-        });
+    function painelAoVivo() {
+        return document.getElementById('mobileAoVivo') || document.querySelector('[data-mobile-panel="aovivo"]');
     }
 
-    window.mobileAbrirAoVivo = function (navEl) {
-        const painel = document.querySelector('[data-mobile-panel="aovivo"]');
-        if (!painel) return;
+    function logAoVivo() {
+        return document.getElementById('aoVivoLog');
+    }
+
+    function ultimoAcontecimentoAoVivo() {
+        const log = logAoVivo();
+        if (!log) return null;
+        return log.querySelector('[data-ao-vivo-ultimo="1"]') || log.lastElementChild;
+    }
+
+    function marcarNavAtiva(navEl) {
+        document.querySelectorAll('.mobile-nav-item').forEach(item => item.classList.remove('ativo'));
+        if (navEl) navEl.classList.add('ativo');
+    }
+
+    function abrirPainelAoVivo() {
+        const painel = painelAoVivo();
+        if (!painel) return false;
 
         painel.classList.remove('mobile-collapsed');
         const toggle = painel.querySelector('[data-mobile-toggle="aovivo"]');
         if (toggle) toggle.setAttribute('aria-expanded', 'true');
+        return true;
+    }
 
-        document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('ativo'));
-        if (navEl) navEl.classList.add('ativo');
+    function rolarFeedAoVivoParaUltimo(comAnimacao) {
+        const log = logAoVivo();
+        if (!log) return;
 
-        // Primeiro leva a página ao painel; depois posiciona o feed no acontecimento mais recente.
-        posicionarAoVivoNoUltimo({ rolarPagina: true, animarLog: false });
+        // No mobile o Ao Vivo possui uma área de rolagem própria. Usar scrollHeight
+        // é mais confiável que scrollIntoView, pois não mistura o scroll da página
+        // com o scroll interno do feed.
+        const destino = Math.max(0, log.scrollHeight - log.clientHeight);
+
+        try {
+            log.scrollTo({
+                top: destino,
+                left: 0,
+                behavior: comAnimacao ? 'smooth' : 'auto'
+            });
+        } catch (e) {
+            log.scrollTop = destino;
+        }
+
+        // Garante o valor mesmo em Safari/iOS, que pode ignorar scrollTo durante
+        // a mesma etapa em que um elemento acabou de sair de display:none.
+        if (!comAnimacao) log.scrollTop = log.scrollHeight;
+    }
+
+    function rolarPaginaAteAoVivo(comAnimacao) {
+        const painel = painelAoVivo();
+        if (!painel) return;
+
+        const topo = Math.max(0, painel.getBoundingClientRect().top + window.scrollY - 76);
+        try {
+            window.scrollTo({
+                top: topo,
+                behavior: comAnimacao ? 'smooth' : 'auto'
+            });
+        } catch (e) {
+            window.scrollTo(0, topo);
+        }
+    }
+
+    function sincronizarAoVivo({ rolarPagina = false, paginaSuave = false, feedSuave = false } = {}) {
+        if (!abrirPainelAoVivo()) return;
+
+        // Primeira tentativa imediatamente.
+        rolarFeedAoVivoParaUltimo(false);
+        if (rolarPagina && isMobile()) rolarPaginaAteAoVivo(paginaSuave);
+
+        // O painel recolhível, fontes e cards podem alterar a altura depois do clique.
+        // Repetimos em momentos curtos para deixar o Safari/iOS e o Chrome consistentes.
+        const tentativas = [0, 60, 180, 360, 650];
+        tentativas.forEach((atraso, indice) => {
+            setTimeout(() => {
+                rolarFeedAoVivoParaUltimo(feedSuave && indice === 0);
+                if (rolarPagina && indice === 1 && isMobile()) rolarPaginaAteAoVivo(false);
+            }, atraso);
+        });
+    }
+
+    window.mobileAbrirAoVivo = function (navEl) {
+        if (!abrirPainelAoVivo()) return;
+        marcarNavAtiva(navEl);
+        sincronizarAoVivo({ rolarPagina: true, paginaSuave: true, feedSuave: false });
     };
 
     window.fecharMenuMobile = function () {
@@ -65,8 +107,7 @@
     window.mobileIrPara = function (id, navEl) {
         const el = document.getElementById(id);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('ativo'));
-        if (navEl) navEl.classList.add('ativo');
+        marcarNavAtiva(navEl);
     };
 
     window.mobileAbrirPainel = function (nome, id, navEl) {
@@ -79,6 +120,20 @@
         window.mobileIrPara(id, navEl);
     };
 
+    function configurarAtalhoAoVivo() {
+        const nav = document.querySelector('[data-mobile-nav="aovivo"]');
+        if (!nav || nav.dataset.liveReady === '1') return;
+        nav.dataset.liveReady = '1';
+
+        // Listener próprio em vez de depender apenas de onclick inline. Isso também
+        // evita falhas em navegadores móveis que restauram páginas do cache (bfcache).
+        nav.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            window.mobileAbrirAoVivo(nav);
+        });
+    }
+
     function configurarPaineis() {
         document.querySelectorAll('[data-mobile-toggle]').forEach(btn => {
             if (btn.dataset.mobileReady) return;
@@ -87,18 +142,28 @@
                 const nome = btn.dataset.mobileToggle;
                 const painel = document.querySelector('[data-mobile-panel="' + nome + '"]');
                 if (!painel) return;
+
                 const fechando = !painel.classList.contains('mobile-collapsed');
                 painel.classList.toggle('mobile-collapsed', fechando);
                 btn.setAttribute('aria-expanded', fechando ? 'false' : 'true');
-                if (!fechando && nome === 'aovivo') posicionarAoVivoNoUltimo({ rolarPagina: true, animarLog: false });
+
+                if (!fechando && nome === 'aovivo') {
+                    sincronizarAoVivo({ rolarPagina: true, paginaSuave: true, feedSuave: false });
+                }
             });
         });
 
         if (isMobile()) {
             const casa = document.querySelector('[data-mobile-panel="casa"]');
-            const aoVivo = document.querySelector('[data-mobile-panel="aovivo"]');
-            if (casa && !casa.dataset.mobileInitial) { casa.classList.add('mobile-collapsed'); casa.dataset.mobileInitial = '1'; }
-            if (aoVivo && !aoVivo.dataset.mobileInitial) { aoVivo.classList.add('mobile-collapsed'); aoVivo.dataset.mobileInitial = '1'; }
+            const aoVivo = painelAoVivo();
+            if (casa && !casa.dataset.mobileInitial) {
+                casa.classList.add('mobile-collapsed');
+                casa.dataset.mobileInitial = '1';
+            }
+            if (aoVivo && !aoVivo.dataset.mobileInitial) {
+                aoVivo.classList.add('mobile-collapsed');
+                aoVivo.dataset.mobileInitial = '1';
+            }
         }
     }
 
@@ -112,8 +177,20 @@
             btn.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
         });
         document.addEventListener('click', (e) => {
-            if (!menu.hidden && !menu.contains(e.target) && e.target !== btn) fecharMenuMobile();
+            if (!menu.hidden && !menu.contains(e.target) && e.target !== btn) window.fecharMenuMobile();
         });
+    }
+
+    function observarNovosAcontecimentos() {
+        const log = logAoVivo();
+        if (!log || typeof MutationObserver === 'undefined') return;
+
+        const observer = new MutationObserver(() => {
+            const painel = painelAoVivo();
+            if (!isMobile() || !painel || painel.classList.contains('mobile-collapsed')) return;
+            setTimeout(() => rolarFeedAoVivoParaUltimo(false), 0);
+        });
+        observer.observe(log, { childList: true, subtree: false });
     }
 
     function candidatoAcao() {
@@ -163,12 +240,21 @@
         setTimeout(atualizar, 300);
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function iniciar() {
         configurarPaineis();
+        configurarAtalhoAoVivo();
         configurarMenu();
         configurarAcaoFixa();
-        // No desktop, o Ao Vivo já começa no acontecimento mais recente.
-        // No mobile, ele permanece recolhido e salta ao último item ao ser aberto.
-        if (!isMobile()) setTimeout(() => posicionarAoVivoNoUltimo({ rolarPagina: false, animarLog: false }), 60);
+        observarNovosAcontecimentos();
+
+        // No desktop, o Ao Vivo inicia no acontecimento mais recente.
+        if (!isMobile()) setTimeout(() => rolarFeedAoVivoParaUltimo(false), 60);
+    }
+
+    document.addEventListener('DOMContentLoaded', iniciar);
+
+    // Safari/iOS pode restaurar a página via bfcache sem um novo DOMContentLoaded.
+    window.addEventListener('pageshow', () => {
+        configurarAtalhoAoVivo();
     });
 })();

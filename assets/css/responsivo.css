@@ -476,3 +476,52 @@
         scroll-margin-bottom: 12px;
     }
 }
+
+/* =========================================================
+   📺 MOBILE 2.0 V3.2 — AO VIVO REALMENTE NO ÚLTIMO EVENTO
+   O feed volta a ter scroll próprio no mobile. Isso permite
+   abrir "Na Casa" já posicionado na ação mais recente, sem
+   exigir que o jogador percorra todos os acontecimentos.
+   ========================================================= */
+@media (max-width: 768px) {
+    #mobileAoVivo {
+        scroll-margin-top: 76px !important;
+    }
+
+    #mobileAoVivo:not(.mobile-collapsed) {
+        overflow: visible !important;
+    }
+
+    #mobileAoVivo .ao-vivo-card {
+        overflow: hidden !important;
+    }
+
+    #mobileAoVivo .ao-vivo-card .log,
+    #aoVivoLog {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 14px !important;
+        width: 100% !important;
+        height: min(54dvh, 520px) !important;
+        min-height: 300px !important;
+        max-height: min(54dvh, 520px) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+        scroll-behavior: auto !important;
+        scroll-padding-bottom: calc(var(--mobile-action-h) + 28px);
+        padding: 0 6px calc(var(--mobile-action-h) + 28px) 0 !important;
+        box-sizing: border-box !important;
+        touch-action: pan-y;
+    }
+
+    #mobileAoVivo .ao-vivo-card .log > p,
+    #aoVivoLog > p {
+        flex: 0 0 auto !important;
+    }
+
+    #mobileAoVivo .ao-vivo-ultimo {
+        scroll-margin-bottom: calc(var(--mobile-action-h) + 22px) !important;
+    }
+}
