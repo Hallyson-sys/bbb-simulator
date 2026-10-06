@@ -56,3 +56,115 @@ function ecProcessarEscolha(&$jogadores,$meuNome,$indice){$e=$_SESSION['evento_c
  elseif($efeito==='ameaca_direta'){ ecRegistrarConhecimento('ameaca','🎯 Alvo declarado',"$npc declarou diretamente que considera colocar seu nome no próximo Paredão.","Dito diretamente por $npc",'alta',ecRodadaAtual(),['envolvido'=>$npc]);$extra=' 🔐 Você guardou essa declaração na memória.'; }
  elseif($efeito==='fofoca'){ $f=ecFofocaParaJogador($jogadores,$npc); if($f){ecRegistrarConhecimento('fofoca','🗣️ Fofoca que chegou até você',$f['texto'],"Contada por $npc",'media',ecRodadaAtual(),['envolvido'=>$npc,'verdade_interna'=>$f['verdadeira']]);$extra=' 🗣️ Você ouviu uma fofoca — ela pode estar incompleta ou distorcida.';} else {$s=ecGerarSegredoReal($jogadores,$npc,$meuNome,'contado');ecRegistrarConhecimento($s['tipo'],$s['titulo'],$s['texto'],"Impressão compartilhada por $npc",'media',$s['expira'],['envolvido'=>$npc]);$extra=' 🔐 Você registrou essa leitura de jogo.';}}
  $msg=$delta>=7?"$npc gostou muito da sua reação.":($delta>0?"O clima com $npc melhorou.":($delta<=-7?"A tensão com $npc aumentou.":($delta<0?"$npc não gostou muito da sua resposta.":'Você preferiu não mexer nessa relação.')));$_SESSION['evento_convivencia_resultado']=['titulo'=>'Consequência da sua escolha','texto'=>$msg.$extra,'icone'=>$delta<0?'⚡':'✨','npc'=>$npc,'fase'=>$e['fase']];unset($_SESSION['evento_convivencia_ativo']);$_SESSION['jogadores']=$jogadores;}
+
+
+/* =========================================================
+   🎯 V3 — USO ESTRATÉGICO DAS INFORMAÇÕES
+   O jogador pode agir sobre aquilo que descobriu sem que a
+   interface revele a verdade interna de boatos/fofocas.
+   ========================================================= */
+function ecEncontrarConhecimentoIndice($chave){
+    ecGarantirMemoria();
+    foreach($_SESSION['conhecimentos_jogador'] as $i=>$c){
+        if(($c['chave']??'')===$chave && empty($c['expirado'])) return $i;
+    }
+    return null;
+}
+function ecParticipanteAtivo($jogadores,$nome){
+    foreach($jogadores as $j) if(($j['nome']??'')===$nome && empty($j['eliminado'])) return true;
+    return false;
+}
+function ecMarcarConhecimento($indice,$acao){
+    $_SESSION['conhecimentos_jogador'][$indice]['ultima_acao']=$acao;
+    $_SESSION['conhecimentos_jogador'][$indice]['acao_rodada']=ecRodadaAtual();
+    if($acao!=='guardar') $_SESSION['conhecimentos_jogador'][$indice]['usado']=true;
+    if($acao==='guardar') $_SESSION['conhecimentos_jogador'][$indice]['guardado']=true;
+}
+function ecResultadoAcaoConhecimento($icone,$titulo,$texto){
+    $_SESSION['evento_convivencia_resultado']=[
+        'titulo'=>$titulo,'texto'=>$texto,'icone'=>$icone,'npc'=>'','fase'=>$_SESSION['fase_semana']??'interacoes'
+    ];
+}
+function ecProcessarAcaoConhecimento(&$jogadores,$meuNome,$chave,$acao,$destino=''){
+    $idx=ecEncontrarConhecimentoIndice($chave);
+    if($idx===null) return;
+    $c=$_SESSION['conhecimentos_jogador'][$idx];
+    if(!empty($c['usado']) && $acao!=='guardar'){
+        ecResultadoAcaoConhecimento('🧠','Informação já utilizada','Você já transformou essa informação em uma ação estratégica nesta rodada.');
+        return;
+    }
+    $envolvido=(string)($c['envolvido']??'');
+    $confianca=(string)($c['confiabilidade']??'media');
+    $tipo=(string)($c['tipo']??'');
+
+    if($acao==='guardar'){
+        ecMarcarConhecimento($idx,'guardar');
+        ecResultadoAcaoConhecimento('🔒','Informação guardada','Você decidiu manter isso em segredo por enquanto. A informação continua disponível em “O que eu sei”.');
+        return;
+    }
+
+    if($acao==='usar'){
+        if($envolvido && ecParticipanteAtivo($jogadores,$envolvido)){
+            if(!isset($_SESSION['ec_influencia_estrategica'])||!is_array($_SESSION['ec_influencia_estrategica'])) $_SESSION['ec_influencia_estrategica']=[];
+            $forca=$confianca==='alta'?12:($confianca==='media'?8:5);
+            $_SESSION['ec_influencia_estrategica'][$envolvido]=[
+                'bonus'=>$forca,'rodada'=>ecRodadaAtual(),'origem'=>$chave
+            ];
+            ecMarcarConhecimento($idx,'usar');
+            $_SESSION['evento_extra'][]="🧠 Você ajustou discretamente seu jogo depois de uma informação envolvendo <b>".htmlspecialchars($envolvido,ENT_QUOTES,'UTF-8')."</b>.";
+            ecResultadoAcaoConhecimento('🎯','Você usou a informação no jogo',"Sem revelar o que sabe, você mudou sua postura com $envolvido. Nesta rodada, isso pode reduzir a chance de você entrar na linha de tiro dessa pessoa.");
+        } else {
+            ecMarcarConhecimento($idx,'usar');
+            ecResultadoAcaoConhecimento('🎯','Leitura estratégica','Você guardou essa leitura e ajustou sua estratégia para a rodada, sem expor a fonte.');
+        }
+        return;
+    }
+
+    if($acao==='confrontar'){
+        if(!$envolvido || !ecParticipanteAtivo($jogadores,$envolvido)) return;
+        $negativos=['ameaca','intencao_voto','fofoca'];
+        if(!in_array($tipo,$negativos,true)) return;
+        $delta=$confianca==='alta'?-6:($confianca==='media'?-9:-12);
+        ajustarRelacaoJogador($envolvido,$delta);
+        alterarAfinidade($jogadores,$envolvido,$meuNome,$delta,abs((int)round($delta/2)),0);
+        ecMarcarConhecimento($idx,'confrontar');
+        $_SESSION['evento_extra'][]="💥 Você chamou <b>".htmlspecialchars($envolvido,ENT_QUOTES,'UTF-8')."</b> para conversar depois de uma informação que chegou até você.";
+        ecResultadoAcaoConhecimento('💥','Você decidiu confrontar',"Você colocou $envolvido contra a parede sem receber confirmação total do que ouviu. O clima entre vocês ficou mais tenso.");
+        $_SESSION['jogadores']=$jogadores;
+        return;
+    }
+
+    if($acao==='contar'){
+        $destino=trim((string)$destino);
+        if(!$destino || $destino===$meuNome || !ecParticipanteAtivo($jogadores,$destino)) return;
+        // Compartilhar informação aproxima o receptor, mas faz o segredo entrar na rede de fofocas.
+        ajustarRelacaoJogador($destino,3);
+        alterarAfinidade($jogadores,$destino,$meuNome,3,0,3);
+        ecGarantirMemoria();
+        $_SESSION['fofocas_casa'][]=[
+            'origem'=>$meuNome,
+            'portador'=>$destino,
+            'texto'=>$c['texto']??'',
+            // este campo continua exclusivamente interno; nunca é exibido ao jogador.
+            'verdadeira'=>array_key_exists('verdade_interna',$c)?(bool)$c['verdade_interna']:true,
+            'rodada'=>ecRodadaAtual(),
+            'expira_rodada'=>(int)($c['expira_rodada']??ecRodadaAtual())
+        ];
+        $vazou=false;
+        if($envolvido && $envolvido!==$destino && ecParticipanteAtivo($jogadores,$envolvido)){
+            $risco=$confianca==='baixa'?42:($confianca==='media'?30:20);
+            if(random_int(1,100)<=$risco){
+                $vazou=true;
+                ajustarRelacaoJogador($envolvido,-7);
+                alterarAfinidade($jogadores,$envolvido,$meuNome,-7,5,0);
+                $_SESSION['evento_extra'][]="🗣️ Uma informação que você contou a <b>".htmlspecialchars($destino,ENT_QUOTES,'UTF-8')."</b> acabou chegando aos ouvidos de <b>".htmlspecialchars($envolvido,ENT_QUOTES,'UTF-8')."</b>.";
+            }
+        }
+        ecMarcarConhecimento($idx,'contar');
+        $_SESSION['evento_extra'][]="🤫 Você dividiu uma informação estratégica com <b>".htmlspecialchars($destino,ENT_QUOTES,'UTF-8')."</b>.";
+        $txt="Você contou o que sabia para $destino. A confiança entre vocês aumentou, mas a informação agora pode circular pela casa.";
+        if($vazou) $txt.=" Desta vez, ela acabou chegando até $envolvido.";
+        ecResultadoAcaoConhecimento('🤫','Segredo compartilhado',$txt);
+        $_SESSION['jogadores']=$jogadores;
+    }
+}

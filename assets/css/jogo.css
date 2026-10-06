@@ -2997,3 +2997,23 @@ overflow-y: auto !important;
 /* 🧠 EVENTOS DE CONVIVÊNCIA V2 — MEMÓRIA E SEGREDOS */
 .ec-memoria{margin:14px 0 20px;border:1px solid rgba(91,173,255,.22);border-radius:20px;background:linear-gradient(145deg,rgba(18,25,52,.82),rgba(20,8,35,.76));overflow:hidden}.ec-memoria summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:900;font-size:17px;display:flex;align-items:center;justify-content:space-between;gap:10px}.ec-memoria summary::-webkit-details-marker{display:none}.ec-memoria summary span{font-size:12px;color:#8ec8ff;background:rgba(65,139,255,.12);padding:6px 9px;border-radius:999px}.ec-memoria-lista{display:grid;gap:10px;padding:0 14px 14px}.ec-segredo{padding:14px;border:1px solid rgba(255,255,255,.09);border-radius:15px;background:rgba(0,0,0,.2)}.ec-segredo-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.ec-segredo p{margin:8px 0;color:rgba(255,255,255,.82);line-height:1.5}.ec-segredo small,.ec-memoria-vazia{color:rgba(255,255,255,.56);line-height:1.45}.ec-confianca{white-space:nowrap;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;padding:5px 7px;border-radius:999px}.ec-alta{color:#7fffc2;background:rgba(32,211,138,.12)}.ec-media{color:#ffd978;background:rgba(255,187,51,.12)}.ec-baixa{color:#ff9696;background:rgba(255,70,70,.12)}
 @media(max-width:768px){.ec-memoria{border-radius:16px}.ec-memoria summary{padding:14px;font-size:15px}.ec-memoria-lista{padding:0 10px 10px}.ec-segredo{padding:12px}.ec-segredo-topo{display:block}.ec-confianca{display:inline-block;margin-top:7px}.ec-segredo p{font-size:14px}}
+
+
+/* =========================================================
+   🧠 EVENTOS DE CONVIVÊNCIA V3 — ações sobre informações
+   ========================================================= */
+.ec-acoes-info{margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.08);display:grid;gap:8px}
+.ec-acao-form,.ec-contar-form{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.ec-info-btn{min-height:36px;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.055);color:#fff;font:800 11px 'Poppins',Arial,sans-serif;cursor:pointer}
+.ec-info-btn:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}
+.ec-info-primary{border-color:rgba(76,219,255,.3);background:linear-gradient(135deg,rgba(0,210,255,.13),rgba(131,51,255,.13))}
+.ec-contar-form select{flex:1 1 150px;min-height:38px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#161229;color:#fff;padding:7px 9px;font:700 11px 'Poppins',Arial,sans-serif}
+.ec-uso-status{margin-top:11px;padding:8px 10px;border-radius:10px;background:rgba(55,214,144,.09);color:#8ff0bd;font-size:11px;font-weight:800}
+.ec-segredo-usado{opacity:.82}
+@media(max-width:768px){
+ .ec-acao-form{display:grid;grid-template-columns:1fr 1fr}
+ .ec-acao-form .ec-info-primary{grid-column:1/-1}
+ .ec-info-btn{min-height:44px;font-size:10px;padding:8px 6px}
+ .ec-contar-form{display:grid;grid-template-columns:minmax(0,1fr) auto}
+ .ec-contar-form select{min-width:0;width:100%;font-size:16px!important}
+}

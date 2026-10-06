@@ -110,7 +110,7 @@
     /* Navegação inferior */
     .mobile-bottom-nav {
         position: fixed; z-index: 9500; left: 0; right: 0; bottom: 0;
-        display: grid; grid-template-columns: repeat(5, 1fr); height: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom));
+        display: grid; grid-template-columns: repeat(6, 1fr); height: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom));
         padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
         border-top: 1px solid rgba(255,255,255,.12); background: rgba(7,6,20,.94);
         box-shadow: 0 -14px 40px rgba(0,0,0,.45); backdrop-filter: blur(20px);
@@ -445,3 +445,13 @@
         text-align: center !important;
     }
 }
+
+
+/* Mobile 2.0 — atalho Ao Vivo */
+@media (max-width:768px){
+  .mobile-nav-live .mobile-live-icon{position:relative;display:inline-flex;align-items:center;justify-content:center}
+  .mobile-nav-live .mobile-live-icon i{position:absolute;width:7px;height:7px;border-radius:50%;background:#ff315f;right:-3px;top:-2px;box-shadow:0 0 0 3px rgba(255,49,95,.15);animation:mobileLivePulse 1.7s ease-in-out infinite}
+  .mobile-bottom-nav .mobile-nav-item{padding-left:2px;padding-right:2px}
+  .mobile-bottom-nav .mobile-nav-item small{font-size:8px}
+}
+@keyframes mobileLivePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.75)}}

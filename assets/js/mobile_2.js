@@ -3,6 +3,31 @@
 
     function isMobile() { return mq.matches; }
 
+
+    function irParaUltimoAoVivo(rolarPagina) {
+        const log = document.getElementById('aoVivoLog');
+        if (!log) return;
+        log.scrollTop = log.scrollHeight;
+        if (rolarPagina && isMobile()) {
+            const ultimo = log.querySelector('[data-ao-vivo-ultimo="1"]') || log.lastElementChild;
+            if (ultimo) {
+                requestAnimationFrame(() => ultimo.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+            }
+        }
+    }
+
+    window.mobileAbrirAoVivo = function (navEl) {
+        const painel = document.querySelector('[data-mobile-panel="aovivo"]');
+        if (painel) {
+            painel.classList.remove('mobile-collapsed');
+            const toggle = painel.querySelector('[data-mobile-toggle="aovivo"]');
+            if (toggle) toggle.setAttribute('aria-expanded', 'true');
+        }
+        document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('ativo'));
+        if (navEl) navEl.classList.add('ativo');
+        setTimeout(() => irParaUltimoAoVivo(true), 80);
+    };
+
     window.fecharMenuMobile = function () {
         const menu = document.getElementById('mobileHeaderMenu');
         const btn = document.getElementById('mobileMenuBtn');
@@ -38,6 +63,7 @@
                 const fechando = !painel.classList.contains('mobile-collapsed');
                 painel.classList.toggle('mobile-collapsed', fechando);
                 btn.setAttribute('aria-expanded', fechando ? 'false' : 'true');
+                if (!fechando && nome === 'aovivo') setTimeout(() => irParaUltimoAoVivo(true), 80);
             });
         });
 
@@ -114,5 +140,8 @@
         configurarPaineis();
         configurarMenu();
         configurarAcaoFixa();
+        // No desktop, o Ao Vivo já começa no acontecimento mais recente.
+        // No mobile, ele permanece recolhido e salta ao último item ao ser aberto.
+        if (!isMobile()) setTimeout(() => irParaUltimoAoVivo(false), 60);
     });
 })();

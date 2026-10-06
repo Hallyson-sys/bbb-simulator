@@ -13,7 +13,40 @@ $ecMemoria=function_exists('ecConhecimentosAtivos')?ecConhecimentosAtivos():[];
  <summary>🧠 O que eu sei <span><?=count($ecMemoria)?> informação<?=count($ecMemoria)===1?'':'ões'?></span></summary>
  <div class="ec-memoria-lista">
  <?php if(!$ecMemoria): ?><p class="ec-memoria-vazia">Você ainda não descobriu nenhuma informação estratégica nesta rodada. Segredos podem surgir em conversas, festas e fofocas.</p><?php endif; ?>
- <?php foreach(array_reverse($ecMemoria) as $c): ?><article class="ec-segredo"><div class="ec-segredo-topo"><strong><?=htmlspecialchars($c['titulo'])?></strong><span class="ec-confianca ec-<?=htmlspecialchars($c['confiabilidade'])?>"><?=($c['confiabilidade']==='alta'?'Alta':($c['confiabilidade']==='baixa'?'Baixa':'Média'))?> confiança</span></div><p><?=htmlspecialchars($c['texto'])?></p><small>🔎 <?=htmlspecialchars($c['fonte'])?> • Rodada <?=intval($c['rodada'])?><?=!empty($c['expira_rodada'])?' • válida até esta rodada':''?></small></article><?php endforeach; ?>
+ <?php
+ $ecJogadoresAtivos=array_values(array_filter($_SESSION['jogadores']??[],fn($j)=>empty($j['eliminado'])&&($j['nome']??'')!==($_SESSION['meu_nome']??'')));
+ foreach(array_reverse($ecMemoria) as $c):
+     $ecUsado=!empty($c['usado']);
+     $ecPodeConfrontar=!$ecUsado && !empty($c['envolvido']) && in_array(($c['tipo']??''),['ameaca','intencao_voto','fofoca'],true);
+ ?>
+ <article class="ec-segredo <?=$ecUsado?'ec-segredo-usado':''?>">
+   <div class="ec-segredo-topo"><strong><?=htmlspecialchars($c['titulo'])?></strong><span class="ec-confianca ec-<?=htmlspecialchars($c['confiabilidade'])?>"><?=($c['confiabilidade']==='alta'?'Alta':($c['confiabilidade']==='baixa'?'Baixa':'Média'))?> confiança</span></div>
+   <p><?=htmlspecialchars($c['texto'])?></p>
+   <small>🔎 <?=htmlspecialchars($c['fonte'])?> • Rodada <?=intval($c['rodada'])?><?=!empty($c['expira_rodada'])?' • válida até esta rodada':''?></small>
+   <?php if($ecUsado): ?>
+     <div class="ec-uso-status">✓ Informação utilizada: <?=htmlspecialchars(ucfirst((string)($c['ultima_acao']??'ação estratégica')))?></div>
+   <?php else: ?>
+     <div class="ec-acoes-info">
+       <form method="post" class="ec-acao-form">
+         <input type="hidden" name="evento_conhecimento_chave" value="<?=htmlspecialchars($c['chave'])?>">
+         <button name="evento_conhecimento_acao" value="usar" class="ec-info-btn ec-info-primary">🎯 Usar no jogo</button>
+         <?php if($ecPodeConfrontar): ?><button name="evento_conhecimento_acao" value="confrontar" class="ec-info-btn">💥 Confrontar</button><?php endif; ?>
+         <button name="evento_conhecimento_acao" value="guardar" class="ec-info-btn">🔒 Guardar</button>
+       </form>
+       <?php if($ecJogadoresAtivos): ?>
+       <form method="post" class="ec-contar-form">
+         <input type="hidden" name="evento_conhecimento_chave" value="<?=htmlspecialchars($c['chave'])?>">
+         <select name="evento_conhecimento_destino" required aria-label="Participante para quem contar">
+           <option value="">Contar para...</option>
+           <?php foreach($ecJogadoresAtivos as $ej): $en=$ej['nome']??''; if(!$en)continue; ?><option value="<?=htmlspecialchars($en)?>"><?=htmlspecialchars($en)?></option><?php endforeach; ?>
+         </select>
+         <button name="evento_conhecimento_acao" value="contar" class="ec-info-btn">🤫 Contar</button>
+       </form>
+       <?php endif; ?>
+     </div>
+   <?php endif; ?>
+ </article>
+ <?php endforeach; ?>
  </div>
 </details>
 <?php endif; ?>

@@ -94,8 +94,17 @@ function calcularRelacaoIA(
      */
     if ($para == $meuNome) {
 
-        return
-            $_SESSION['relacoes_jogador'][$de] ?? 0;
+        $base = (int)($_SESSION['relacoes_jogador'][$de] ?? 0);
+
+        // Eventos de Convivência V3: ao usar uma informação estrategicamente,
+        // o jogador pode reduzir temporariamente a chance de entrar na mira
+        // daquele NPC. O efeito vale somente na rodada em que foi usado.
+        $efeito = $_SESSION['ec_influencia_estrategica'][$de] ?? null;
+        if (is_array($efeito) && (int)($efeito['rodada'] ?? 0) === (int)($_SESSION['rodada'] ?? 1)) {
+            $base += (int)($efeito['bonus'] ?? 0);
+        }
+
+        return $base;
     }
 
 
