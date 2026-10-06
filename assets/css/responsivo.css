@@ -455,3 +455,24 @@
   .mobile-bottom-nav .mobile-nav-item small{font-size:8px}
 }
 @keyframes mobileLivePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.75)}}
+
+/* =========================================================
+   📺 MOBILE 2.0 V3.1 — AO VIVO / NA CASA
+   - Atalho leva ao painel real.
+   - Feed interno abre sempre no acontecimento mais recente.
+   ========================================================= */
+@media (max-width: 768px) {
+    #mobileAoVivo {
+        scroll-margin-top: 82px;
+    }
+
+    #mobileAoVivo .ao-vivo-card .log {
+        scroll-behavior: auto !important;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
+
+    #mobileAoVivo .ao-vivo-ultimo {
+        scroll-margin-bottom: 12px;
+    }
+}

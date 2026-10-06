@@ -4,28 +4,55 @@
     function isMobile() { return mq.matches; }
 
 
-    function irParaUltimoAoVivo(rolarPagina) {
+    function rolarLogAoVivoParaFim(comAnimacao) {
         const log = document.getElementById('aoVivoLog');
         if (!log) return;
-        log.scrollTop = log.scrollHeight;
-        if (rolarPagina && isMobile()) {
-            const ultimo = log.querySelector('[data-ao-vivo-ultimo="1"]') || log.lastElementChild;
-            if (ultimo) {
-                requestAnimationFrame(() => ultimo.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-            }
+
+        const destino = Math.max(0, log.scrollHeight - log.clientHeight);
+        if (typeof log.scrollTo === 'function') {
+            log.scrollTo({
+                top: destino,
+                behavior: comAnimacao ? 'smooth' : 'auto'
+            });
+        } else {
+            log.scrollTop = destino;
         }
+    }
+
+    function posicionarAoVivoNoUltimo({ rolarPagina = false, animarLog = false } = {}) {
+        const painel = document.querySelector('[data-mobile-panel="aovivo"]');
+        const log = document.getElementById('aoVivoLog');
+        if (!log) return;
+
+        // Aguarda o painel sair de display:none e o navegador recalcular as alturas.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                rolarLogAoVivoParaFim(animarLog);
+
+                if (rolarPagina && isMobile() && painel) {
+                    painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                // Repete depois da rolagem/animação para neutralizar mudanças tardias de layout
+                // (fontes, imagens e expansão do painel).
+                setTimeout(() => rolarLogAoVivoParaFim(false), 220);
+            });
+        });
     }
 
     window.mobileAbrirAoVivo = function (navEl) {
         const painel = document.querySelector('[data-mobile-panel="aovivo"]');
-        if (painel) {
-            painel.classList.remove('mobile-collapsed');
-            const toggle = painel.querySelector('[data-mobile-toggle="aovivo"]');
-            if (toggle) toggle.setAttribute('aria-expanded', 'true');
-        }
+        if (!painel) return;
+
+        painel.classList.remove('mobile-collapsed');
+        const toggle = painel.querySelector('[data-mobile-toggle="aovivo"]');
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+
         document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('ativo'));
         if (navEl) navEl.classList.add('ativo');
-        setTimeout(() => irParaUltimoAoVivo(true), 80);
+
+        // Primeiro leva a página ao painel; depois posiciona o feed no acontecimento mais recente.
+        posicionarAoVivoNoUltimo({ rolarPagina: true, animarLog: false });
     };
 
     window.fecharMenuMobile = function () {
@@ -63,7 +90,7 @@
                 const fechando = !painel.classList.contains('mobile-collapsed');
                 painel.classList.toggle('mobile-collapsed', fechando);
                 btn.setAttribute('aria-expanded', fechando ? 'false' : 'true');
-                if (!fechando && nome === 'aovivo') setTimeout(() => irParaUltimoAoVivo(true), 80);
+                if (!fechando && nome === 'aovivo') posicionarAoVivoNoUltimo({ rolarPagina: true, animarLog: false });
             });
         });
 
@@ -142,6 +169,6 @@
         configurarAcaoFixa();
         // No desktop, o Ao Vivo já começa no acontecimento mais recente.
         // No mobile, ele permanece recolhido e salta ao último item ao ser aberto.
-        if (!isMobile()) setTimeout(() => irParaUltimoAoVivo(false), 60);
+        if (!isMobile()) setTimeout(() => posicionarAoVivoNoUltimo({ rolarPagina: false, animarLog: false }), 60);
     });
 })();
