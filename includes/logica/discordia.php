@@ -180,6 +180,38 @@ function escolherAlvoDiscordiaPorPerfil(&$jogadores, $autor, $meuNome, $preferen
     return $alvos[0] ?? null;
 }
 
+function justificativaMemoriaDiscordiaNPC($autor, $alvo, $polaridade = 'negativa')
+{
+    if (!function_exists('memoriaNarrativaMaisForteNPC') || !function_exists('textoMemoriaNarrativaNPC')) {
+        return '';
+    }
+
+    $evento = memoriaNarrativaMaisForteNPC($autor, $alvo, $polaridade);
+    if (!$evento) return '';
+
+    $impacto = (float)($evento['_impacto_narrativo'] ?? 0);
+    $minimo = $polaridade === 'positiva' ? 10 : 12;
+    if ($impacto < $minimo) return '';
+
+    $texto = textoMemoriaNarrativaNPC($evento, $alvo, 'discordia');
+    return function_exists('flexionarTextoFalanteBBB')
+        ? flexionarTextoFalanteBBB($texto, $autor, $_SESSION['jogadores'] ?? [])
+        : $texto;
+}
+
+function alvoPorMemoriaDiscordiaNPC($autor, $polaridade, $permitidos = [], $excluir = [])
+{
+    if (!function_exists('memoriaNarrativaDominanteGeralNPC')) return null;
+    $memoria = memoriaNarrativaDominanteGeralNPC($autor, $polaridade);
+    $alvo = $memoria['alvo'] ?? null;
+    $impacto = (float)($memoria['impacto'] ?? 0);
+    $minimo = $polaridade === 'positiva' ? 10 : 12;
+    if (!$alvo || $impacto < $minimo) return null;
+    if (!empty($permitidos) && !in_array($alvo, $permitidos, true)) return null;
+    if (in_array($alvo, $excluir, true)) return null;
+    return $alvo;
+}
+
 function aplicarEfeitoCategoriaDiscordia(&$jogadores, $autor, $alvo, $efeito, $chaveBase, $descricao)
 {
     $mapa = [
@@ -304,8 +336,19 @@ function gerarDiscordiaNPC(
                 $efeito = $categoria['efeito'] ?? 'negativo';
                 $permiteSi = !empty($categoria['permite_si']);
 
+                $alvoMemoria = null;
+                if ($tema !== 'filme_bbb' || $chaveCategoria !== 'protagonista') {
+                    if (in_array($efeito, ['muito_positivo', 'positivo'], true) && rand(1,100) <= 58) {
+                        $alvoMemoria = alvoPorMemoriaDiscordiaNPC($nomeNPC, 'positiva', $alvos, $usados);
+                    } elseif (in_array($efeito, ['negativo', 'forte_negativo'], true) && rand(1,100) <= 66) {
+                        $alvoMemoria = alvoPorMemoriaDiscordiaNPC($nomeNPC, 'negativa', $alvos, $usados);
+                    }
+                }
+
                 if ($tema === 'filme_bbb' && $chaveCategoria === 'protagonista') {
                     $alvo = $nomeNPC;
+                } elseif ($alvoMemoria !== null) {
+                    $alvo = $alvoMemoria;
                 } elseif (in_array($efeito, ['muito_positivo', 'positivo'], true)) {
                     $alvo = escolherAlvoDiscordiaPorPerfil(
                         $jogadores,
@@ -380,8 +423,24 @@ function gerarDiscordiaNPC(
                         ($cat['nome'] ?? $chaveCategoria) . ': ' . $alvo;
                 }
 
-                $eventos[] = ($configTema['titulo'] ?? '🔥 Jogo da Discórdia') .
+                $textoEventoCategoria = ($configTema['titulo'] ?? '🔥 Jogo da Discórdia') .
                     ' — ' . $nomeNPC . ': ' . implode(' | ', $partes) . '.';
+
+                /* Uma das escolhas pode ganhar uma justificativa baseada em memória real. */
+                foreach ($escolhas as $chaveCategoria => $alvoEscolhido) {
+                    if (nomeIgual($alvoEscolhido, $nomeNPC)) continue;
+                    $catEscolhida = $categorias[$chaveCategoria] ?? [];
+                    $efeitoEscolhido = $catEscolhida['efeito'] ?? 'negativo';
+                    $polaridade = in_array($efeitoEscolhido, ['muito_positivo','positivo','respeito'], true)
+                        ? 'positiva' : 'negativa';
+                    $falaMemoria = justificativaMemoriaDiscordiaNPC($nomeNPC, $alvoEscolhido, $polaridade);
+                    if ($falaMemoria !== '') {
+                        $textoEventoCategoria .= ' 💬 ' . $nomeNPC . ' justificou: “' . $falaMemoria . '”';
+                        break;
+                    }
+                }
+
+                $eventos[] = $textoEventoCategoria;
             }
 
             continue;
@@ -394,13 +453,18 @@ function gerarDiscordiaNPC(
 
         if ($tema == "podio") {
 
-            $segundo =
-                escolherAlvoNPCPorRelacao(
+            $segundo = rand(1,100) <= 60
+                ? alvoPorMemoriaDiscordiaNPC($nomeNPC, 'positiva', $alvos)
+                : null;
+
+            if ($segundo === null) {
+                $segundo = escolherAlvoNPCPorRelacao(
                     $jogadores,
                     $nomeNPC,
                     $meuNome,
                     'aliado'
                 );
+            }
 
 
             $terceiro = null;
@@ -508,8 +572,12 @@ function gerarDiscordiaNPC(
                 );
 
 
-                $eventos[] =
-                    "🏆 $nomeNPC montou seu pódio: 🥇 $nomeNPC, 🥈 $segundo e 🥉 $terceiro.";
+                $textoPodio = "🏆 $nomeNPC montou seu pódio: 🥇 $nomeNPC, 🥈 $segundo e 🥉 $terceiro.";
+                $memoriaPodio = justificativaMemoriaDiscordiaNPC($nomeNPC, $segundo, 'positiva');
+                if ($memoriaPodio !== '') {
+                    $textoPodio .= " 💬 Sobre $segundo, explicou: “{$memoriaPodio}”";
+                }
+                $eventos[] = $textoPodio;
             }
 
 
@@ -523,13 +591,18 @@ function gerarDiscordiaNPC(
 
         if ($tema == "aliado") {
 
-            $alvo =
-                escolherAlvoNPCPorRelacao(
+            $alvo = rand(1,100) <= 68
+                ? alvoPorMemoriaDiscordiaNPC($nomeNPC, 'positiva', $alvos)
+                : null;
+
+            if ($alvo === null) {
+                $alvo = escolherAlvoNPCPorRelacao(
                     $jogadores,
                     $nomeNPC,
                     $meuNome,
                     'aliado'
                 );
+            }
 
 
             if ($alvo == null) {
@@ -554,12 +627,15 @@ function gerarDiscordiaNPC(
             );
 
             if (nomeIgual($alvo, $meuNome)) {
-                $eventos[] =
-                    "🤝 $nomeNPC declarou que $meuNome é seu maior aliado. Sua afinidade com $nomeNPC subiu.";
+                $textoAliado = "🤝 $nomeNPC declarou que $meuNome é seu maior aliado. Sua afinidade com $nomeNPC subiu.";
             } else {
-                $eventos[] =
-                    "🤝 $nomeNPC declarou que $alvo é seu maior aliado.";
+                $textoAliado = "🤝 $nomeNPC declarou que $alvo é seu maior aliado.";
             }
+            $memoriaAliado = justificativaMemoriaDiscordiaNPC($nomeNPC, $alvo, 'positiva');
+            if ($memoriaAliado !== '') {
+                $textoAliado .= " 💬 $nomeNPC explicou: “{$memoriaAliado}”";
+            }
+            $eventos[] = $textoAliado;
 
 
             continue;
@@ -576,13 +652,18 @@ function gerarDiscordiaNPC(
             $tema == "saboneteiro"
         ) {
 
-            $alvo =
-                escolherAlvoNPCPorRelacao(
+            $alvo = rand(1,100) <= 72
+                ? alvoPorMemoriaDiscordiaNPC($nomeNPC, 'negativa', $alvos)
+                : null;
+
+            if ($alvo === null) {
+                $alvo = escolherAlvoNPCPorRelacao(
                     $jogadores,
                     $nomeNPC,
                     $meuNome,
                     'rival'
                 );
+            }
 
 
             if ($alvo == null) {
@@ -720,6 +801,14 @@ function gerarDiscordiaNPC(
                     "🧼 $nomeNPC sabonetou e tentou fugir da pergunta.";
             }
 
+
+            $memoriaDiscordia = justificativaMemoriaDiscordiaNPC($nomeNPC, $alvo, 'negativa');
+            if ($forca != 3 && $memoriaDiscordia !== '' && !empty($eventos)) {
+                $ultimoIndiceEvento = array_key_last($eventos);
+                if ($ultimoIndiceEvento !== null) {
+                    $eventos[$ultimoIndiceEvento] .= " 💬 $nomeNPC justificou: “{$memoriaDiscordia}”";
+                }
+            }
 
             registrarRelacaoMarcante(
                 $jogadores,

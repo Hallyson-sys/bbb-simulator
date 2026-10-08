@@ -1410,29 +1410,31 @@ if (
 
 
 
+            $justificativaVotoNPC = function_exists('justificativaVotoPorMemoriaNPC')
+                ? justificativaVotoPorMemoriaNPC($votante, $voto, $jogadores)
+                : "Meu voto é em $voto. É a decisão que faz mais sentido para mim hoje.";
+
             $votosDetalhados[] = [
 
-
-
-                "votante" =>
-
-                    $votante,
-
-
-
-                "voto" =>
-
-                    $voto,
-
-
-
-                "peso" =>
-
-                    $pesoVoto
-
-
+                "votante" => $votante,
+                "voto" => $voto,
+                "peso" => $pesoVoto,
+                "justificativa" => $justificativaVotoNPC
 
             ];
+
+            if (!isset($_SESSION['historico_votos_narrativos']) || !is_array($_SESSION['historico_votos_narrativos'])) {
+                $_SESSION['historico_votos_narrativos'] = [];
+            }
+            $_SESSION['historico_votos_narrativos'][] = [
+                'rodada' => (int)($_SESSION['rodada'] ?? 1),
+                'votante' => $votante,
+                'voto' => $voto,
+                'justificativa' => $justificativaVotoNPC
+            ];
+            if (count($_SESSION['historico_votos_narrativos']) > 120) {
+                $_SESSION['historico_votos_narrativos'] = array_slice($_SESSION['historico_votos_narrativos'], -120);
+            }
 
 
 
@@ -1942,17 +1944,18 @@ if (
 
 
 
-        $_SESSION['evento_extra'][] =
-
+        $textoDedoDuro =
             "🕵️ Dedo-duro: " .
-
             $_SESSION['dedo_duro']['votante'] .
-
             " votou em " .
+            $_SESSION['dedo_duro']['voto'] . ".";
 
-            $_SESSION['dedo_duro']['voto'] .
+        if (!empty($_SESSION['dedo_duro']['justificativa'])) {
+            $textoDedoDuro .= " 🎥 No Confessionário, justificou: “" .
+                $_SESSION['dedo_duro']['justificativa'] . "”";
+        }
 
-            ".";
+        $_SESSION['evento_extra'][] = $textoDedoDuro;
 
     }
 

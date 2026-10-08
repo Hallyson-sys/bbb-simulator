@@ -223,3 +223,19 @@ function ajustarGeneroTextoComElencoBBB($texto, $jogadores = null)
 
     return $texto;
 }
+
+/* =========================================================
+   🗣️ FLEXÃO DO PRÓPRIO FALANTE
+   Converte formas como "tranquilo(a)" / "cansado(a)"
+   para o gênero conhecido do participante que está falando.
+   ========================================================= */
+function flexionarTextoFalanteBBB($texto, $nome, $jogadores = null)
+{
+    $texto = (string)$texto;
+    $g = generoParticipanteBBB($nome, $jogadores);
+    if ($g === null || $texto === '') return $texto;
+
+    return preg_replace_callback('/([\p{L}]+)o\(a\)/u', function ($m) use ($g) {
+        return $m[1] . ($g === 'f' ? 'a' : 'o');
+    }, $texto);
+}

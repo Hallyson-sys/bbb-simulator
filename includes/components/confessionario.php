@@ -11,9 +11,8 @@
         <h3>🎥 Confessionário da Rodada</h3>
 
         <p>
-            A partir da Rodada 2, os participantes revelam pensamentos
-            sobre alianças, rivalidades, romance e estratégia logo depois
-            do Queridômetro.
+            Os participantes comentam o jogo com base no que realmente viveram:
+            alianças, rivalidades, medos, estratégia e memórias marcantes da temporada.
         </p>
 
     </div>

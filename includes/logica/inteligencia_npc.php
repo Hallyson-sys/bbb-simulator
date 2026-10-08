@@ -729,6 +729,262 @@ function ultimaMemoriaMarcanteNPC($observador, $alvo, $tipo = 'qualquer')
 }
 
 
+
+/* =========================================================
+   🎙️ MEMÓRIAS NARRATIVAS
+   Transforma a memória social num acontecimento que pode ser
+   citado naturalmente em voto, confessionário e Discórdia.
+   ========================================================= */
+function memoriaNarrativaMaisForteNPC($observador, $alvo, $polaridade = 'qualquer')
+{
+    $memoria = obterMemoriaSocialNPC($observador, $alvo);
+    $historico = $memoria['historico'] ?? [];
+    if (!is_array($historico) || empty($historico)) return null;
+
+    $negativos = [
+        'votou_em_mim','me_indicou','me_colocou_monstro','me_atacou_discordia',
+        'me_deu_emoji_negativo','rompeu_comigo','brigou_comigo','espalhou_fofoca',
+        'me_puxou_contragolpe','me_colocou_paredao','me_confrontou',
+        'me_desrespeitou','quebrou_tregua','me_expos'
+    ];
+    $positivos = [
+        'me_elogiou_discordia','me_deu_emoji_positivo','me_imunizou','me_colocou_vip',
+        'me_defendeu','me_salvou','me_aproximou','flertou_comigo','me_apoiou',
+        'me_contou_segredo','fechou_pacto_comigo','me_pediu_desculpas','cumpriu_tregua'
+    ];
+
+    $rodadaAtual = (int)($_SESSION['rodada'] ?? 1);
+    $melhor = null;
+    $melhorScore = -1;
+
+    foreach ($historico as $evento) {
+        $tipo = $evento['tipo'] ?? '';
+        if ($polaridade === 'negativa' && !in_array($tipo, $negativos, true)) continue;
+        if ($polaridade === 'positiva' && !in_array($tipo, $positivos, true)) continue;
+        if ($polaridade === 'qualquer' && !in_array($tipo, array_merge($negativos, $positivos), true)) continue;
+
+        $forca = max(1, (int)($evento['forca'] ?? 1));
+        $rodada = max(1, (int)($evento['rodada'] ?? $rodadaAtual));
+        $idade = max(0, $rodadaAtual - $rodada);
+        $score = max(1.0, pesoBaseMemoriaNPC($tipo)) * $forca * pow(0.84, $idade);
+
+        if ($score > $melhorScore) {
+            $melhorScore = $score;
+            $melhor = $evento;
+        }
+    }
+
+    if ($melhor === null) return null;
+    $melhor['_impacto_narrativo'] = $melhorScore;
+    return $melhor;
+}
+
+function memoriaNarrativaDominanteGeralNPC($observador, $polaridade = 'negativa')
+{
+    garantirMemoriaNPC();
+    $todos = $_SESSION['memoria_npc'][$observador] ?? [];
+    if (!is_array($todos)) return null;
+
+    $melhor = null;
+    foreach ($todos as $alvo => $dados) {
+        $evento = memoriaNarrativaMaisForteNPC($observador, $alvo, $polaridade);
+        if (!$evento) continue;
+        $score = (float)($evento['_impacto_narrativo'] ?? 0);
+        if ($melhor === null || $score > (float)($melhor['evento']['_impacto_narrativo'] ?? 0)) {
+            $melhor = ['alvo' => $alvo, 'evento' => $evento, 'impacto' => $score];
+        }
+    }
+    return $melhor;
+}
+
+function textoMemoriaNarrativaNPC($evento, $alvo, $tom = 'confessionario')
+{
+    if (!is_array($evento) || $alvo === '') return '';
+    $tipo = $evento['tipo'] ?? '';
+    $rodada = max(1, (int)($evento['rodada'] ?? ($_SESSION['rodada'] ?? 1)));
+    $quando = $rodada === (int)($_SESSION['rodada'] ?? 1)
+        ? 'nessa rodada'
+        : "na Rodada $rodada";
+
+    $frases = [
+        'votou_em_mim' => [
+            "$alvo votou em mim $quando. Pode ter sido jogo, mas isso mudou a forma como eu olho pra essa relação.",
+            "Eu descobri que $alvo colocou meu nome no confessionário $quando. Não dá pra fingir que isso não aconteceu."
+        ],
+        'me_indicou' => [
+            "$alvo me indicou ao Paredão $quando. Foi um movimento que eu guardei.",
+            "Eu não esqueci da indicação de $alvo $quando. Ali eu entendi muita coisa sobre o jogo dessa pessoa."
+        ],
+        'me_colocou_monstro' => [
+            "$alvo me colocou no Monstro $quando. Parece pequeno pra quem vê de fora, mas aqui dentro pesa.",
+            "O Monstro que $alvo me deu $quando ainda está na minha cabeça."
+        ],
+        'me_atacou_discordia' => [
+            "$alvo veio em mim no Jogo da Discórdia $quando. Desde então nossa relação não voltou a ser a mesma.",
+            "O que $alvo falou de mim na Discórdia $quando ficou marcado."
+        ],
+        'me_deu_emoji_negativo' => [
+            "$alvo me deu um sinal bem negativo no Queridômetro $quando. Eu percebi o recado.",
+            "Depois do Queridômetro $quando, ficou claro que $alvo não está tão bem comigo quanto dizia."
+        ],
+        'rompeu_comigo' => [
+            "$alvo rompeu comigo $quando. Confiança, depois que quebra, não volta do nada.",
+            "A ruptura com $alvo $quando me ensinou a não entregar meu jogo tão fácil."
+        ],
+        'brigou_comigo' => [
+            "A briga que eu tive com $alvo $quando ainda pesa no clima entre a gente.",
+            "Depois do atrito com $alvo $quando, eu passei a medir muito mais minhas palavras."
+        ],
+        'espalhou_fofoca' => [
+            "$alvo espalhou uma história sobre mim $quando. Isso mexeu direto com a minha confiança.",
+            "Quando uma fofoca minha passou por $alvo $quando, eu liguei o alerta."
+        ],
+        'me_puxou_contragolpe' => [
+            "$alvo me puxou no contragolpe $quando. Aquilo foi uma declaração de jogo.",
+            "O contragolpe de $alvo $quando mostrou exatamente onde eu estava na prioridade dessa pessoa."
+        ],
+        'me_colocou_paredao' => [
+            "$alvo teve participação direta em me colocar no Paredão $quando. Eu sobrevivi, mas não apaguei isso da memória.",
+            "Eu fui parar no Paredão por um movimento de $alvo $quando. Esse tipo de coisa deixa marca."
+        ],
+        'me_confrontou' => [
+            "$alvo me confrontou $quando. Desde ali eu sei que existe uma tensão real entre nós.",
+            "O confronto com $alvo $quando tirou muita coisa do lugar."
+        ],
+        'me_desrespeitou' => [
+            "Eu me senti desrespeitado(a) por $alvo $quando. Jogo tem limite pra mim.",
+            "O jeito que $alvo falou comigo $quando passou do ponto na minha visão."
+        ],
+        'quebrou_tregua' => [
+            "$alvo quebrou uma trégua nossa $quando. Depois disso ficou difícil acreditar em promessa.",
+            "A trégua com $alvo acabou $quando de um jeito que eu não esperava."
+        ],
+        'me_expos' => [
+            "$alvo me expôs $quando. Eu não gostei de ver uma coisa nossa virar assunto da casa.",
+            "Quando $alvo me expôs $quando, eu passei a guardar mais o que penso."
+        ],
+        'me_elogiou_discordia' => [
+            "$alvo me valorizou no Jogo da Discórdia $quando. Eu reconheço quando alguém se posiciona a meu favor.",
+            "O que $alvo falou de mim na Discórdia $quando foi importante e eu não esqueci."
+        ],
+        'me_deu_emoji_positivo' => [
+            "$alvo me passou uma mensagem boa no Queridômetro $quando. Foi um carinho num momento em que tudo aqui pesa.",
+            "O Queridômetro de $alvo $quando reforçou que existe uma conexão entre a gente."
+        ],
+        'me_imunizou' => [
+            "$alvo me imunizou $quando. Num jogo desses, proteção vale muito.",
+            "Eu estava vulnerável e $alvo me deu imunidade $quando. Isso criou uma dívida boa entre a gente."
+        ],
+        'me_colocou_vip' => [
+            "$alvo me colocou no VIP $quando. Eu sei que parece detalhe, mas aqui dentro é uma escolha que diz muito.",
+            "Ser escolhido(a) por $alvo pro VIP $quando reforçou nossa proximidade."
+        ],
+        'me_defendeu' => [
+            "$alvo me defendeu $quando quando seria mais fácil ficar em silêncio. Eu valorizo isso.",
+            "Eu vi $alvo comprar uma defesa minha $quando. Essas atitudes ficam."
+        ],
+        'me_salvou' => [
+            "$alvo me salvou de uma situação complicada $quando. Eu não trato isso como pouca coisa.",
+            "Quando eu precisei $quando, $alvo apareceu e me salvou. Eu lembro disso."
+        ],
+        'me_aproximou' => [
+            "$alvo se aproximou de mim $quando e a conversa foi muito verdadeira.",
+            "Minha troca com $alvo cresceu $quando. Foi uma aproximação que eu senti de verdade."
+        ],
+        'flertou_comigo' => [
+            "Rolou um clima com $alvo $quando e eu confesso que mexeu comigo.",
+            "$alvo flertou comigo $quando. Desde então eu percebo essa pessoa de outro jeito."
+        ],
+        'me_apoiou' => [
+            "$alvo me apoiou $quando num momento em que eu precisava. Isso conta muito pra mim.",
+            "Eu lembro do apoio de $alvo $quando. Aqui dentro, saber quem ficou do seu lado faz diferença."
+        ],
+        'me_contou_segredo' => [
+            "$alvo confiou um segredo em mim $quando. Eu entendi aquilo como um sinal forte de confiança.",
+            "Quando $alvo abriu o jogo comigo $quando, nossa relação mudou de nível."
+        ],
+        'fechou_pacto_comigo' => [
+            "Eu e $alvo fechamos um pacto $quando. Até agora isso ainda pesa nas minhas decisões.",
+            "$alvo combinou proteção comigo $quando. Eu levo esse tipo de acordo a sério."
+        ],
+        'me_pediu_desculpas' => [
+            "$alvo me pediu desculpas $quando. Não apaga tudo, mas eu reconheço a atitude.",
+            "O pedido de desculpas de $alvo $quando abriu espaço pra gente reconstruir alguma coisa."
+        ],
+        'cumpriu_tregua' => [
+            "$alvo cumpriu a nossa trégua $quando. Num jogo de palavra, isso vale bastante.",
+            "Eu testei a palavra de $alvo $quando e a pessoa cumpriu o combinado."
+        ]
+    ];
+
+    $opcoes = $frases[$tipo] ?? [];
+    if (!$opcoes) {
+        $descricao = trim((string)($evento['descricao'] ?? ''));
+        return $descricao;
+    }
+    return $opcoes[array_rand($opcoes)];
+}
+
+function justificativaVotoPorMemoriaNPC($votante, $alvo, $jogadores = [])
+{
+    $flexionar = function ($texto) use ($votante, $jogadores) {
+        return function_exists('flexionarTextoFalanteBBB')
+            ? flexionarTextoFalanteBBB($texto, $votante, $jogadores ?: ($_SESSION['jogadores'] ?? []))
+            : $texto;
+    };
+
+    $evento = memoriaNarrativaMaisForteNPC($votante, $alvo, 'negativa');
+    $impacto = (float)($evento['_impacto_narrativo'] ?? 0);
+    $personalidade = 'Neutro';
+    $dados = buscarParticipanteInteligenciaNPC($jogadores ?: ($_SESSION['jogadores'] ?? []), $votante);
+    if ($dados) $personalidade = $dados['personalidade'] ?? 'Neutro';
+
+    if ($evento && $impacto >= 13 && rand(1, 100) <= 78) {
+        $lembranca = textoMemoriaNarrativaNPC($evento, $alvo, 'voto');
+        $aberturas = [
+            'Explosivo' => ["Meu voto é em $alvo. Não vou fingir que está tudo bem.", "Vou em $alvo e é uma decisão bem direta pra mim."],
+            'Barraqueiro' => ["Eu voto em $alvo. Prefiro falar na lata do que ficar fazendo média.", "Meu voto vai em $alvo, sem rodeio."],
+            'Estrategista' => ["Meu voto é em $alvo. Tem relação com convivência, mas também com leitura de jogo.", "Hoje eu voto em $alvo pensando no que aconteceu e no que pode acontecer daqui pra frente."],
+            'Manipulador' => ["Eu vou votar em $alvo. Não é uma decisão que eu tomei de hoje.", "Meu voto vai em $alvo. Algumas coisas foram se acumulando."],
+            'Emocional' => ["Meu voto é em $alvo. Eu queria conseguir separar tudo, mas algumas coisas pesam.", "Vou votar em $alvo porque tem coisa que ainda mexe comigo."],
+            'Fofo' => ["Eu voto em $alvo com o coração apertado, mas preciso ser coerente com o que vivi.", "Meu voto vai em $alvo. Não é confortável, mas é o que faz sentido pra mim hoje."],
+            'Planta' => ["Hoje meu voto vai em $alvo. Eu observei bastante antes de chegar nisso.", "Eu escolho $alvo. Não queria me precipitar, mas esse é meu voto."],
+            'Líder Nato' => ["Meu voto é em $alvo. Eu preciso sustentar as escolhas que faço aqui dentro.", "Vou em $alvo porque esse é o movimento que eu consigo defender hoje."],
+            'Influencer' => ["Meu voto vai em $alvo. Eu sei que isso pode repercutir, mas é o que eu sinto agora.", "Eu voto em $alvo e prefiro ser transparente sobre o motivo."],
+            'Falso' => ["Meu voto é em $alvo. Muita coisa foi se desenhando até eu chegar aqui.", "Eu vou em $alvo. Não é uma decisão isolada."],
+            'Neutro' => ["Meu voto é em $alvo. Algumas situações pesaram pra mim.", "Hoje eu voto em $alvo. É a decisão mais coerente com o que eu vivi na casa."]
+        ];
+        $inicio = ($aberturas[$personalidade] ?? $aberturas['Neutro']);
+        return $flexionar($inicio[array_rand($inicio)] . ' ' . $lembranca);
+    }
+
+    $rel = function_exists('obterRelacaoCompleta')
+        ? obterRelacaoCompleta($jogadores ?: ($_SESSION['jogadores'] ?? []), $votante, $alvo, $_SESSION['meu_nome'] ?? '')
+        : ['amizade' => 0, 'rivalidade' => 0, 'confianca' => 0];
+
+    if (($rel['rivalidade'] ?? 0) >= 55) {
+        $op = [
+            "Meu voto é em $alvo porque nossa convivência ficou muito difícil e eu não consigo ignorar essa tensão.",
+            "Eu voto em $alvo. A gente vem se estranhando há um tempo e hoje essa relação pesa na minha decisão.",
+            "Vou em $alvo porque, entre as minhas opções, é quem mais bate de frente comigo no jogo."
+        ];
+    } elseif (($rel['confianca'] ?? 0) <= 25) {
+        $op = [
+            "Meu voto vai em $alvo porque eu ainda não consegui construir confiança nessa relação.",
+            "Eu voto em $alvo. Tenho dificuldade de entender o jogo dessa pessoa e isso me deixa inseguro(a).",
+            "Hoje vou em $alvo porque é uma das pessoas com quem eu tenho menos troca de verdade."
+        ];
+    } else {
+        $op = [
+            "Meu voto é em $alvo. Nesse momento é o nome que faz mais sentido pro meu jogo.",
+            "Eu vou votar em $alvo. Não é pessoal, mas preciso tomar uma decisão e proteger minhas prioridades.",
+            "Hoje meu voto vai em $alvo. Eu pesei relação, movimentação da casa e o que pode acontecer depois desse Paredão."
+        ];
+    }
+    return $flexionar($op[array_rand($op)]);
+}
+
+
 /* =========================================================
    💕 ROMANCE ENTRE DOIS PARTICIPANTES
    ========================================================= */

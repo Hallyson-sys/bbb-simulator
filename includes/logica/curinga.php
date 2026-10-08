@@ -384,8 +384,12 @@ function aplicarEspiaoCuringaNoResultado($votosDetalhados)
 
     foreach ($votosDetalhados as $votoInfo) {
         if (nomeIgual($votoInfo['votante'] ?? '', $alvo)) {
-            $_SESSION['evento_extra'][] =
+            $textoRevelado =
                 "👁️ Poder Curinga revelou para " . $poder['dono'] . ": $alvo votou em " . $votoInfo['voto'] . ".";
+            if (!empty($votoInfo['justificativa'])) {
+                $textoRevelado .= " 🎥 Motivo no Confessionário: “" . $votoInfo['justificativa'] . "”";
+            }
+            $_SESSION['evento_extra'][] = $textoRevelado;
             return;
         }
     }
