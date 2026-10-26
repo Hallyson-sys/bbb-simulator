@@ -47,6 +47,12 @@ if (
 
     $evento = "";
 
+    // O depoimento é privado: somente esta conversa real cria efeito na relação/memória.
+    if ($acao === 'rx3_aplicar') {
+        $evento = rx3AplicarIntencao($jogadores, $meuNome, $fase, (string)($_POST['rx3_token'] ?? ''));
+    }
+
+
 
     /* 💬 CONVERSAR */
 

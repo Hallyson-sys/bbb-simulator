@@ -63,6 +63,7 @@ require_once __DIR__ . '/includes/logica/discordia.php';
 require_once __DIR__ . '/includes/logica/festa.php';
 
 require_once __DIR__ . '/includes/logica/confessionario.php';
+require_once __DIR__ . '/includes/logica/raio_x_estrategico.php';
 
 require_once __DIR__ . '/includes/logica/fofoca_vt.php';
 
@@ -429,6 +430,8 @@ prepararEstadoConfessionario(
 
 );
 
+rx3Preparar($jogadores, $meuNome);
+
 /* =========================================================
    🔄 RECARREGAR ESTADO APÓS OS FLUXOS
    ========================================================= */
@@ -541,6 +544,7 @@ require_once __DIR__ . '/includes/actions/discordia.php';
 
 require_once __DIR__ . '/includes/actions/vip_xepa.php';
 
+require_once __DIR__ . '/includes/actions/raio_x_estrategico.php';
 require_once __DIR__ . '/includes/actions/avancar_fase.php';
 
 require_once __DIR__ . '/includes/actions/queridometro.php';
@@ -643,6 +647,7 @@ atualizarFeedPublicoInteligente(
 
 
     <link rel="stylesheet" href="assets/css/jogo.css">
+<link rel="stylesheet" href="assets/css/raio_x_estrategico.css?v=1">
 
 
 

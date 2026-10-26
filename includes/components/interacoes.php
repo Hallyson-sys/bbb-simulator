@@ -24,6 +24,19 @@
                         $acaoSelecionada = $_SESSION['acao_selecionada'] ?? null;
                         ?>
 
+                        <?php if (!$acaoSelecionada && ($rx3Intencao = rx3IntencaoDisponivel($jogadores, $meuNome, $fase))): ?>
+                            <div class="rx3-action">
+                                <h4>🎙️ Colocar seu posicionamento em prática</h4>
+                                <p>No Confessionário, você decidiu: <strong><?php echo rx3Esc($rx3Intencao['rotulo']); ?></strong>.<br>
+                                Você pode conversar com <?php echo rx3Esc($rx3Intencao['alvo']); ?> agora. Isso consome uma interação e <strong>pode mudar a relação</strong> entre vocês.</p>
+                                <form method="POST">
+                                    <input type="hidden" name="acao" value="rx3_aplicar">
+                                    <input type="hidden" name="rx3_token" value="<?php echo rx3Esc($rx3Intencao['token']); ?>">
+                                    <button type="submit">💬 Conversar com <?php echo rx3Esc($rx3Intencao['alvo']); ?></button>
+                                </form>
+                            </div>
+                        <?php endif; ?>
+
                         <?php if (!$acaoSelecionada): ?>
 
                             <!-- ETAPA 1: ESCOLHER AÇÃO -->

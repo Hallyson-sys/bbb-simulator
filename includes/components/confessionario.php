@@ -39,9 +39,12 @@
 
     </div>
 
+    <?php render('components/raio_x_estrategico'); ?>
+
+    <?php $rx3Respondido = !empty($_SESSION['modo_espectador']) || !empty($_SESSION['rx3_quadro']['escolha']); ?>
     <form method="POST">
 
-        <button class="btn" name="avancar_fase">
+        <button class="btn" name="avancar_fase" <?php echo $rx3Respondido ? '' : 'disabled title="Escolha seu posicionamento primeiro" style="opacity:.45;cursor:not-allowed"'; ?>>
             ⏭️ Continuar para as Interações
         </button>
 

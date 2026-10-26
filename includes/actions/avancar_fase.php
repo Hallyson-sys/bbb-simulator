@@ -436,6 +436,11 @@ if (isset($_POST['avancar_fase'])) {
     }
 
     if ($fase == 'confessionario') {
+        if (empty($_SESSION['modo_espectador']) && empty($_SESSION['rx3_quadro']['escolha'])) {
+            $_SESSION['rx3_erro'] = 'Escolha uma resposta no Raio-X Estratégico antes de continuar.';
+            header('Location: jogo.php#raio-x-estrategico');
+            exit;
+        }
         unset($_SESSION['confessionario_falas']);
         unset($_SESSION['confessionario_feito']);
 

@@ -1,0 +1,28 @@
+BBB SIMULATOR — CONFESSIONARIO 3.0 / RAIO-X ESTRATEGICO
+
+O quadro aparece depois dos depoimentos no Confessionario (rodada 2 em diante).
+
+- Temas: tensao, confianca, prioridades, provas, leitura de jogo, sentimentos e recado as cameras.
+- Cada cena apresenta 3 ou 4 respostas, com anti-repeticao por tema.
+- O posicionamento e privado. Nao revela popularidade, segredos, votos nem alteracoes de NPCs.
+- As escolhas compoem um historico particular e um estilo narrativo de jogador.
+- Se houver um NPC envolvido, uma conversa opcional aparece nas Interacoes da rodada.
+  Essa conversa consome 1 acao e pode afetar afinidade e memoria social.
+- A mesma escolha nao pode ser enviada novamente nem gerar a mesma memoria duas vezes.
+- As informacoes ficam na sessao, compativeis com snapshots/saves existentes.
+- Interface com cores do projeto e adaptacao mobile.
+
+Arquivos novos:
+  includes/logica/raio_x_estrategico.php
+  includes/actions/raio_x_estrategico.php
+  includes/components/raio_x_estrategico.php
+  assets/css/raio_x_estrategico.css
+Arquivos alterados:
+  jogo.php
+  includes/components/confessionario.php
+  includes/components/interacoes.php
+  includes/actions/interacoes.php
+  includes/actions/avancar_fase.php
+
+Observacao: no fluxo atual da temporada o Confessionario ocorre antes da nova Prova do Lider;
+por isso a cena de provas nao cita um vencedor inexistente da semana.
