@@ -28,7 +28,7 @@ function calcularQtdVIP($total)
 function garantirEstadoSemana()
 {
     if (!isset($_SESSION['acoes_festa'])) {
-        $_SESSION['acoes_festa'] = 2;
+        $_SESSION['acoes_festa'] = 3;
     }
 
     if (!isset($_SESSION['fase_semana'])) {

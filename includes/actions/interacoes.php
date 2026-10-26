@@ -79,8 +79,7 @@ if (
             3
         );
 
-        $evento =
-            "💬 $meuNome conversou com $alvo e ganhou afinidade.";
+        $evento = es2RelatoConversa($jogadores, $meuNome, $alvo);
     }
 
 
@@ -236,6 +235,15 @@ if (
         }
     }
 
+
+    /* 📩 RECRUTAR PARA A ALIANÇA ATUAL */
+    if ($acao === 'recrutar_alianca') {
+        $nomes = $_POST['convidados_alianca'] ?? [];
+        if (obterAliancaJogador($jogadores,$meuNome) && is_array($nomes) && count($nomes)>0) {
+            $evento = es2ConvidarMembros($jogadores,$meuNome,$nomes);
+            $_SESSION['evento_extra'][]='🤝 '.$meuNome.' tentou reforçar a própria aliança durante as interações.';
+        }
+    }
 
     /* 💥 SAIR DA ALIANÇA */
 

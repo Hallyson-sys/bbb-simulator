@@ -192,13 +192,6 @@ function garantirEstruturaParticipantes(&$jogadores)
             $j['confessionarios'] = [];
         }
 
-        if (
-            !isset($j['confessionario_meta']) ||
-            !is_array($j['confessionario_meta'])
-        ) {
-            $j['confessionario_meta'] = [];
-        }
-
 
         /* =========================
            🤝 ALIANÇAS

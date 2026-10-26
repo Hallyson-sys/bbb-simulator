@@ -180,3 +180,7 @@ function executarAcaoFesta() {
 
     document.getElementById("formFesta").submit();
 }
+function es2Limitar(el){
+  const marcados=document.querySelectorAll('input[name="es2_convidados[]"]:checked');
+  if(marcados.length>3){el.checked=false;alert('Escolha no máximo três participantes.');}
+}

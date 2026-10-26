@@ -1410,31 +1410,29 @@ if (
 
 
 
-            $justificativaVotoNPC = function_exists('justificativaVotoPorMemoriaNPC')
-                ? justificativaVotoPorMemoriaNPC($votante, $voto, $jogadores)
-                : "Meu voto é em $voto. É a decisão que faz mais sentido para mim hoje.";
-
             $votosDetalhados[] = [
 
-                "votante" => $votante,
-                "voto" => $voto,
-                "peso" => $pesoVoto,
-                "justificativa" => $justificativaVotoNPC
+
+
+                "votante" =>
+
+                    $votante,
+
+
+
+                "voto" =>
+
+                    $voto,
+
+
+
+                "peso" =>
+
+                    $pesoVoto
+
+
 
             ];
-
-            if (!isset($_SESSION['historico_votos_narrativos']) || !is_array($_SESSION['historico_votos_narrativos'])) {
-                $_SESSION['historico_votos_narrativos'] = [];
-            }
-            $_SESSION['historico_votos_narrativos'][] = [
-                'rodada' => (int)($_SESSION['rodada'] ?? 1),
-                'votante' => $votante,
-                'voto' => $voto,
-                'justificativa' => $justificativaVotoNPC
-            ];
-            if (count($_SESSION['historico_votos_narrativos']) > 120) {
-                $_SESSION['historico_votos_narrativos'] = array_slice($_SESSION['historico_votos_narrativos'], -120);
-            }
 
 
 
@@ -1495,6 +1493,9 @@ if (
 
 
 
+
+    /* Negociações da festa são verificadas em privado; sem spoilers no Ao Vivo. */
+    if(function_exists('es2RegistrarResultadoAcordos'))es2RegistrarResultadoAcordos($votosDetalhados);
 
     $_SESSION['votos_paredao'] =
 
@@ -1944,18 +1945,17 @@ if (
 
 
 
-        $textoDedoDuro =
+        $_SESSION['evento_extra'][] =
+
             "🕵️ Dedo-duro: " .
+
             $_SESSION['dedo_duro']['votante'] .
+
             " votou em " .
-            $_SESSION['dedo_duro']['voto'] . ".";
 
-        if (!empty($_SESSION['dedo_duro']['justificativa'])) {
-            $textoDedoDuro .= " 🎥 No Confessionário, justificou: “" .
-                $_SESSION['dedo_duro']['justificativa'] . "”";
-        }
+            $_SESSION['dedo_duro']['voto'] .
 
-        $_SESSION['evento_extra'][] = $textoDedoDuro;
+            ".";
 
     }
 

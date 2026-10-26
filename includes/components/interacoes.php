@@ -61,6 +61,7 @@
                                             $acoes[] = ["entrar_alianca", "🚪 Entrar em Aliança"];
                                         }
                                     } else {
+                                        if (tamanhoAlianca($jogadores,$minhaAliancaAtual)<5) $acoes[]=["recrutar_alianca","📩 Convidar para minha aliança"];
                                         $acoes[] = ["sair_alianca", "💥 Sair da Aliança"];
                                     }
                                 }
@@ -90,7 +91,7 @@
                                 <input type="hidden" name="alvo2" id="alvo2">
                                 <input type="hidden" name="alianca_escolhida" id="alianca_escolhida">
 
-                                <?php if (!in_array($acaoSelecionada, ["aproximar_lider", "sair_alianca", "entrar_alianca", "alianca", "vt"])): ?>
+                                <?php if (!in_array($acaoSelecionada, ["aproximar_lider", "sair_alianca", "entrar_alianca", "alianca", "recrutar_alianca", "vt"])): ?>
 
                                     <div class="box">
                                         <h3>
@@ -165,6 +166,15 @@
                                         <?php endforeach; ?>
                                     </div>
 
+                                <?php endif; ?>
+
+                                <?php if ($acaoSelecionada === "recrutar_alianca"): ?>
+                                    <div class="box"><h3>📩 Reforçar minha aliança</h3><p>Convide participantes sem aliança. Eles podem aceitar ou recusar; conflitos com os membros atuais também influenciam a decisão. Máximo de cinco integrantes no grupo.</p></div>
+                                    <div class="participantes-escolha grupo-convidados-alianca">
+                                    <?php foreach($jogadores as $j): $n=(string)($j['nome']??''); if($n===$meuNome || !empty($j['alianca']) || !empty($j['eliminado']))continue; ?>
+                                        <label class="participante-btn"><input type="checkbox" name="convidados_alianca[]" value="<?php echo es2Esc($n); ?>" onclick="limitarConvidadosAlianca(this)"> 📩 <?php echo es2Esc($n); ?></label>
+                                    <?php endforeach; ?>
+                                    </div>
                                 <?php endif; ?>
 
                                 <?php if ($acaoSelecionada == "entrar_alianca"): ?>

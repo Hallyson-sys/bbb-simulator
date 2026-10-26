@@ -525,3 +525,15 @@
         scroll-margin-bottom: calc(var(--mobile-action-h) + 22px) !important;
     }
 }
+
+/* Convivência & Estratégia 2.0 */
+.es2-pane,.es2-feedback{margin:14px 0;padding:20px;border-radius:20px;background:linear-gradient(125deg,rgba(53,24,77,.85),rgba(17,38,60,.9));border:1px solid rgba(159,117,248,.32);color:#f5f0ff}
+.es2-pane h3,.es2-feedback h3{margin:0 0 12px;color:#fff}
+.es2-pane p,.es2-feedback p{line-height:1.65}
+.es2-pane form{display:grid;gap:14px;margin-top:16px}
+.es2-pane label{display:grid;gap:8px;font-weight:650}
+.es2-pane select{background:#181429;color:#fff;border:1px solid #6c568c;border-radius:12px;padding:12px;width:100%;max-width:100%;font:inherit;min-height:46px}
+.es2-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}
+.es2-options .es2-check{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.06);padding:12px;border-radius:12px;font-weight:600;min-height:44px}
+.es2-check input{width:18px;height:18px;accent-color:#cc32d9}
+@media(max-width:600px){.es2-pane,.es2-feedback{padding:15px}.es2-options{grid-template-columns:repeat(2,minmax(0,1fr))}}

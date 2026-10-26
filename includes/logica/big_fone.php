@@ -563,15 +563,10 @@ function aplicarEspiaoBigFoneNoResultado(
             )
         ) {
 
-            $textoRevelado =
+            $_SESSION['evento_extra'][] =
                 "👁️ Big Fone revelou para $dono: $alvo votou em " .
-                ($votoInfo['voto'] ?? '') . ".";
-
-            if (!empty($votoInfo['justificativa'])) {
-                $textoRevelado .= " 🎥 Motivo no Confessionário: “" . $votoInfo['justificativa'] . "”";
-            }
-
-            $_SESSION['evento_extra'][] = $textoRevelado;
+                ($votoInfo['voto'] ?? '') .
+                ".";
 
             return;
         }

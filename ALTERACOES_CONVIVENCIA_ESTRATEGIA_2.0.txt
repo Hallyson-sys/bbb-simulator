@@ -1,0 +1,29 @@
+BBB SIMULATOR — CONVIVÊNCIA & ESTRATÉGIA 2.0
+
+1. Festa: 3 ações por festa (a partir da primeira entrada na fase; compatibilidade com saves anteriores).
+2. Festa: sondagem individual de intenção de voto, com possibilidade de resposta vaga e sem revelar voto definitivo.
+3. Festa: articulação com 1 a 3 convidados; aceitação do diálogo; proposta de alvo; concordância/recusa/sugestão alternativa calculada por personalidade e relações. Acordos têm validade apenas na rodada.
+4. IA: promessas aceitas aumentam a tendência do alvo escolhido, mas não forçam votação nem ignoram imunidade, rivalidades e alianças. Resultado verdadeiro do voto fica armazenado em registro PRIVADO.
+5. Interações: convite para membros de aliança existente, respeitando limite de 5 e relações com o grupo.
+6. IA: pactos temporários decorrentes de eventos aumentam chances de proteção e reduzem tendência de votar no jogador por até uma rodada seguinte.
+7. Ao Vivo: conversas comuns com local, assunto, desfecho e variações por tipo de relação, evitando repetir textos recentes.
+8. Eventos especiais: +40 situações novas, total 60. Reações alimentam memória social, pactos ou ressentimentos reais.
+9. Respeito à informação parcial: popularidade oculta e votos secretos não são mostrados indevidamente.
+
+ARQUIVOS PRINCIPAIS:
+- includes/logica/estrategia_social.php (novo)
+- includes/logica/eventos_convivencia_extra.php (novo)
+- includes/logica/inteligencia_npc.php
+- includes/logica/eventos_convivencia.php
+- includes/actions/festa.php
+- includes/actions/interacoes.php
+- includes/actions/paredao.php
+- includes/components/festa.php
+- includes/components/interacoes.php
+- assets/css/responsivo.css
+- assets/js/jogo.js
+- includes/logica/semana.php
+- includes/components/painel.php
+- jogo.php
+
+NOTAS: Não existe garantia de cumprir os acordos. Resultados variam pela personalidade, relações e fatores internos. Um teste ponta a ponta no servidor / navegador continua recomendado antes do deploy.

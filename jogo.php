@@ -41,6 +41,7 @@ require_once __DIR__ . '/includes/logica/popularidade.php';
 require_once __DIR__ . '/includes/logica/romance.php';
 
 require_once __DIR__ . '/includes/logica/aliancas.php';
+require_once __DIR__ . '/includes/logica/estrategia_social.php';
 
 require_once __DIR__ . '/includes/logica/inteligencia_npc.php';
 
@@ -56,6 +57,7 @@ require_once __DIR__ . '/includes/logica/loja_publico.php';
 
 require_once __DIR__ . '/includes/logica/interacoes.php';
 
+require_once __DIR__ . '/includes/logica/eventos_convivencia_extra.php';
 require_once __DIR__ . '/includes/logica/eventos_convivencia.php';
 
 require_once __DIR__ . '/includes/logica/discordia.php';
@@ -658,7 +660,7 @@ atualizarFeedPublicoInteligente(
 <link rel="stylesheet" href="assets/css/feed_publico.css">
 
 <link rel="stylesheet" href="assets/css/save_2.css">
-<link rel="stylesheet" href="assets/css/responsivo.css?v=32">
+<link rel="stylesheet" href="assets/css/responsivo.css?v=34">
 
 
 
@@ -958,7 +960,7 @@ const acaoSelecionada = <?= json_encode($_SESSION['acao_selecionada'] ?? '') ?>;
 </script>
 
 
-<script src="assets/js/jogo.js"></script>
+<script src="assets/js/jogo.js?v=34"></script>
 <script src="assets/js/mobile_2.js?v=32"></script>
 
 <script src="assets/js/feed_publico.js"></script>

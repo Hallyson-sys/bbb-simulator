@@ -53,6 +53,10 @@ $nomeFaseMobile = $rotulosFaseMobile[$fase] ?? ('🎮 ' . ucwords(str_replace('_
         <?php echo $rodada; ?>
     </div>
 
+    <?php if (!empty($_SESSION['es2_festa_feedback'])): ?>
+    <div class="es2-feedback" role="status"><h3>🎬 Conversa na festa</h3><p><?=es2Esc($_SESSION['es2_festa_feedback'])?></p></div>
+    <?php unset($_SESSION['es2_festa_feedback']); endif; ?>
+
     <?php
 
     render(

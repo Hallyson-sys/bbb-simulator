@@ -143,6 +143,9 @@ function ecTalvezGerar(&$jogadores,$meuNome,$fase){
 
   if(!$evento){
     $lib=ecBiblioteca();
+    if (function_exists('es2BibliotecaExtra')) {
+      foreach(es2BibliotecaExtra() as $faixa=>$novos) $lib[$faixa]=array_merge($lib[$faixa]??[],$novos);
+    }
     $grupo=$fase==='festa'?'festa':ecFaixaRelacao($rel);
     if($fase==='festa'&&$rel<=-25&&random_int(1,100)<=55) $evento=$lib['festa'][2];
     else $evento=$lib[$grupo][array_rand($lib[$grupo])];
@@ -158,6 +161,7 @@ function ecProcessarEscolha(&$jogadores,$meuNome,$indice){$e=$_SESSION['evento_c
  if($efeito==='segredo_contado'||$efeito==='segredo_ouvido'){ $s=ecGerarSegredoReal($jogadores,$npc,$meuNome,$efeito==='segredo_contado'?'contado':'ouvido'); ecRegistrarConhecimento($s['tipo'],$s['titulo'],$s['texto'],$s['fonte'],$s['confiabilidade'],$s['expira'],['envolvido'=>$npc]); $extra=' 🔐 Uma nova informação foi adicionada a “O que eu sei”.'; }
  elseif($efeito==='ameaca_direta'){ ecRegistrarConhecimento('ameaca','🎯 Alvo declarado',"$npc declarou diretamente que considera colocar seu nome no próximo Paredão.","Dito diretamente por $npc",'alta',ecRodadaAtual(),['envolvido'=>$npc]);$extra=' 🔐 Você guardou essa declaração na memória.'; }
  elseif($efeito==='fofoca'){ $f=ecFofocaParaJogador($jogadores,$npc); if($f){ecRegistrarConhecimento('fofoca','🗣️ Fofoca que chegou até você',$f['texto'],"Contada por $npc",'media',ecRodadaAtual(),['envolvido'=>$npc,'verdade_interna'=>$f['verdadeira']]);$extra=' 🗣️ Você ouviu uma fofoca — ela pode estar incompleta ou distorcida.';} else {$s=ecGerarSegredoReal($jogadores,$npc,$meuNome,'contado');ecRegistrarConhecimento($s['tipo'],$s['titulo'],$s['texto'],"Impressão compartilhada por $npc",'media',$s['expira'],['envolvido'=>$npc]);$extra=' 🔐 Você registrou essa leitura de jogo.';}}
+ if(function_exists('es2ConsequenciaEvento')) $extra.=es2ConsequenciaEvento($jogadores,$meuNome,$npc,$efeito);
  ecRegistrarMemoriaDaEscolha($npc,$meuNome,$e['id']??'evento',$delta,$efeito);
  $msg=$delta>=7?"$npc gostou muito da sua reação.":($delta>0?"O clima com $npc melhorou.":($delta<=-7?"A tensão com $npc aumentou.":($delta<0?"$npc não gostou muito da sua resposta.":'Você preferiu não mexer nessa relação.')));$_SESSION['evento_convivencia_resultado']=['titulo'=>'Consequência da sua escolha','texto'=>$msg.$extra,'icone'=>$delta<0?'⚡':'✨','npc'=>$npc,'fase'=>$e['fase']];unset($_SESSION['evento_convivencia_ativo']);$_SESSION['jogadores']=$jogadores;}
 

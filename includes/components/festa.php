@@ -17,6 +17,10 @@
     <p>Você possui <?php echo $_SESSION['acoes_festa']; ?> ações.</p>
 </div>
 
+<?php if(!empty($_SESSION['es2_festa_feedback'])): ?>
+<div class="es2-feedback" role="status"><h3>🎬 Resultado da sua ação</h3><p><?= es2Esc($_SESSION['es2_festa_feedback']) ?></p></div>
+<?php unset($_SESSION['es2_festa_feedback']); endif; ?>
+
 <?php if ($_SESSION['acoes_festa'] > 0): ?>
 
     <?php $acaoFestaSelecionada = $_SESSION['acao_festa_selecionada'] ?? null; ?>
@@ -46,6 +50,16 @@
             </form>
 
             <form method="POST">
+                <input type="hidden" name="selecionar_acao_festa" value="sondar">
+                <button class="btn">🕵️ Sondar intenção de voto</button>
+            </form>
+
+            <form method="POST">
+                <input type="hidden" name="selecionar_acao_festa" value="negociar">
+                <button class="btn">🗳️ Articular votos (até 3 convidados)</button>
+            </form>
+
+            <form method="POST">
                 <input type="hidden" name="selecionar_acao_festa" value="dancar">
                 <button class="btn">💃 Dançar</button>
             </form>
@@ -55,6 +69,54 @@
                 <button class="btn">🍹 Exagerar na bebida</button>
             </form>
 
+        </div>
+
+    <?php elseif ($acaoFestaSelecionada === 'sondar'): ?>
+        <div class="es2-pane"><h3>🕵️ Sondar intenção de voto</h3><p>A pessoa pode revelar uma intenção, desconversar ou até esconder seu jogo. Nenhuma resposta garante o voto definitivo.</p>
+            <form method="POST">
+                <input type="hidden" name="es2_festa_acao" value="sondar">
+                <input type="hidden" name="es2_token" value="<?= es2Esc($_SESSION['es2_csrf']??'') ?>">
+                <label>Conversar com
+                    <select name="es2_npc" required><option value="">Selecione...</option><?php foreach($jogadores as $j): $n=$j['nome']??''; if(!es2Participante($jogadores,$n,$meuNome))continue; ?><option value="<?=es2Esc($n)?>"><?=es2Esc($n)?></option><?php endforeach; ?></select>
+                </label>
+                <label>Abordagem
+                    <select name="es2_abordagem"><option value="discreta">Perguntar discretamente</option><option value="direta">Perguntar diretamente</option><option value="troca">Oferecer troca de informações</option></select>
+                </label>
+                <button class="btn" type="submit">🔎 Conversar sobre votos (1 ação)</button>
+            </form>
+        </div>
+        <form method="POST"><button class="btn novo" name="cancelar_acao_festa">⬅️ Voltar</button></form>
+
+    <?php elseif ($acaoFestaSelecionada === 'negociar'): ?>
+        <div class="es2-pane"><h3>🗳️ Chamar para conversar sobre votos</h3><p>Escolha de 1 a 3 pessoas. Cada convite pode ser aceito ou recusado. Depois você sugere um alvo; ninguém é obrigado a concordar.</p>
+            <form method="POST">
+                <input type="hidden" name="es2_festa_acao" value="negociar_inicio"><input type="hidden" name="es2_token" value="<?=es2Esc($_SESSION['es2_csrf']??'')?>">
+                <div class="es2-options">
+                    <?php foreach($jogadores as $j): $n=$j['nome']??''; if(!es2Participante($jogadores,$n,$meuNome))continue; ?>
+                    <label class="es2-check"><input type="checkbox" name="es2_convidados[]" value="<?=es2Esc($n)?>" onchange="es2Limitar(this)"> <?=es2Esc($n)?></label>
+                    <?php endforeach; ?>
+                </div>
+                <button class="btn" type="submit">📩 Convidar para conversar</button>
+            </form>
+        </div>
+        <form method="POST"><button class="btn novo" name="cancelar_acao_festa">⬅️ Voltar</button></form>
+
+    <?php elseif ($acaoFestaSelecionada === 'negociar_alvo' && !empty($_SESSION['es2_negociacao'])): ?>
+        <?php $neg=$_SESSION['es2_negociacao']; ?>
+        <div class="es2-pane"><h3>🤝 Quem aceitou negociar?</h3>
+            <?php if(!empty($neg['aceitos'])): ?><p>✅ Aceitaram conversar: <strong><?=es2Esc(implode(', ',$neg['aceitos']))?></strong></p><?php else: ?><p>🚫 Ninguém quis participar da conversa desta vez.</p><?php endif; ?>
+            <?php if(!empty($neg['recusados'])): ?><p>🚫 Recusaram: <?=es2Esc(implode(', ',$neg['recusados']))?></p><?php endif; ?>
+            <p>Agora escolha o nome que pretende propor. Cada participante aceitará ou sugerirá outra pessoa com base em sua própria estratégia.</p>
+            <form method="POST">
+                <input type="hidden" name="es2_festa_acao" value="negociar_fechar"><input type="hidden" name="es2_token" value="<?=es2Esc($_SESSION['es2_csrf']??'')?>">
+                <label>Alvo proposto
+                    <select name="es2_alvo" required><option value="">Escolha...</option>
+                    <?php foreach($jogadores as $j): $n=$j['nome']??''; if(!es2Participante($jogadores,$n,$meuNome)||in_array($n,$neg['aceitos'],true))continue; ?><option value="<?=es2Esc($n)?>"><?=es2Esc($n)?></option><?php endforeach; ?>
+                    </select>
+                </label>
+                <button class="btn" type="submit">🎯 Propor alvo e concluir (1 ação)</button>
+            </form>
+            <form method="POST"><input type="hidden" name="es2_festa_acao" value="negociar_cancelar"><input type="hidden" name="es2_token" value="<?=es2Esc($_SESSION['es2_csrf']??'')?>"><button type="submit" class="btn novo">Cancelar negociação</button></form>
         </div>
 
     <?php else: ?>

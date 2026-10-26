@@ -12,6 +12,69 @@ if (
     require_once __DIR__ . '/../logica/inteligencia_npc.php';
 }
 
+/* Ações de estratégia da festa: formulário próprio, com validação server-side. */
+if ($fase === 'festa') {
+    if (!isset($_SESSION['es2_festa_rodada']) || $_SESSION['es2_festa_rodada'] !== es2Rodada()) {
+        $_SESSION['es2_festa_rodada'] = es2Rodada();
+        // Negociações pendentes da rodada passada não continuam em uma nova Festa.
+        if(!empty($_SESSION['es2_negociacao']) && (int)($_SESSION['es2_negociacao']['rodada']??0)!==es2Rodada()) {
+            unset($_SESSION['es2_negociacao']);
+            if(($_SESSION['acao_festa_selecionada']??'')==='negociar_alvo') unset($_SESSION['acao_festa_selecionada']);
+        }
+        // Para saves iniciados antes da atualização, migrar o orçamento inicial.
+        if (($_SESSION['acoes_festa'] ?? 2) === 2) $_SESSION['acoes_festa'] = 3;
+    }
+    if (!isset($_SESSION['es2_csrf'])) $_SESSION['es2_csrf'] = bin2hex(random_bytes(16));
+}
+if ($fase === 'festa' && isset($_POST['es2_festa_acao'])) {
+    $op=(string)$_POST['es2_festa_acao'];
+    $token=(string)($_POST['es2_token']??'');
+    if (!hash_equals($_SESSION['es2_csrf']??'', $token) || (int)($_SESSION['acoes_festa']??0)<=0) {
+        header('Location: jogo.php');exit;
+    }
+    $consumir=false; $feedback='';
+    unset($_SESSION['es2_festa_feedback']);
+    if ($op==='sondar') {
+        $alvo=(string)($_POST['es2_npc']??'');
+        $forma=(string)($_POST['es2_abordagem']??'discreta');
+        if(in_array($forma,['direta','discreta','troca'],true) && es2Participante($jogadores,$alvo,$meuNome)){
+            $feedback=es2SondarVoto($jogadores,$meuNome,$alvo,$forma);$consumir=true;
+        }
+    } elseif ($op==='negociar_inicio') {
+        $nomes=$_POST['es2_convidados']??[];
+        if(es2IniciarNegociacao($jogadores,$meuNome,$nomes)){
+            $_SESSION['acao_festa_selecionada']='negociar_alvo';
+        }else $feedback='⚠️ Escolha de um a três convidados válidos.';
+    } elseif ($op==='negociar_fechar') {
+        $alvo=(string)($_POST['es2_alvo']??'');
+        $feedback=es2FinalizarNegociacao($jogadores,$meuNome,$alvo);
+        $consumir=$feedback!=='';
+    } elseif ($op==='negociar_cancelar') {
+        if(!empty($_SESSION['es2_negociacao'])) {
+            $consumir=true;
+            $feedback='🚪 Você encerrou a articulação sem propor um alvo. A conversa consumiu uma ação da Festa.';
+            $_SESSION['evento_extra'][]="🗣️ $meuNome procurou pessoas para conversar sobre votos, mas não fechou nenhum acordo.";
+        }
+        unset($_SESSION['es2_negociacao'],$_SESSION['acao_festa_selecionada']);
+    }
+    if($consumir){
+        $_SESSION['acoes_festa']--;
+        $_SESSION['jogadores']=$jogadores;
+        unset($_SESSION['acao_festa_selecionada']);
+        if($_SESSION['acoes_festa']<=0){
+            if(!isset($_SESSION['npc_festa_feita'])){
+                foreach(gerarAcoesFestaNPC($jogadores,$meuNome,2) as $ev)$_SESSION['evento_extra'][]=$ev;
+                foreach(atualizarAliancasAutomaticas($jogadores,$meuNome) as $ev)$_SESSION['evento_extra'][]=$ev;
+                $_SESSION['npc_festa_feita']=true;$_SESSION['jogadores']=$jogadores;
+            }
+            $_SESSION['fase_semana']=!empty($_SESSION['anjo_autoimune'])?'paredao':'imunizacao_anjo';
+            $_SESSION['acoes_festa']=3;
+        }
+    }
+    if($feedback!=='')$_SESSION['es2_festa_feedback']=$feedback;
+    header('Location: jogo.php'); exit;
+}
+
 if (isset($_POST['acao_festa']) && $fase == 'festa') {
 
 $acao = $_POST['acao_festa'];
@@ -443,7 +506,7 @@ if ($_SESSION['acoes_festa'] <= 0) {
     } else {
         $_SESSION['fase_semana'] = 'imunizacao_anjo';
     }
-    $_SESSION['acoes_festa'] = 2;
+    $_SESSION['acoes_festa'] = 3;
 }
 
 header("Location: jogo.php");
@@ -466,7 +529,7 @@ if (isset($_POST['selecionar_acao_festa'])) {
 /* CANCELAR AÇÃO DA FESTA */
 if (isset($_POST['cancelar_acao_festa'])) {
 
-    unset($_SESSION['acao_festa_selecionada']);
+    unset($_SESSION['acao_festa_selecionada'], $_SESSION['es2_negociacao']);
 
     header("Location: jogo.php");
     exit;
