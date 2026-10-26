@@ -341,3 +341,10 @@
         display:none;
     }
 }
+/* Acesso à retrospectiva da rodada, sem alterar a navegação principal. */
+.header-raiox-btn {display:inline-flex; align-items:center; justify-content:center; min-height:44px;
+ padding:10px 15px; border-radius:14px; font-weight:800; color:white;
+ text-decoration:none; background:linear-gradient(135deg,rgba(213,0,127,.35),rgba(91,37,191,.38));
+ border:1px solid rgba(255,255,255,.15); white-space:nowrap;}
+.header-raiox-btn:hover {border-color:#ff5abb; box-shadow:0 0 15px rgba(255,0,144,.25);}
+@media(max-width:768px){.header-raiox-btn{display:none;}}

@@ -472,3 +472,63 @@ body::after {
         font-size: 1.15rem;
     }
 }
+
+/* =========================================================
+   📊 Raio-X da Semana | Reputação Dinâmica
+   Só fatos públicos, nunca aprovação do público.
+   ========================================================= */
+.raiox-secao {margin:24px 0 32px; padding:clamp(16px,3vw,28px);
+ border-radius:26px; border:1px solid rgba(255,255,255,.13);
+ background:linear-gradient(145deg,rgba(41,14,65,.94),rgba(11,15,37,.96));
+ box-shadow:0 20px 50px rgba(0,0,0,.28); scroll-margin-top:16px;}
+.raiox-cabecalho {display:flex; justify-content:space-between; gap:20px; align-items:flex-start; flex-wrap:wrap;}
+.raiox-cabecalho small {color:#50dfff; font-weight:800; letter-spacing:.16em; font-size:.71rem;}
+.raiox-cabecalho h2 {font-size:clamp(1.5rem,3vw,2.15rem); margin:8px 0;}
+.raiox-cabecalho p {color:#c9bfd9; font-size:.91rem; line-height:1.7; max-width:670px;}
+.raiox-cabecalho p strong {color:white;}
+.raiox-rodadas {display:flex; gap:8px; max-width:100%; overflow-x:auto; padding:4px 0 10px;}
+.raiox-rodada-link {white-space:nowrap; color:#e2d9ed; background:rgba(255,255,255,.07); padding:10px 15px;
+ text-decoration:none; font-size:.8rem; font-weight:800; border:1px solid rgba(255,255,255,.14); border-radius:14px;
+ min-height:44px; display:inline-flex; align-items:center;}
+.raiox-rodada-link.selecionada {color:#fff; background:linear-gradient(115deg,#db008e,#7227ea); border-color:#fe75dc;}
+.raiox-visao-geral {display:grid; grid-template-columns:150px 170px minmax(0,1fr); gap:12px; margin:23px 0;}
+.raiox-dado,.raiox-clima {border:1px solid rgba(255,255,255,.11); background:rgba(255,255,255,.055);
+ padding:17px; border-radius:19px; min-width:0;}
+.raiox-dado span {display:block; color:#cebfdb; font-size:.78rem; line-height:1.4;}
+.raiox-dado strong {font-size:2.1rem; line-height:1.5;}
+.raiox-clima {display:flex; align-items:center; gap:15px;}
+.raiox-clima-icone {font-size:2rem;}
+.raiox-clima strong {font-size:1.05rem;}
+.raiox-clima p {font-size:.81rem; color:#c9bfd9; margin:4px 0 0; line-height:1.55;}
+.raiox-blocos {display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;}
+.raiox-bloco {min-width:0; border-radius:22px; padding:20px; background:rgba(4,7,22,.42); border:1px solid rgba(255,255,255,.09);}
+.raiox-bloco h3 {font-size:1.18rem; margin:0 0 6px;}
+.raiox-ajuda {font-size:.79rem; line-height:1.6; color:#bfb5cf; margin-bottom:16px;}
+.raiox-vt-lista {display:grid; gap:10px;}
+.raiox-vt-item {display:flex; align-items:flex-start; gap:12px; padding:13px; border-radius:14px;
+ background:rgba(255,255,255,.04); border-left:3px solid #e900a2; min-width:0;}
+.raiox-vt-icone {font-size:1.5rem; flex:none;}
+.raiox-vt-item strong {font-size:.9rem;}
+.raiox-vt-item p {font-size:.82rem; line-height:1.6; color:#c9bfd9; margin:4px 0 0; overflow-wrap:anywhere;}
+.raiox-reputacoes {display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;}
+.raiox-reputacao-card {padding:13px; border-radius:15px; background:linear-gradient(145deg,rgba(116,42,179,.16),rgba(12,16,40,.74));
+ border:1px solid rgba(220,161,255,.15); min-width:0;}
+.raiox-nome {display:block; margin-bottom:10px; font-size:.98rem; overflow-wrap:anywhere;}
+.raiox-rotulo {display:flex; align-items:center; gap:7px; color:#fff; font-size:.77rem; line-height:1.4;}
+.raiox-rotulo span {flex:none;}
+.raiox-reputacao-card p {font-size:.72rem; line-height:1.55; color:#c4b9d2; margin:4px 0 12px;}
+.raiox-reputacao-card p:last-child {margin-bottom:0;}
+.raiox-vazio {border:1px dashed rgba(255,255,255,.2); color:#d5cadf;
+ padding:19px; line-height:1.65; font-size:.85rem; border-radius:16px;}
+.raiox-privacidade {font-size:.79rem; color:#d7c8e4; line-height:1.65; padding-top:18px; margin-top:18px;
+ border-top:1px solid rgba(255,255,255,.1);}
+@media(max-width:850px){.raiox-visao-geral {grid-template-columns:1fr 1fr;}
+ .raiox-clima{grid-column:1/-1;}.raiox-blocos{grid-template-columns:1fr;}}
+@media(max-width:460px){.raiox-secao{padding:14px; border-radius:19px;}
+ .raiox-dado,.raiox-clima {padding:12px; border-radius:13px;}
+ .raiox-dado strong{font-size:1.65rem;}
+ .raiox-reputacoes{grid-template-columns:1fr;}
+ .raiox-bloco {padding:15px;border-radius:16px;}
+ .raiox-cabecalho h2{font-size:1.43rem;}
+ .raiox-cabecalho small{font-size:.62rem;}
+ .raiox-rodadas{width:100%;}}

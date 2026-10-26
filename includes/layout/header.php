@@ -64,6 +64,7 @@ $totalPostsFeed = count(
 
         <div class="mobile-header-menu" id="mobileHeaderMenu" hidden>
             <a href="temporada.php">📖 Histórico da Temporada</a>
+            <a href="temporada.php#raio-x">📊 Raio-X da Semana</a>
             <?php if (!empty($_SESSION['meu_nome'])): ?>
                 <a href="perfil.php?nome=<?= rawurlencode($_SESSION['meu_nome']) ?>">👤 Meu Perfil</a>
             <?php endif; ?>
@@ -73,6 +74,7 @@ $totalPostsFeed = count(
         </div>
 
         <div class="header-actions">
+            <a class="header-raiox-btn" href="temporada.php#raio-x" title="Ver Raio-X e Reputação Dinâmica">📊 Raio-X</a>
 
             <button
                 type="button"
