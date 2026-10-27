@@ -45,7 +45,7 @@ function garantirEstadoSemana()
 
 
 /* =========================================================
-   💖 GARANTIR INÍCIO DA RODADA NO QUERIDÔMETRO
+   💖 GARANTIR INÍCIO DA SEMANA NO QUERIDÔMETRO
    ========================================================= */
 function garantirInicioRodadaQueridometro(&$fase)
 {

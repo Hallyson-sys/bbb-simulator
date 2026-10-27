@@ -6,13 +6,13 @@
 
 
 /* =========================================================
-   ▶️ CONTINUAR A RODADA 3 APÓS O ANÚNCIO
+   ▶️ CONTINUAR A SEMANA 3 APÓS O ANÚNCIO
    ========================================================= */
 if (isset($_POST['continuar_rodada_casa_vidro'])) {
 
     /*
      * O anúncio foi visto, mas a votação continua aberta
-     * em segundo plano até o início da Rodada 4.
+     * em segundo plano até o início da Semana 4.
      */
     $_SESSION['casa_vidro_anunciada'] = true;
     $_SESSION['casa_vidro_anuncio_concluido'] = true;
@@ -50,7 +50,7 @@ if (isset($_POST['continuar_rodada_casa_vidro'])) {
 
 
 /* =========================================================
-   📊 REVELAR RESULTADO — APENAS NA RODADA 4+
+   📊 REVELAR RESULTADO — APENAS NA SEMANA 4+
    ========================================================= */
 if (isset($_POST['revelar_resultado_casa_vidro'])) {
 
@@ -66,7 +66,7 @@ if (isset($_POST['revelar_resultado_casa_vidro'])) {
         }
 
         $_SESSION['evento_extra'][] =
-            '⚠️ A votação da Casa de Vidro ainda está aberta. O resultado será revelado no início da Rodada 4.';
+            '⚠️ A votação da Casa de Vidro ainda está aberta. O resultado será revelado no início da Semana 4.';
 
         header('Location: jogo.php');
         exit;

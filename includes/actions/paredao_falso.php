@@ -27,7 +27,7 @@ if (isset($_POST['retornar_paredao_falso'])) {
     }
 
     /*
-     * O retorno encerra a rodada atual.
+     * O retorno encerra a semana atual.
      * A próxima começa normalmente pelo Queridômetro.
      */
     iniciarNovaRodadaAposEliminacao(

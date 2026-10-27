@@ -356,14 +356,8 @@ function registrarEmojiQueridometro(
         $confianca = -max(1, (int)round(abs($delta) * 0.35));
     }
 
-    $tipoMemoria =
-        $delta >= 4
-            ? 'me_deu_emoji_positivo'
-            : (
-                $delta <= -4
-                    ? 'me_deu_emoji_negativo'
-                    : ''
-            );
+    // O Queridômetro é anônimo: não gravar memória atribuindo o emoji a quem enviou.
+    $tipoMemoria = '';
 
     aplicarConsequenciaSocialPersonalizada(
         $jogadores,
@@ -380,47 +374,10 @@ function registrarEmojiQueridometro(
         ($_SESSION['rodada'] ?? 1) . '|' .
         $de . '|' .
         $para,
-        "$de deu $emoji para $para no Queridômetro."
+        "$para recebeu um emoji anônimo no Queridômetro."
     );
 
-    /*
-     * Mantém a lógica de repercussão pública que já existia:
-     * só quando o jogador envia emoji negativo.
-     */
-    if (
-        nomeIgual($de, $_SESSION['meu_nome'] ?? '') &&
-        $tipo === 'negativo'
-    ) {
-        $popularidadeAlvo = 50;
+    // O emoji é anônimo. Não identificar publicamente quem enviou nem
+    // aplicar repercussão individual baseada numa informação sigilosa.
 
-        foreach ($jogadores as $j) {
-            if (nomeIgual($j['nome'] ?? '', $para)) {
-                $popularidadeAlvo = $j['popularidade'] ?? 50;
-                break;
-            }
-        }
-
-        if ($popularidadeAlvo >= 65) {
-            $perda = rand(3, 5);
-            alterarPopularidade(
-                $jogadores,
-                $de,
-                -$perda
-            );
-
-            $_SESSION['evento_extra'][] =
-                "📉 O público não curtiu $de atacando $para no Queridômetro.";
-
-        } elseif ($popularidadeAlvo <= 35) {
-            $ganho = rand(3, 5);
-            alterarPopularidade(
-                $jogadores,
-                $de,
-                $ganho
-            );
-
-            $_SESSION['evento_extra'][] =
-                "📈 O público gostou de $de mirar em $para no Queridômetro.";
-        }
-    }
 }

@@ -270,7 +270,7 @@ function atualizarAliancasAutomaticas(&$jogadores, $meuNome = '')
 {
     $eventos = [];
 
-    /* As alianças só começam a se formar a partir da Rodada 2,
+    /* As alianças só começam a se formar a partir da Semana 2,
        quando a casa já teve tempo de criar afinidades e rivalidades. */
     if (($_SESSION['rodada'] ?? 1) < 2) {
         return $eventos;
@@ -444,7 +444,7 @@ function calcularAceitacaoNaAlianca($jogadores, $nome, $alianca, $meuNome = '')
 function jogadorEntrarEmAlianca(&$jogadores, $nome, $alianca)
 {
     if (($_SESSION['rodada'] ?? 1) < 2) {
-        return "⏳ As alianças ainda não começaram oficialmente. Elas só abrem a partir da Rodada 2.";
+        return "⏳ As alianças ainda não começaram oficialmente. Elas só abrem a partir da Semana 2.";
     }
 
     if ($nome == '' || $alianca == '') {
@@ -537,7 +537,7 @@ function calcularChanceAceitarConviteAlianca($jogadores, $convidado, $criador, $
 function criarAliancaJogadorComConvites(&$jogadores, $criador, $nomeAlianca, $convidados)
 {
     if (($_SESSION['rodada'] ?? 1) < 2) {
-        return "⏳ As alianças só podem ser criadas a partir da Rodada 2.";
+        return "⏳ As alianças só podem ser criadas a partir da Semana 2.";
     }
 
     if ($criador == '') {

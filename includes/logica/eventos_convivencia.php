@@ -40,7 +40,7 @@ function ecFalaDaMemoriaNPC($memoria, $tom = 'positivo') {
         'me_contou_segredo' => 'Você confiou em mim pra contar uma coisa importante. Eu não esqueci.',
         'me_pediu_desculpas' => 'Lembro que você veio conversar e pediu desculpas. Isso fez diferença.',
         'flertou_comigo' => 'Não esqueci o jeito que você se aproximou de mim naquela vez.',
-        'me_deu_emoji_positivo' => 'Eu lembro do emoji positivo que você me deu no Queridômetro.',
+        'me_deu_emoji_positivo' => 'Eu fiquei pensando nos emojis que recebi no Queridômetro. Não sei quem mandou cada um.',
         'me_elogiou_discordia' => 'Quando você falou bem de mim na Discórdia, aquilo me marcou.',
         'cumpriu_tregua' => 'Você cumpriu o que combinamos, e eu valorizo isso.',
         'me_colocou_monstro' => 'Eu não esqueci quando você me colocou no Monstro.',
@@ -48,7 +48,7 @@ function ecFalaDaMemoriaNPC($memoria, $tom = 'positivo') {
         'me_colocou_paredao' => 'Você me colocou em risco de ir ao Paredão. Aquilo pesou.',
         'me_puxou_contragolpe' => 'Eu lembro de você ter me puxado no contragolpe.',
         'me_atacou_discordia' => 'Você me atacou naquele Jogo da Discórdia. Aquilo me marcou.',
-        'me_deu_emoji_negativo' => 'Não esqueci o emoji negativo que você me deu no Queridômetro.',
+        'me_deu_emoji_negativo' => 'Recebi emojis negativos no Queridômetro, mas não sei quem os enviou.',
         'votou_em_mim' => 'Eu soube que você votou em mim. Depois disso, fiquei com um pé atrás.',
         'brigou_comigo' => 'Aquela discussão entre nós ainda não saiu da minha cabeça.',
         'espalhou_fofoca' => 'Eu descobri os comentários que você andou fazendo sobre mim.',
@@ -68,11 +68,12 @@ function ecEventoMemoriaSocial($jogadores,$npc,$meuNome,$fase){
   if(!function_exists('impactoNegativoMemoriaNPC')||!function_exists('impactoPositivoMemoriaNPC')) return null;
   $neg=(float)impactoNegativoMemoriaNPC($npc,$meuNome);
   $pos=(float)impactoPositivoMemoriaNPC($npc,$meuNome);
-  $limite=$fase==='festa'?23:28;
+  $limite=$fase==='festa'?40:43;
   if(max($neg,$pos)<$limite) return null;
 
   if($neg>$pos){
     $ult=function_exists('ultimaMemoriaMarcanteNPC')?ultimaMemoriaMarcanteNPC($npc,$meuNome,'negativa'):null;
+    if(in_array((string)($ult['tipo']??''),['me_deu_emoji_negativo','me_deu_emoji_positivo'],true)) return null;
     $fala=ecFalaDaMemoriaNPC($ult ?? [], 'negativo');
     $texto="$npc te chama de lado, visivelmente incomodado, e fala sobre algo que ainda pesa entre vocês. “{$fala}”";
     return ['memoria_negativa','🔥','Acerto de contas',$fase==='festa'?'FESTA':'VARANDA',$texto,[
@@ -83,6 +84,7 @@ function ecEventoMemoriaSocial($jogadores,$npc,$meuNome,$fase){
   }
 
   $ult=function_exists('ultimaMemoriaMarcanteNPC')?ultimaMemoriaMarcanteNPC($npc,$meuNome,'positiva'):null;
+  if(in_array((string)($ult['tipo']??''),['me_deu_emoji_negativo','me_deu_emoji_positivo'],true)) return null;
   $fala=ecFalaDaMemoriaNPC($ult ?? [], 'positivo');
   $texto="$npc se aproxima com um sorriso e traz à tona uma lembrança importante para a relação de vocês. “{$fala}”";
   return ['memoria_positiva','🤝','Uma dívida de jogo',$fase==='festa'?'FESTA':'ACADEMIA',$texto,[
@@ -154,7 +156,10 @@ function ecTalvezGerar(&$jogadores,$meuNome,$fase){
   if(!empty($_SESSION[$ch])) return;
   $_SESSION[$ch]=true;
 
-  $chance=$fase==='festa'?72:42;
+  // Momentos especiais são raros e respeitam um intervalo entre aparições.
+  $ultima=(int)($_SESSION['ec_ultima_semana_especial']??0);
+  if($ultima>0 && ecRodadaAtual()-$ultima<2) return;
+  $chance=$fase==='festa'?35:20;
   if(random_int(1,100)>$chance) return;
 
   $cand=[];
@@ -177,20 +182,30 @@ function ecTalvezGerar(&$jogadores,$meuNome,$fase){
   [$npc,$rel,,$mem]=$esc;
 
   $evento=null;
-  if($mem>=23 && random_int(1,100)<=68){
+  if($mem>=43 && random_int(1,100)<=24){
     $evento=ecEventoMemoriaSocial($jogadores,$npc,$meuNome,$fase);
   }
 
   if(!$evento){
     $lib=ecBiblioteca();
+    if (function_exists('es3BibliotecaNova')) {
+      foreach(es3BibliotecaNova() as $faixa=>$novos) $lib[$faixa]=array_merge($lib[$faixa]??[],$novos);
+    }
     if (function_exists('es2BibliotecaExtra')) {
       foreach(es2BibliotecaExtra() as $faixa=>$novos) $lib[$faixa]=array_merge($lib[$faixa]??[],$novos);
     }
     $grupo=$fase==='festa'?'festa':ecFaixaRelacao($rel);
-    if($fase==='festa'&&$rel<=-25&&random_int(1,100)<=55) $evento=$lib['festa'][2];
-    else $evento=$lib[$grupo][array_rand($lib[$grupo])];
+    // Menos cenas repetidas: evitar os últimos 12 tipos de evento.
+    $recentes=(array)($_SESSION['ec_ultimos_tipos']??[]);
+    $disponiveis=array_values(array_filter($lib[$grupo]??[], fn($item)=>!in_array($item[0],$recentes,true)));
+    if(!$disponiveis) $disponiveis=$lib[$grupo]??[];
+    if(!$disponiveis) return;
+    $evento=$disponiveis[array_rand($disponiveis)];
   }
 
+  if(!$evento) return;
+  $_SESSION['ec_ultima_semana_especial']=ecRodadaAtual();
+  $_SESSION['ec_ultimos_tipos']=array_slice(array_merge((array)($_SESSION['ec_ultimos_tipos']??[]),[$evento[0]]),-12);
   $_SESSION['evento_convivencia_ativo']=[
     'id'=>$evento[0],'icone'=>$evento[1],'titulo'=>$evento[2],'camera'=>$evento[3],
     'texto'=>str_replace('{npc}',$npc,$evento[4]),'opcoes'=>$evento[5],

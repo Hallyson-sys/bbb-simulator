@@ -95,7 +95,7 @@ $relacaoVisualCard = function_exists('relacaoPercebidaComJogadorPerfil')
 
     <?php if (!empty($j['status']['lider'])) echo "<div class='lider'>👑 Líder</div>"; ?>
     <?php if (!empty($j['status']['anjo'])) echo "<div class='anjo'>😇 Anjo</div>"; ?>
-    <?php if (!empty($j['status']['imune'])) echo "<div class='imune'>🛡️ Imune</div>"; ?>
+    <?php if (!empty($j['status']['imune']) || (function_exists('dsImune') && dsImune((string)($j['nome']??'')))) echo "<div class='imune'>🛡️ Imune</div>"; ?>
     <?php if (!empty($j['status']['vip'])) echo "<div class='vip'>🟡 VIP</div>"; ?>
     <?php if (!empty($j['status']['xepa'])) echo "<div class='xepa'>🍞 Xepa</div>"; ?>
     <?php if (!empty($j['status']['monstro'])) echo "<div style='color:#ff4d4d;'>👹 Monstro</div>"; ?>

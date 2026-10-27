@@ -11,7 +11,7 @@ if (!modoTestePermitido()) {
    ========================================================= */
 if (isset($_POST['dev_rodada'])) {
 
-    $novaRodada =
+    $novaSemana =
         max(
             1,
             (int)($_POST['rodada'] ?? 1)
@@ -21,7 +21,7 @@ if (isset($_POST['dev_rodada'])) {
         $novaRodada;
 
     registrarEventoModoTeste(
-        "Rodada alterada para $novaRodada."
+        "Semana alterada para $novaRodada."
     );
 
     header('Location: modo_teste.php');
@@ -315,7 +315,7 @@ if (isset($_POST['dev_casa_vidro'])) {
     );
 
     registrarEventoModoTeste(
-        'Casa de Vidro 2.0 forçada para o início da Rodada 3.'
+        'Casa de Vidro 2.0 forçada para o início da Semana 3.'
     );
 
     header('Location: jogo.php');

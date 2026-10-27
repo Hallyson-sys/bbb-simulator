@@ -46,7 +46,7 @@ function dsReacoesCasa(array $jogadores,string $tipo): array {
         elseif(in_array($perfil,['Barraqueiro','Explosivo','Impulsivo'],true))$fala="Quero ver o povo segurar o que fala agora, porque $tema!";
         elseif(in_array($perfil,['Emocional','Sensível','Tímido'],true))$fala="Eu tô nervoso com isso. $tema.";
         else $fala="Caramba, não esperava por essa. $tema.";
-        $falas[]="💬 $nome reagiu ao comunicado: “$fala”";
+        $falas[]="💬 $nome comentou a novidade: $fala";
     }
     return $falas;
 }
@@ -62,17 +62,25 @@ function dsDescricoes(): array {
     ];
 }
 function dsAplicarImunidade(array &$jogadores): void {
-    if (!dsTipo('imunidade_surpresa') || !empty($_SESSION['ds3']['imunidade_aplicada'])) return;
-    $_SESSION['ds3']['imunidade_aplicada']=true; // idempotência até em reload
+    if (!dsTipo('imunidade_surpresa')) return;
+    // Permite consertar saves antigos em que o flag foi salvo sem o beneficiário.
+    if (!empty($_SESSION['ds3']['imunidade_aplicada'])
+        && !empty($_SESSION['ds3_imune']['nome'])
+        && (int)($_SESSION['ds3_imune']['rodada']??0)===(int)($_SESSION['rodada']??1)) return;
     $candidatos=[];
     foreach ($jogadores as $j) {
         $n=(string)($j['nome']??'');
         if($n!=='' && empty($j['eliminado']) && empty($j['status']['lider']) && !estaImune($jogadores,$n)) $candidatos[]=$n;
     }
-    if (!$candidatos) return;
+    if (!$candidatos) {
+        $_SESSION['ds3']['imunidade_aplicada']=true;
+        $_SESSION['evento_extra'][]='🛡️ Imunidade Surpresa: não havia participantes elegíveis para receber o benefício.';
+        return;
+    }
     $n=$candidatos[array_rand($candidatos)];
+    $_SESSION['ds3']['imunidade_aplicada']=true;
     $_SESSION['ds3_imune']=['rodada'=>(int)($_SESSION['rodada']??1),'nome'=>$n];
-    $_SESSION['evento_extra'][]="🛡️ A produção concedeu uma imunidade surpresa a $n. $n não poderá ser indicado ao Paredão nesta rodada.";
+    $_SESSION['evento_extra'][]="🛡️ IMUNIDADE SURPRESA — $n recebeu a proteção da produção e está imune ao Paredão desta semana.";
     if (function_exists('registrarHistoricoTemporada')) registrarHistoricoTemporada('imunidade','Imunidade surpresa',"$n recebeu uma imunidade da produção.",[$n],'🛡️',null,'ds3_imune|'.($_SESSION['rodada']??1));
 }
 function dsImune(string $nome): bool {
@@ -82,14 +90,14 @@ function dsImune(string $nome): bool {
 }
 function dsAplicarCarta(array $jogadores): void {
     if (!dsTipo('carta_misteriosa') || !empty($_SESSION['ds3']['carta_aplicada'])) return;
-    $_SESSION['ds3']['carta_aplicada']=true;
     $candidatos=[];
     foreach($jogadores as $j){
         $n=(string)($j['nome']??'');
         if($n!=='' && empty($j['eliminado']) && empty($j['status']['lider']))$candidatos[]=$n;
     }
-    if(!$candidatos)return;
+    if(!$candidatos){$_SESSION['ds3']['carta_aplicada']=true;return;}
     $n=$candidatos[array_rand($candidatos)];
+    $_SESSION['ds3']['carta_aplicada']=true;
     $_SESSION['ds3_carta']=['rodada'=>(int)($_SESSION['rodada']??1),'nome'=>$n];
     $_SESSION['evento_extra'][]="✉️ $n abriu a Carta Misteriosa: o voto de $n terá peso dois na votação da casa.";
 }

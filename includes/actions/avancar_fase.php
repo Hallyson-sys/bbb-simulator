@@ -214,7 +214,7 @@ if (isset($_POST['avancar_fase'])) {
             $_SESSION['fase_semana'] = 'festa';
 
             /*
-             * Rodada 3:
+             * Semana 3:
              * se houve Casa de Vidro, revela o resultado
              * imediatamente antes da Festa começar.
              */

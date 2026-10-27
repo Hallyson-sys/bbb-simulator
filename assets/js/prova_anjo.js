@@ -177,7 +177,7 @@
         async function mostrarSequencia() {
             rodadaAtiva = false;
             opcoes.classList.add('bloqueado');
-            rodadaEl.textContent = `RODADA ${rodada} DE 3`;
+            rodadaEl.textContent = `SEMANA ${rodada} DE 3`;
             statusEl.textContent = 'Memorize a ordem...';
             display.innerHTML = '';
 

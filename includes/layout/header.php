@@ -32,7 +32,7 @@ $totalPostsFeed = count(
                 <div class="sub-info">
 
                     <span>
-                        🔥 Rodada <?= $rodada ?>
+                        🔥 Semana <?= $rodada ?>
                     </span>
 
                     <span class="dot"></span>
@@ -74,7 +74,7 @@ $totalPostsFeed = count(
         </div>
 
         <div class="header-actions">
-            <a class="header-raiox-btn" href="temporada.php#raio-x" title="Ver Raio-X e Reputação Dinâmica">📊 Raio-X</a>
+            <a class="header-raiox-btn header-feed-btn" href="temporada.php#raio-x" title="Ver Raio-X e Reputação Dinâmica"><span class="header-feed-icon">📊</span><span class="header-feed-info"><strong>Raio-X</strong><small>Resumo da semana</small></span><span class="header-feed-arrow">→</span></a>
 
             <button
                 type="button"

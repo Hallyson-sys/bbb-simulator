@@ -114,9 +114,9 @@ if (
    🚪 RETORNO AUTOMÁTICO DO PAREDÃO FALSO
 
    Exemplo:
-   - falso eliminado na Rodada 5
-   - Rodada 6 acontece normalmente
-   - ao chegar na Festa da Rodada 6,
+   - falso eliminado na Semana 5
+   - Semana 6 acontece normalmente
+   - ao chegar na Festa da Semana 6,
      ele retorna ANTES da Festa começar
    ========================================================= */
 

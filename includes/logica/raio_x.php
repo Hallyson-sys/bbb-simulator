@@ -18,7 +18,7 @@ function rxTiposPublicos(): array
     ];
 }
 
-function rxEventosPublicos(array $historico, ?int $ateRodada = null, ?int $apenasRodada = null): array
+function rxEventosPublicos(array $historico, ?int $ateSemana = null, ?int $apenasSemana = null): array
 {
     $tipos = rxTiposPublicos();
     $vistos = [];
@@ -28,8 +28,8 @@ function rxEventosPublicos(array $historico, ?int $ateRodada = null, ?int $apena
         $tipo = (string)($evento['tipo'] ?? '');
         $rodada = max(1, (int)($evento['rodada'] ?? 1));
         if (!in_array($tipo, $tipos, true)) continue;
-        if ($ateRodada !== null && $rodada > $ateRodada) continue;
-        if ($apenasRodada !== null && $rodada !== $apenasRodada) continue;
+        if ($ateSemana !== null && $rodada > $ateRodada) continue;
+        if ($apenasSemana !== null && $rodada !== $apenasRodada) continue;
         $chave = (string)($evento['chave'] ?? '');
         if ($chave !== '' && isset($vistos[$chave])) continue;
         if ($chave !== '') $vistos[$chave] = true;
@@ -125,7 +125,7 @@ function rxReputacoes(array $eventos, int $ateRodada): array
     foreach ($estatisticas as $nome => $s) {
         $rotulos = [];
         $vitorias = $s['lider'] + $s['anjo'];
-        if ($vitorias >= 2) $rotulos[] = ['🏆', 'Destaque nas provas', "Venceu $vitorias provas de Líder/Anjo até a Rodada $ateRodada."];
+        if ($vitorias >= 2) $rotulos[] = ['🏆', 'Destaque nas provas', "Venceu $vitorias provas de Líder/Anjo até a Semana $ateRodada."];
         elseif ($vitorias === 1) $rotulos[] = ['🏅', 'Conquistou poder', 'Já venceu uma prova de Líder ou Anjo.'];
         if ($s['treta'] >= 1) $rotulos[] = ['💥', 'No centro das tretas', 'Participou de discussões registradas na casa.'];
         if ($s['paredao'] >= 2) $rotulos[] = ['🔥', 'Passagem pelos Paredões', 'Esteve em pelo menos dois Paredões.'];

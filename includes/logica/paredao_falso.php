@@ -3,7 +3,7 @@
 /* =========================================================
    🚨 PAREDÃO FALSO
    - Pode acontecer apenas uma vez por temporada.
-   - Só entra no sorteio a partir da Rodada 3.
+   - Só entra no sorteio a partir da Semana 3.
    - Não acontece quando a temporada já está perto da final.
    ========================================================= */
 
@@ -43,7 +43,7 @@ function podeTerParedaoFalso(
 
 
 /* =========================================================
-   🎯 DECIDIR SE A RODADA TERÁ PAREDÃO FALSO
+   🎯 DECIDIR SE A SEMANA TERÁ PAREDÃO FALSO
    A decisão é feita uma única vez por rodada.
    ========================================================= */
 function prepararParedaoFalsoDaRodada(
@@ -170,8 +170,8 @@ function prepararParedaoFalsoDaRodada(
 
     /*
      * Exemplo:
-     * falso eliminado na Rodada 5
-     * volta antes da Festa da Rodada 6.
+     * falso eliminado na Semana 5
+     * volta antes da Festa da Semana 6.
      */
     $_SESSION['paredao_falso_rodada_retorno'] =
         (int)$rodada + 1;

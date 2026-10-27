@@ -261,7 +261,7 @@ function ePerfil($texto)
                             <div class="perfil-evento-conteudo">
                                 <div class="perfil-evento-topo">
                                     <strong><?= ePerfil($evento['titulo'] ?? 'Acontecimento') ?></strong>
-                                    <span>Rodada <?= (int)($evento['rodada'] ?? 1) ?></span>
+                                    <span>Semana <?= (int)($evento['rodada'] ?? 1) ?></span>
                                 </div>
                                 <p><?= ePerfil($evento['descricao'] ?? '') ?></p>
                             </div>

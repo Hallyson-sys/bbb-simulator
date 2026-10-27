@@ -15,7 +15,7 @@ if (empty($_SESSION['jogadores']) && empty($_SESSION['historico_temporada'])) {
 }
 
 $rodadaAtual = (int)($_SESSION['rodada'] ?? 1);
-$historicoPorRodada = historicoTemporadaPorRodada();
+$historicoPorSemana = historicoTemporadaPorRodada();
 $totalEventos = count($_SESSION['historico_temporada']);
 
 // Seleção por rodada sem modificar o estado da temporada.
@@ -58,7 +58,7 @@ function eTemp($texto)
     </header>
 
     <section class="temporada-resumo">
-        <div class="temporada-resumo-card"><strong><?= $rodadaAtual ?></strong><span>Rodada atual</span></div>
+        <div class="temporada-resumo-card"><strong><?= $rodadaAtual ?></strong><span>Semana atual</span></div>
         <div class="temporada-resumo-card"><strong><?= count($historicoPorRodada) ?></strong><span>Rodadas registradas</span></div>
         <div class="temporada-resumo-card"><strong><?= $totalEventos ?></strong><span>Acontecimentos salvos</span></div>
     </section>
@@ -75,7 +75,7 @@ function eTemp($texto)
                     <a href="temporada.php?rodada=<?= (int)$numero ?>#raio-x"
                        class="raiox-rodada-link <?= $numero === $rodadaSelecionada ? 'selecionada' : '' ?>"
                        <?= $numero === $rodadaSelecionada ? 'aria-current="page"' : '' ?>>
-                       Rodada <?= (int)$numero ?>
+                       Semana <?= (int)$numero ?>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -136,12 +136,12 @@ function eTemp($texto)
         </div>
     <?php else: ?>
         <main class="temporada-timeline">
-            <?php foreach ($historicoPorRodada as $numeroRodada => $eventos): ?>
+            <?php foreach ($historicoPorSemana as $numeroSemana => $eventos): ?>
                 <section class="temporada-rodada">
                     <h2 class="temporada-rodada-titulo">
-                        Rodada <?= (int)$numeroRodada ?>
-                        <?php if ((int)$numeroRodada === $rodadaAtual): ?>
-                            <span class="temporada-atual">rodada atual</span>
+                        Semana <?= (int)$numeroSemana ?>
+                        <?php if ((int)$numeroSemana === $rodadaAtual): ?>
+                            <span class="temporada-atual">semana atual</span>
                         <?php endif; ?>
                     </h2>
                     <div class="temporada-eventos">

@@ -60,6 +60,7 @@ require_once __DIR__ . '/includes/logica/loja_publico.php';
 require_once __DIR__ . '/includes/logica/interacoes.php';
 
 require_once __DIR__ . '/includes/logica/eventos_convivencia_extra.php';
+require_once __DIR__ . '/includes/logica/eventos_convivencia_novos.php';
 require_once __DIR__ . '/includes/logica/eventos_convivencia.php';
 
 require_once __DIR__ . '/includes/logica/discordia.php';
@@ -658,7 +659,7 @@ atualizarFeedPublicoInteligente(
 
 
     <link rel="stylesheet" href="assets/css/jogo.css">
-<link rel="stylesheet" href="assets/css/raio_x_estrategico.css?v=1">
+<link rel="stylesheet" href="assets/css/raio_x_estrategico.css?v=44">
 
 
 

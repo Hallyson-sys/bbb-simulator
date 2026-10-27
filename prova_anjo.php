@@ -280,7 +280,7 @@ function classePosicaoAnjo($posicao)
                 <?php if (($provaAtual['slug'] ?? '') === 'sequencia'): ?>
                     <section class="game-area sequencia-game" id="sequencia-game">
                         <div class="sequencia-topo">
-                            <span id="sequencia-rodada">RODADA 1 DE 3</span>
+                            <span id="sequencia-rodada">SEMANA 1 DE 3</span>
                             <strong id="sequencia-status">Prepare-se para memorizar.</strong>
                         </div>
 

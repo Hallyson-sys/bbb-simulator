@@ -73,6 +73,9 @@ function processarEntradaEliminacao($fase)
         $_SESSION['indicacao_bigfone'],
         $_SESSION['bigfone_indicacao_pendente'],
         $_SESSION['bigfone_dono_poder'],
+        $_SESSION['pd_limite_paredao'],
+        $_SESSION['pd_pendente'],
+        $_SESSION['pd_escolhido'],
         $_SESSION['imunizacao_anjo_feita']
     );
 

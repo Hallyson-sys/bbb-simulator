@@ -30,7 +30,7 @@ $nomeFaseMobile = $rotulosFaseMobile[$fase] ?? ('🎮 ' . ucwords(str_replace('_
     <div class="mobile-current-hero">
         <span class="mobile-current-kicker">DINÂMICA ATUAL</span>
         <h2><?= htmlspecialchars($nomeFaseMobile, ENT_QUOTES, 'UTF-8') ?></h2>
-        <p>Rodada <?= (int)$rodada ?> • continue a dinâmica por aqui</p>
+        <p>Semana <?= (int)$rodada ?> • continue a dinâmica por aqui</p>
     </div>
 
     <h2 class="desktop-panel-title">🎮 Controle da Semana</h2>
@@ -42,7 +42,7 @@ $nomeFaseMobile = $rotulosFaseMobile[$fase] ?? ('🎮 ' . ucwords(str_replace('_
     <?php $dsAtual = function_exists('dsAtual') ? dsAtual() : []; ?>
     <?php if (!empty($dsAtual['tipo']) && isset(dsDescricoes()[$dsAtual['tipo']])): $aviso = dsDescricoes()[$dsAtual['tipo']]; ?>
         <section class="ds3-aviso" aria-label="Dinâmica surpresa da produção">
-            <div class="ds3-selo">● REC • COMUNICADO DA PRODUÇÃO • RODADA <?= (int)$rodada ?></div>
+            <div class="ds3-selo">● REC • COMUNICADO DA PRODUÇÃO • SEMANA <?= (int)$rodada ?></div>
             <h3><?= htmlspecialchars($aviso['titulo'], ENT_QUOTES, 'UTF-8') ?></h3>
             <p><?= htmlspecialchars($aviso['descricao'], ENT_QUOTES, 'UTF-8') ?></p>
         </section>

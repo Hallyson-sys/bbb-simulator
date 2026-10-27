@@ -22,7 +22,7 @@ $ecMemoria=function_exists('ecConhecimentosAtivos')?ecConhecimentosAtivos():[];
  <article class="ec-segredo <?=$ecUsado?'ec-segredo-usado':''?>">
    <div class="ec-segredo-topo"><strong><?=htmlspecialchars($c['titulo'])?></strong><span class="ec-confianca ec-<?=htmlspecialchars($c['confiabilidade'])?>"><?=($c['confiabilidade']==='alta'?'Alta':($c['confiabilidade']==='baixa'?'Baixa':'Média'))?> confiança</span></div>
    <p><?=htmlspecialchars($c['texto'])?></p>
-   <small>🔎 <?=htmlspecialchars($c['fonte'])?> • Rodada <?=intval($c['rodada'])?><?=!empty($c['expira_rodada'])?' • válida até esta rodada':''?></small>
+   <small>🔎 <?=htmlspecialchars($c['fonte'])?> • Semana <?=intval($c['rodada'])?><?=!empty($c['expira_rodada'])?' • válida até esta rodada':''?></small>
    <?php if($ecUsado): ?>
      <div class="ec-uso-status">✓ Informação utilizada: <?=htmlspecialchars(ucfirst((string)($c['ultima_acao']??'ação estratégica')))?></div>
    <?php else: ?>

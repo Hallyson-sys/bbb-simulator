@@ -1156,7 +1156,7 @@ function feedIntelProcessarAnuncioCasaVidro(
     adicionarPostFeedPublico(
         $jogadores,
         feedIntelEscolherTexto([
-            "CASA DE VIDRO NA RODADA 3! Os candidatos são $lista. Eu já escolhi meus favoritos 😭",
+            "CASA DE VIDRO NA SEMANA 3! Os candidatos são $lista. Eu já escolhi meus favoritos 😭",
             "A Casa de Vidro abriu: $lista disputam DUAS vagas. Essa votação vai render muito.",
             "Quatro nomes e só duas vagas: $lista. Quero ver como a internet vai se dividir 👀"
         ]),
@@ -1185,7 +1185,7 @@ function feedIntelProcessarAnuncioCasaVidro(
             $jogadores,
             feedIntelEscolherTexto([
                 "$segundo também chegou forte na Casa de Vidro. Essa disputa tá aberta.",
-                "Quero ver se o público compra $segundo até o fim da Rodada 3.",
+                "Quero ver se o público compra $segundo até o fim da Semana 3.",
                 "A torcida do $segundo já apareceu nas redes e nem chegamos no resultado."
             ]),
             'geral',
@@ -1501,7 +1501,7 @@ function gerarTrendingTopicsFeedInteligente(
 
 
 
-    /* 🗳️ Casa de Vidro — votação da Rodada 3 */
+    /* 🗳️ Casa de Vidro — votação da Semana 3 */
     $casaVidroVotacao =
         $_SESSION['casa_vidro_votacao_trending']
         ?? null;

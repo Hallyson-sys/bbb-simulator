@@ -6,9 +6,9 @@
    Arquitetura simples:
    - NÃO usa fase_semana = casa_vidro.
    - Usa apenas casa_vidro_estado como estado principal.
-   - Anúncio: início da Rodada 3.
+   - Anúncio: início da Semana 3.
    - Resultado + entrada: imediatamente antes da Festa
-     da Rodada 3.
+     da Semana 3.
    ========================================================= */
 
 
@@ -549,7 +549,7 @@ function verificarFluxoCasaVidro(
         estadoCasaVidro();
 
     /*
-     * Início da Rodada 3:
+     * Início da Semana 3:
      * mostra o anúncio uma vez.
      */
     if (
@@ -581,7 +581,7 @@ function verificarFluxoCasaVidro(
     /*
      * Recuperação de save:
      * se um save foi encerrado na votação
-     * e já está além da Rodada 3, não deixa
+     * e já está além da Semana 3, não deixa
      * a dinâmica ficar eternamente pendente.
      */
     if (
@@ -1179,7 +1179,7 @@ function integrarVencedoresCasaVidroV2(
             ' e ',
             $nomesEntrantes
         )
-        . ' entraram oficialmente na casa pela Casa de Vidro durante a Festa da Rodada 3.';
+        . ' entraram oficialmente na casa pela Casa de Vidro durante a Festa da Semana 3.';
 
     if (function_exists('registrarHistoricoTemporada')) {
         registrarHistoricoTemporada(

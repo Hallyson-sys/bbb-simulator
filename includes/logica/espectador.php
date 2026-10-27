@@ -323,7 +323,7 @@ function simularRodadaEspectador(
     limparSemanaEspectador($jogadores);
 
     $resumo = [
-        "📺 Começou a Rodada $rodada."
+        "📺 Começou a Semana $rodada."
     ];
 
     integrarCasaVidroNoEspectador(

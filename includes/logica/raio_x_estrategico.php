@@ -1,6 +1,6 @@
 <?php
 /**
- * 🎙️ Confessionário 3.0 — quadro privado de posicionamento.
+ * 🎙️ Confessionário — quadro privado de posicionamento.
  * Usa fatos observáveis/afinidades, NUNCA popularidade, votos ocultos ou segredos de NPCs.
  * A escolha gravada às câmeras NÃO é ouvida automaticamente pela casa.
  * Efeitos sociais ocorrem somente quando o jogador decide agir nas Interações.

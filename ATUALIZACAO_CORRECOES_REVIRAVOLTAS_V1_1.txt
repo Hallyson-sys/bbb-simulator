@@ -1,0 +1,35 @@
+BBB Simulator — Correções de Reviravoltas V1.1
+
+1. Imunidade Surpresa
+- Ao finalizar a Festa, o beneficiado é anunciado no Ao Vivo.
+- A imunidade fica registrada para a semana atual, impede indicação e aparece no card do participante.
+- Recarregar a página não concede outra imunidade; saves com flag sem beneficiário podem ser reparados.
+
+2. Dinâmicas da produção
+- Reações ao comunicado usam texto completo, sem aspas truncadas.
+- Carta Misteriosa e Votação Turbinada foram verificadas em testes isolados.
+- Regras de Contragolpe, Votação Aberta e Paredão Especial foram mantidas.
+
+3. Desempate pelo Líder
+- Empates que disputam uma vaga no Paredão não dependem mais da ordem dos votos.
+- Líder jogador escolhe em tela própria; Líder NPC decide pela IA.
+- Apuração é preservada enquanto o jogador toma a decisão; o tamanho do Paredão é estável durante essa apuração.
+
+4. Sigilo do Queridômetro
+- O envio dos emojis não produz mais memória que atribui um emoji anônimo a uma pessoa.
+- Memórias antigas desse tipo não pesam na avaliação da IA, nem disparam cobranças de autoria.
+- Não se publica reação do público identificando o autor do emoji.
+
+5. Convivência
+- 31 novas situações especiais, em diferentes níveis de afinidade e na Festa.
+- Menor frequência, intervalo entre semanas e histórico contra repetições.
+
+6. Interface
+- Exibição de “Semana” em vez de “Rodada”, sem renomear as variáveis internas dos saves.
+- O quadro passa a se chamar “Confessionário”.
+- O botão Raio-X reutiliza o estilo visual do Feed.
+
+Testes executados: sintaxe PHP, sintaxe JavaScript, teste isolado de imunidade,
+Carta Misteriosa, Votação Turbinada, Votação Aberta e 31 cenas.
+Ainda é necessário validar uma temporada completa com interfaces, Poder Curinga,
+Big Fone, Bate-Volta e diferentes quantidades de participantes.

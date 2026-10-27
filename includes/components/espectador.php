@@ -28,7 +28,7 @@ $ultimoEliminado =
         </p>
 
         <p>
-            🔥 Rodada atual:
+            🔥 Semana atual:
             <b><?php echo (int)$rodada; ?></b>
             ·
             👥 Restam:

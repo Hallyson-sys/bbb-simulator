@@ -71,7 +71,7 @@ if (
     }
 
     $_SESSION['evento_extra'][] =
-        '🏠 A votação da Casa de Vidro está aberta. O resultado será revelado antes da Festa da Rodada 3.';
+        '🏠 A votação da Casa de Vidro está aberta. O resultado será revelado antes da Festa da Semana 3.';
 
     registrarHistoricoTemporada(
         'casa_vidro',
@@ -236,7 +236,7 @@ function eCasaVidro($valor)
         <?php if ($estado === 'anuncio'): ?>
 
             <span class="casa-badge">
-                🏠 DINÂMICA ESPECIAL • RODADA 3
+                🏠 DINÂMICA ESPECIAL • SEMANA 3
             </span>
 
             <h1>
@@ -262,7 +262,7 @@ function eCasaVidro($valor)
             <p>
                 A votação foi encerrada.
                 É hora de descobrir quais dois participantes
-                vão entrar na casa e aproveitar a Festa da Rodada 3.
+                vão entrar na casa e aproveitar a Festa da Semana 3.
             </p>
 
         <?php endif; ?>
@@ -281,7 +281,7 @@ function eCasaVidro($valor)
         <?php if ($estado === 'anuncio'): ?>
 
             <p>
-                A votação ficará aberta durante a Rodada 3.
+                A votação ficará aberta durante a Semana 3.
                 O resultado será revelado imediatamente antes da Festa.
             </p>
 
@@ -494,7 +494,7 @@ function eCasaVidro($valor)
                 </span>
 
                 <h2>
-                    A Rodada 3 continua normalmente
+                    A Semana 3 continua normalmente
                 </h2>
 
                 <p>
@@ -511,7 +511,7 @@ function eCasaVidro($valor)
                     name="continuar_casa_vidro"
                     value="1"
                 >
-                    ▶️ CONTINUAR RODADA 3
+                    ▶️ CONTINUAR SEMANA 3
                 </button>
 
             </form>
@@ -531,7 +531,7 @@ function eCasaVidro($valor)
 
                 <p>
                     Ao abrir a porta, os dois mais votados
-                    entram oficialmente e a Festa da Rodada 3 começa.
+                    entram oficialmente e a Festa da Semana 3 começa.
                 </p>
             </div>
 

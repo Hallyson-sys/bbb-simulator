@@ -179,7 +179,7 @@ if (
 <div class="container">
 
     <div class="topo">
-        <div class="badge">📡 Transmissão ao vivo • Rodada <?php echo e($rodada); ?></div>
+        <div class="badge">📡 Transmissão ao vivo • Semana <?php echo e($rodada); ?></div>
         <h1>Noite de Eliminação</h1>
         <p>O público decidiu. Um participante deixa a casa agora.</p>
     </div>
@@ -350,7 +350,7 @@ if (
 
                     <div class="stat-card">
                         <strong><?php echo e($rodada); ?></strong>
-                        <span>Rodada da eliminação</span>
+                        <span>Semana da eliminação</span>
                     </div>
 
                     <div class="stat-card">

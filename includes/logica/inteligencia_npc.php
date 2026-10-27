@@ -413,7 +413,7 @@ function pesoBaseMemoriaNPC($tipo)
         'me_indicou' => 34,
         'me_colocou_monstro' => 22,
         'me_atacou_discordia' => 19,
-        'me_deu_emoji_negativo' => 12,
+        'me_deu_emoji_negativo' => 0, // anônimo: não pode ser atribuído ao autor
         'rompeu_comigo' => 28,
         'brigou_comigo' => 18,
         'espalhou_fofoca' => 24,
@@ -426,7 +426,7 @@ function pesoBaseMemoriaNPC($tipo)
 
         /* Positivos */
         'me_elogiou_discordia' => 14,
-        'me_deu_emoji_positivo' => 9,
+        'me_deu_emoji_positivo' => 0, // anônimo: não pode ser atribuído ao autor
         'me_imunizou' => 28,
         'me_colocou_vip' => 13,
         'me_defendeu' => 17,
@@ -611,7 +611,7 @@ function impactoMemoriaHistoricaNPC(
      * se ainda não existir histórico detalhado,
      * usa os contadores agregados.
      */
-    $ultimaRodada =
+    $ultimaSemana =
         (int)($m['ultima_rodada'] ?? 1);
 
     foreach ($tipos as $tipo) {
@@ -649,7 +649,6 @@ function impactoNegativoMemoriaNPC(
             'me_indicou',
             'me_colocou_monstro',
             'me_atacou_discordia',
-            'me_deu_emoji_negativo',
             'rompeu_comigo',
             'brigou_comigo',
             'espalhou_fofoca',
@@ -673,7 +672,6 @@ function impactoPositivoMemoriaNPC(
         $alvo,
         [
             'me_elogiou_discordia',
-            'me_deu_emoji_positivo',
             'me_imunizou',
             'me_colocou_vip',
             'me_defendeu',
@@ -704,13 +702,13 @@ function ultimaMemoriaMarcanteNPC($observador, $alvo, $tipo = 'qualquer')
 
     $negativos = [
         'votou_em_mim','me_indicou','me_colocou_monstro','me_atacou_discordia',
-        'me_deu_emoji_negativo','rompeu_comigo','brigou_comigo','espalhou_fofoca',
+        'rompeu_comigo','brigou_comigo','espalhou_fofoca',
         'me_puxou_contragolpe','me_colocou_paredao','me_confrontou',
         'me_desrespeitou','quebrou_tregua','me_expos'
     ];
 
     $positivos = [
-        'me_elogiou_discordia','me_deu_emoji_positivo','me_imunizou','me_colocou_vip',
+        'me_elogiou_discordia','me_imunizou','me_colocou_vip',
         'me_defendeu','me_salvou','me_aproximou','flertou_comigo','me_apoiou',
         'me_contou_segredo','fechou_pacto_comigo','me_pediu_desculpas','cumpriu_tregua'
     ];

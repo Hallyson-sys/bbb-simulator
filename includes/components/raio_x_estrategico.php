@@ -4,9 +4,9 @@ if (!is_array($q) || (int)($q['rodada'] ?? -1) !== (int)($_SESSION['rodada'] ?? 
 $escolhido = $q['escolha'] ?? null;
 ?>
 <section class="rx3-wrap" id="raio-x-estrategico" aria-labelledby="rx3-titulo">
-    <div class="rx3-topline"><span class="rx3-rec"><span class="rx3-rec-dot"></span> REC • CÂMERA DO CONFESSIONÁRIO</span><span>RODADA <?php echo (int)$q['rodada']; ?></span></div>
+    <div class="rx3-topline"><span class="rx3-rec"><span class="rx3-rec-dot"></span> REC • CÂMERA DO CONFESSIONÁRIO</span><span>SEMANA <?php echo (int)$q['rodada']; ?></span></div>
     <div class="rx3-header">
-        <span class="rx3-overline">🎙️ CONFESSIONÁRIO 3.0</span>
+        <span class="rx3-overline">🎙️ CONFESSIONÁRIO</span>
         <h3 id="rx3-titulo">E agora, qual é sua postura?</h3>
         <p>Um posicionamento só seu diante das câmeras. Os outros participantes não ouvem o que você disser aqui.</p>
     </div>
@@ -64,7 +64,7 @@ $escolhido = $q['escolha'] ?? null;
                 <summary>📖 Rever meus últimos posicionamentos</summary>
                 <ul>
                     <?php foreach (array_reverse($historicoRx3) as $registro): ?>
-                        <li><b>Rodada <?php echo (int)($registro['rodada'] ?? 1); ?>:</b>
+                        <li><b>Semana <?php echo (int)($registro['rodada'] ?? 1); ?>:</b>
                         <?php echo rx3Esc((string)($registro['tema'] ?? 'Depoimento')); ?> —
                         <?php echo rx3Esc((string)($registro['resposta'] ?? '')); ?></li>
                     <?php endforeach; ?>

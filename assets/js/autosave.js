@@ -176,7 +176,7 @@ function montarResumoSave(save) {
 
     return `
         <div class="save2-resumo">
-            <span>🔥 Rodada ${Number(r.rodada || 1)}</span>
+            <span>🔥 Semana ${Number(r.rodada || 1)}</span>
             <span>👥 ${Number(r.participantes || 0)} restantes</span>
             ${ultimo}
             <span>🕒 ${BBBSave2.formatarData(save.saved_at)}</span>

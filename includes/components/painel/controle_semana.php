@@ -182,8 +182,28 @@
    ========================================================= */
 ?>
 
+<?php if ($fase==='paredao' && !empty($_SESSION['pd_pendente'])
+    && empty($_SESSION['pd_escolhido']) && nomeIgual((string)($_SESSION['lider']??''),$meuNome)): ?>
+    <div class="box" id="desempate-lider">
+        <h3>👑 Desempate do Líder</h3>
+        <p>A votação da casa empatou. Você é Líder e deve escolher qual participante empatado ocupará a vaga no Paredão.</p>
+        <form method="POST">
+            <div class="participantes-escolha">
+                <?php foreach (($_SESSION['pd_pendente']['empatados']??[]) as $empatado): ?>
+                    <label class="participante-btn">
+                        <input type="radio" name="pd_candidato" value="<?=htmlspecialchars($empatado,ENT_QUOTES,'UTF-8')?>" required>
+                        <?=htmlspecialchars($empatado,ENT_QUOTES,'UTF-8')?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <button class="btn" name="pd_desempatar" value="1">👑 Confirmar Desempate</button>
+        </form>
+    </div>
+<?php endif; ?>
+
 <?php if (
     $fase == 'paredao' &&
+    empty($_SESSION['pd_pendente']) &&
     !isset($_SESSION['indicacao_lider']) &&
     ($_SESSION['lider'] ?? '') == $meuNome
 ): ?>
