@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/relatos_ao_vivo.php';
+
 
 /* =========================================================
    🎉 LÓGICA DA FESTA
@@ -277,12 +279,12 @@ function gerarAcoesFestaNPC(
 
 
                     $eventos[] =
-                        "🥂 $nomeNPC passou parte da festa junto com $meuNome. Sua afinidade com $nomeNPC subiu.";
+                        es3RelatoAoVivo("festa_aproximar", $nomeNPC, $meuNome, "festa");
 
                 } else {
 
                     $eventos[] =
-                        "🥂 $nomeNPC passou a festa junto com $nomeAlvo.";
+                        es3RelatoAoVivo("festa_aproximar", $nomeNPC, $nomeAlvo, "festa");
                 }
             }
 
@@ -352,12 +354,12 @@ function gerarAcoesFestaNPC(
 
 
                     $eventos[] =
-                        "💕 $nomeNPC flertou com $meuNome na festa. Sua afinidade com $nomeNPC subiu.";
+                        es3RelatoAoVivo("flertar", $nomeNPC, $meuNome, "festa");
 
                 } else {
 
                     $eventos[] =
-                        "💕 $nomeNPC flertou com $nomeAlvo na festa.";
+                        es3RelatoAoVivo("flertar", $nomeNPC, $nomeAlvo, "festa");
                 }
 
 
@@ -433,12 +435,12 @@ function gerarAcoesFestaNPC(
                 if ($mudanca >= 0) {
 
                     $eventos[] =
-                        "📸 $nomeNPC roubou a cena na festa.";
+                        es3RelatoAoVivo("vt", $nomeNPC, "", "festa");
 
                 } else {
 
                     $eventos[] =
-                        "📸 $nomeNPC tentou aparecer demais e virou meme.";
+                        es3RelatoAoVivo("vt", $nomeNPC, "", "festa");
                 }
             }
 
@@ -478,12 +480,12 @@ function gerarAcoesFestaNPC(
 
 
                     $eventos[] =
-                        "🔥 $nomeNPC discutiu com $meuNome durante a festa. Sua afinidade com $nomeNPC caiu.";
+                        es3RelatoAoVivo("discutir", $nomeNPC, $meuNome, "festa");
 
                 } else {
 
                     $eventos[] =
-                        "🔥 $nomeNPC discutiu com $nomeAlvo durante a festa.";
+                        es3RelatoAoVivo("discutir", $nomeNPC, $nomeAlvo, "festa");
                 }
             }
 
@@ -548,12 +550,12 @@ function gerarAcoesFestaNPC(
 
 
                     $eventos[] =
-                        "🕺 $nomeNPC chamou $meuNome para dançar na festa. Sua afinidade com $nomeNPC subiu.";
+                        es3RelatoAoVivo("dancar", $nomeNPC, $meuNome, "festa");
 
                 } else {
 
                     $eventos[] =
-                        "🕺 $nomeNPC dançou com $nomeAlvo e viralizou na festa.";
+                        es3RelatoAoVivo("dancar", $nomeNPC, $nomeAlvo, "festa");
                 }
             }
 

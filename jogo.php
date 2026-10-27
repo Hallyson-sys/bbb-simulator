@@ -960,7 +960,7 @@ const acaoSelecionada = <?= json_encode($_SESSION['acao_selecionada'] ?? '') ?>;
 </script>
 
 
-<script src="assets/js/jogo.js?v=34"></script>
+<script src="assets/js/jogo.js?v=35"></script>
 <script src="assets/js/mobile_2.js?v=32"></script>
 
 <script src="assets/js/feed_publico.js"></script>

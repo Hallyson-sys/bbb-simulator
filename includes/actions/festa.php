@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../logica/relatos_ao_vivo.php';
+
 
 /** @var string $fase */
 /** @var array $jogadores */
@@ -81,6 +83,8 @@ $acao = $_POST['acao_festa'];
 $alvo = $_POST['alvo_festa'] ?? '';
 
 $evento = "";
+$flertouCorrespondido = false;
+$aprofundouRomance = false;
 
 /* 🤝 Aproximar */
 if ($acao == 'aproximar' && $alvo) {
@@ -92,7 +96,7 @@ if ($acao == 'aproximar' && $alvo) {
     alterarAfinidade($jogadores, $alvo, $meuNome, 5, -2, 3);
 
     $evento =
-        "🤝 $meuNome se aproximou de $alvo durante a festa.";
+        es3RelatoAoVivo("festa_aproximar", $meuNome, $alvo, "festa");
 }
 
 /* 📺 VT */
@@ -102,10 +106,10 @@ if ($acao == 'vt') {
 
     if ($valor >= 0) {
         $evento =
-            "📺 $meuNome roubou as câmeras e viralizou na festa.";
+            es3RelatoAoVivo("vt", $meuNome, "", "festa");
     } else {
         $evento =
-            "📺 $meuNome tentou fazer VT, mas o público achou vergonha alheia.";
+            es3RelatoAoVivo("vt", $meuNome, "", "festa");
     }
 }
 
@@ -129,9 +133,10 @@ if ($acao == 'flertar' && $alvo) {
             alterarAfinidade($jogadores, $alvo, $meuNome, 5, -2, 3);
 
             impactoPopularidadePorPersonalidade($jogadores, $meuNome, "romance", true);
+            $flertouCorrespondido = true;
 
             $evento =
-                "😘 $alvo correspondeu ao flerte de $meuNome durante a festa.";
+                es3RelatoAoVivo("flertar", $meuNome, $alvo, "festa");
         } else {
 
             $_SESSION['relacoes_jogador'][$alvo] =
@@ -143,7 +148,7 @@ if ($acao == 'flertar' && $alvo) {
             alterarPopularidadePublica($jogadores, $meuNome, -4, 0, "levou um fora na festa", true);
 
             $evento =
-                "💔 $alvo rejeitou o flerte de $meuNome e o climão tomou conta.";
+                es3RelatoAoVivo("flertar", $meuNome, $alvo, "festa") . " O clima ficou desconfortável.";
         }
     } else {
 
@@ -153,7 +158,7 @@ if ($acao == 'flertar' && $alvo) {
         alterarAfinidade($jogadores, $meuNome, $alvo, -3, 2, -2);
 
         $evento =
-            "💔 $meuNome tentou flertar com $alvo, mas não havia conexão suficiente.";
+            es3RelatoAoVivo("flertar", $meuNome, $alvo, "festa") . " O interesse não foi correspondido.";
     }
 }
 
@@ -184,7 +189,7 @@ if ($acao == 'provocar' && $alvo) {
     }
 
     $evento =
-        "😈 $meuNome provocou $alvo durante a festa e o clima pesou.";
+        es3RelatoAoVivo("discutir", $meuNome, $alvo, "festa");
 }
 
 /* 💃 DANÇAR */
@@ -200,7 +205,7 @@ if ($acao == 'dancar' && $alvo) {
     alterarRomance($jogadores, $alvo, $meuNome, 3);
 
     $evento =
-        "💃 $meuNome dançou juntinho com $alvo na festa e o clima ficou mais próximo.";
+        es3RelatoAoVivo("dancar", $meuNome, $alvo, "festa");
 }
 
 /* 💕 ELOGIAR */
@@ -214,7 +219,7 @@ if ($acao == 'elogiar' && $alvo) {
     alterarAfinidade($jogadores, $meuNome, $alvo, 4, -2, 4);
     alterarAfinidade($jogadores, $alvo, $meuNome, 3, -1, 3);
 
-    $evento = "💕 $meuNome elogiou $alvo e o romance aumentou.";
+    $evento = es3RelatoAoVivo("flertar", $meuNome, $alvo, "festa");
 }
 
 /* 💬 CONVERSAR SOBRE SENTIMENTOS */
@@ -230,11 +235,12 @@ if ($acao == 'sentimentos' && $alvo) {
         alterarRomance($jogadores, $alvo, $meuNome, 8);
         alterarAfinidade($jogadores, $meuNome, $alvo, 6, -3, 8);
         alterarAfinidade($jogadores, $alvo, $meuNome, 5, -2, 6);
+        $aprofundouRomance = true;
 
-        $evento = "💬 $meuNome e $alvo conversaram sobre sentimentos e ficaram ainda mais próximos.";
+        $evento = es3RelatoAoVivo("festa_aproximar", $meuNome, $alvo, "festa");
     } else {
         alterarRomance($jogadores, $meuNome, $alvo, 2);
-        $evento = "💬 $meuNome tentou conversar sobre sentimentos com $alvo, mas ainda faltava clima.";
+        $evento = es3RelatoAoVivo("festa_aproximar", $meuNome, $alvo, "festa");
     }
 }
 
@@ -251,10 +257,11 @@ if ($acao == 'noite_conversando' && $alvo) {
         alterarRomance($jogadores, $alvo, $meuNome, 10);
         alterarAfinidade($jogadores, $meuNome, $alvo, 5, -2, 7);
         alterarAfinidade($jogadores, $alvo, $meuNome, 5, -2, 7);
+        $aprofundouRomance = true;
 
-        $evento = "🌙 $meuNome e $alvo passaram a noite conversando baixinho e o romance cresceu.";
+        $evento = es3RelatoAoVivo("festa_aproximar", $meuNome, $alvo, "festa");
     } else {
-        $evento = "🌙 $meuNome tentou passar mais tempo com $alvo, mas ainda não tinha intimidade suficiente.";
+        $evento = es3RelatoAoVivo("festa_aproximar", $meuNome, $alvo, "festa");
     }
 }
 
@@ -321,6 +328,7 @@ if ($acao == 'passar_noite_quarto' && $alvo) {
         alterarAfinidade($jogadores, $alvo, $meuNome, 7, -3, 8);
         alterarPopularidadePublica($jogadores, $meuNome, -5, 6, "viveu um momento íntimo de romance no quarto", true);
 
+        $aprofundouRomance = true;
         $evento = "🛏️ $meuNome e $alvo passaram a noite juntos no quarto, conversando e fortalecendo o romance.";
     } else {
         $evento = "🛏️ $meuNome tentou passar a noite junto com $alvo, mas o romance ainda precisa chegar em 60.";
@@ -393,15 +401,7 @@ if ($alvo != '') {
         );
     }
 
-    if (
-        $acao == 'flertar' &&
-        mb_stripos(
-            $evento,
-            'correspondeu',
-            0,
-            'UTF-8'
-        ) !== false
-    ) {
+    if ($acao == 'flertar' && $flertouCorrespondido) {
 
         registrarMemoriaSocialNPC(
             $alvo,
@@ -413,37 +413,7 @@ if ($alvo != '') {
         );
     }
 
-    if (
-        in_array(
-            $acao,
-            [
-                'sentimentos',
-                'noite_conversando',
-                'passar_noite_quarto'
-            ],
-            true
-        ) &&
-        (
-            mb_stripos(
-                $evento,
-                'ainda mais próximos',
-                0,
-                'UTF-8'
-            ) !== false ||
-            mb_stripos(
-                $evento,
-                'romance cresceu',
-                0,
-                'UTF-8'
-            ) !== false ||
-            mb_stripos(
-                $evento,
-                'fortalecendo o romance',
-                0,
-                'UTF-8'
-            ) !== false
-        )
-    ) {
+    if (in_array($acao, ['sentimentos', 'noite_conversando', 'passar_noite_quarto'], true) && $aprofundouRomance) {
 
         registrarMemoriaSocialNPC(
             $alvo,

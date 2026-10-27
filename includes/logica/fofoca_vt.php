@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . "/relatos_ao_vivo.php";
+
 
 /* =========================================================
    💬 FOFOCAS + 🎬 VTs AVANÇADOS
@@ -702,59 +704,14 @@ function resolverVTAvancado(
     );
 
 
-    /* =====================================================
-       📈 VT POSITIVO
-       ===================================================== */
-
-    if ($valor > 0) {
-
-        if (
-            nomeIgual(
-                $nome,
-                $meuNome
-            ) &&
-            in_array(
-                $modelo['tipo'],
-                [
-                    'emocionante',
-                    'protagonista',
-                    'engracado'
-                ]
-            )
-        ) {
-
-            adicionarMoedasPublico(
-                10,
-                "fazer um VT que agradou o público"
-            );
-        }
-
-
-        return
-            $modelo['texto'] .
-            " 📈 Popularidade +" .
-            $valor .
-            ".";
+    /* O resultado da popularidade permanece oculto no Ao Vivo.
+       Os efeitos e o histórico continuam registrados internamente. */
+    if ($valor > 0 && nomeIgual($nome, $meuNome)
+        && in_array($modelo['tipo'], ['emocionante','protagonista','engracado'], true)) {
+        adicionarMoedasPublico(10, "fazer um VT que agradou o público");
     }
+    return es3RelatoVT($nome, (string)$modelo['tipo']);
 
-
-    /* =====================================================
-       📉 VT NEGATIVO
-       ===================================================== */
-
-    if ($valor < 0) {
-
-        return
-            $modelo['texto'] .
-            " 📉 Popularidade " .
-            $valor .
-            ".";
-    }
-
-
-    return
-        $modelo['texto'] .
-        " ➖ O público ficou neutro.";
 }
 
 

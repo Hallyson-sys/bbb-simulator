@@ -22,6 +22,48 @@ function ecCriarFofoca(&$jogadores,$origem,$meuNome){ $s=ecGerarSegredoReal($jog
 function ecTalvezCircularFofocas(&$jogadores,$meuNome,$fase){ $ch='ec_fofoca_'.$fase.'_'.ecRodadaAtual(); if(!empty($_SESSION[$ch]))return; $_SESSION[$ch]=true; if(random_int(1,100)>45)return; $nomes=[]; foreach($jogadores as $j){$n=$j['nome']??'';if($n&&$n!==$meuNome&&empty($j['eliminado']))$nomes[]=$n;} if($nomes) ecCriarFofoca($jogadores,$nomes[array_rand($nomes)],$meuNome); }
 function ecFofocaParaJogador($jogadores,$npc){ ecGarantirMemoria(); $poss=[]; foreach($_SESSION['fofocas_casa'] as $f) if(($f['portador']??'')===$npc)$poss[]=$f; return $poss?$poss[array_rand($poss)]:null; }
 
+/**
+ * Converte memórias internas (terceira pessoa) em depoimento do próprio NPC.
+ * Não expõe a descrição bruta e não revela dados privados desconhecidos.
+ * Observador é quem está falando; alvo é a pessoa com quem fala.
+ */
+function ecFalaDaMemoriaNPC($memoria, $tom = 'positivo') {
+    $tipo = (string)($memoria['tipo'] ?? '');
+    $frases = [
+        'me_colocou_vip' => 'Eu lembro que você me colocou no VIP. Foi um gesto que contou muito pra mim.',
+        'me_imunizou' => 'Eu lembro que você me deu a imunidade quando eu precisava.',
+        'me_salvou' => 'Você me ajudou quando eu estava numa situação difícil. Não esqueci.',
+        'me_defendeu' => 'Eu lembro que você me defendeu quando o clima estava pesado.',
+        'me_apoiou' => 'Eu lembro que você ficou do meu lado num momento importante.',
+        'me_aproximou' => 'Nossa última conversa me fez sentir mais perto de você.',
+        'fechou_pacto_comigo' => 'Eu lembro do combinado que fizemos. Pra mim, palavra tem peso.',
+        'me_contou_segredo' => 'Você confiou em mim pra contar uma coisa importante. Eu não esqueci.',
+        'me_pediu_desculpas' => 'Lembro que você veio conversar e pediu desculpas. Isso fez diferença.',
+        'flertou_comigo' => 'Não esqueci o jeito que você se aproximou de mim naquela vez.',
+        'me_deu_emoji_positivo' => 'Eu lembro do emoji positivo que você me deu no Queridômetro.',
+        'me_elogiou_discordia' => 'Quando você falou bem de mim na Discórdia, aquilo me marcou.',
+        'cumpriu_tregua' => 'Você cumpriu o que combinamos, e eu valorizo isso.',
+        'me_colocou_monstro' => 'Eu não esqueci quando você me colocou no Monstro.',
+        'me_indicou' => 'Você me indicou ao Paredão. Não foi uma coisa simples de esquecer.',
+        'me_colocou_paredao' => 'Você me colocou em risco de ir ao Paredão. Aquilo pesou.',
+        'me_puxou_contragolpe' => 'Eu lembro de você ter me puxado no contragolpe.',
+        'me_atacou_discordia' => 'Você me atacou naquele Jogo da Discórdia. Aquilo me marcou.',
+        'me_deu_emoji_negativo' => 'Não esqueci o emoji negativo que você me deu no Queridômetro.',
+        'votou_em_mim' => 'Eu soube que você votou em mim. Depois disso, fiquei com um pé atrás.',
+        'brigou_comigo' => 'Aquela discussão entre nós ainda não saiu da minha cabeça.',
+        'espalhou_fofoca' => 'Eu descobri os comentários que você andou fazendo sobre mim.',
+        'me_confrontou' => 'Eu lembro de quando você veio me confrontar. Foi um climão.',
+        'me_desrespeitou' => 'O jeito como você falou comigo naquela ocasião me incomodou muito.',
+        'me_expos' => 'Eu não esqueci daquela vez que você me expôs na frente dos outros.',
+        'rompeu_comigo' => 'Eu lembro de quando você virou as costas pra nossa aliança.',
+        'quebrou_tregua' => 'Eu achei que a gente tinha uma trégua, mas você não cumpriu.',
+    ];
+    if (isset($frases[$tipo])) return $frases[$tipo];
+    return $tom === 'negativo'
+        ? 'Eu não esqueci o que aconteceu entre a gente. Ainda preciso digerir isso.'
+        : 'O que você fez por mim ficou marcado. Eu valorizo esse tipo de atitude.';
+}
+
 function ecEventoMemoriaSocial($jogadores,$npc,$meuNome,$fase){
   if(!function_exists('impactoNegativoMemoriaNPC')||!function_exists('impactoPositivoMemoriaNPC')) return null;
   $neg=(float)impactoNegativoMemoriaNPC($npc,$meuNome);
@@ -31,9 +73,8 @@ function ecEventoMemoriaSocial($jogadores,$npc,$meuNome,$fase){
 
   if($neg>$pos){
     $ult=function_exists('ultimaMemoriaMarcanteNPC')?ultimaMemoriaMarcanteNPC($npc,$meuNome,'negativa'):null;
-    $lembranca=trim((string)($ult['descricao']??''));
-    $texto="$npc te chama para conversar e deixa claro que uma situação antiga ainda pesa entre vocês.";
-    if($lembranca!=='') $texto.=" “Eu não esqueci disso: {$lembranca}”";
+    $fala=ecFalaDaMemoriaNPC($ult ?? [], 'negativo');
+    $texto="$npc te chama de lado, visivelmente incomodado, e fala sobre algo que ainda pesa entre vocês. “{$fala}”";
     return ['memoria_negativa','🔥','Acerto de contas',$fase==='festa'?'FESTA':'VARANDA',$texto,[
       ['🙏 Reconhecer que a situação pesou',10,6,0,'memoria_pedido_desculpas'],
       ['🎮 Dizer que aquilo fazia parte do jogo',1,0,0,'memoria_assumida'],
@@ -42,9 +83,8 @@ function ecEventoMemoriaSocial($jogadores,$npc,$meuNome,$fase){
   }
 
   $ult=function_exists('ultimaMemoriaMarcanteNPC')?ultimaMemoriaMarcanteNPC($npc,$meuNome,'positiva'):null;
-  $lembranca=trim((string)($ult['descricao']??''));
-  $texto="$npc relembra uma atitude sua que marcou a relação de vocês e demonstra que ainda leva isso em consideração.";
-  if($lembranca!=='') $texto.=" “Eu lembro disso: {$lembranca}”";
+  $fala=ecFalaDaMemoriaNPC($ult ?? [], 'positivo');
+  $texto="$npc se aproxima com um sorriso e traz à tona uma lembrança importante para a relação de vocês. “{$fala}”";
   return ['memoria_positiva','🤝','Uma dívida de jogo',$fase==='festa'?'FESTA':'ACADEMIA',$texto,[
     ['🤝 Reafirmar que vocês se protegem',9,6,0,'memoria_pacto'],
     ['🎯 Pedir reciprocidade quando precisar',5,3,0,'memoria_pacto'],

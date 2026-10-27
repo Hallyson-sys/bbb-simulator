@@ -1,0 +1,11 @@
+BBB SIMULATOR — CORREÇÕES CONVIVÊNCIA 2.1
+
+1. Convite para a aliança: botão mobile não exige mais alvo único; valida pelo menos 1 checkbox. Resultado do convite agora aparece em Interações e no Ao Vivo; situação inválida apresenta aviso sem consumir ação.
+2. Prova do Anjo: importa utilitarios.php antes de utilizar nomeIgual() na página independente.
+3. Eventos de memória: depoimentos do NPC agora são em primeira pessoa, mapeados por tipo de lembrança e sem repetir descrições internas brutas.
+4. Ao Vivo: gerador variado de relatos para ações de NPCs entre si, ações com o jogador, Festa e Interações. Temas, locais e cenas usam apenas acontecimentos observáveis.
+5. Efeitos românticos não dependem mais de palavras do texto gerado; a lógica distingue explicitamente flerte correspondido e avanço na intimidade.
+6. Versão do JavaScript da página foi atualizada para minimizar uso de cache antigo.
+7. Relatos automáticos de VTs agora têm mais variações e não expõem porcentagens ou valores internos de popularidade no Ao Vivo.
+
+Dinâmicas Surpresa e Alianças 3.0 serão uma evolução posterior, depois da validação desta base em jogo real.

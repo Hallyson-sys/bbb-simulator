@@ -88,7 +88,7 @@ function executarAcao() {
     const alvo2 = document.getElementById("alvo2") ? document.getElementById("alvo2").value : "";
     const aliancaEscolhida = document.getElementById("alianca_escolhida") ? document.getElementById("alianca_escolhida").value : "";
 
-    const acoesSemAlvo = ["aproximar_lider", "sair_alianca", "alianca", "entrar_alianca", "vt"];
+    const acoesSemAlvo = ["aproximar_lider", "sair_alianca", "alianca", "recrutar_alianca", "entrar_alianca", "vt"];
 
     if (!acoesSemAlvo.includes(acao) && !alvo) {
         alert("Escolha um participante primeiro.");
@@ -100,11 +100,11 @@ function executarAcao() {
         return;
     }
 
-    if (acao === "alianca") {
+    if (acao === "alianca" || acao === "recrutar_alianca") {
         const convidados = document.querySelectorAll('input[name="convidados_alianca[]"]:checked');
 
         if (convidados.length < 1) {
-            alert("Escolha pelo menos 1 participante para convidar.");
+            alert("Marque ao menos um participante para convidar.");
             return;
         }
     }

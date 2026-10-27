@@ -13,6 +13,19 @@
 <?php $ecBloqueia = !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado']); ?>
 <?php if (!$ecBloqueia): ?>
 
+    <?php if (!empty($_SESSION['es2_resultado_interacao'])): ?>
+        <div class="box" role="status" style="border:1px solid rgba(0,210,165,.6);">
+            <h3>📩 Resultado dos convites</h3>
+            <p><?php echo strip_tags((string)$_SESSION['es2_resultado_interacao']); ?></p>
+        </div>
+        <?php unset($_SESSION['es2_resultado_interacao']); ?>
+    <?php endif; ?>
+    <?php if (!empty($_SESSION['es2_erro_interacao'])): ?>
+        <div class="box" role="alert" style="border:1px solid rgba(255,180,60,.75);">
+            <strong>⚠️ <?php echo htmlspecialchars((string)$_SESSION['es2_erro_interacao'], ENT_QUOTES, 'UTF-8'); ?></strong>
+        </div>
+        <?php unset($_SESSION['es2_erro_interacao']); ?>
+    <?php endif; ?>
     <div class="box">
         <h3>💬 Interações — <?php echo $_SESSION['acoes_restantes']; ?> restantes</h3>
         <p>Você pode fazer suas ações ou continuar a semana quando quiser.</p>

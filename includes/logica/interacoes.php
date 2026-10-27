@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/relatos_ao_vivo.php';
+
 
 /* =========================================================
    💬 LÓGICA DE INTERAÇÕES
@@ -323,12 +325,12 @@ function gerarAcoesNPC(
 
 
                     $eventos[] =
-                        "💬 $nomeNPC conversou com $meuNome. Sua afinidade com $nomeNPC subiu.";
+                        es3RelatoAoVivo("conversar", $nomeNPC, $meuNome);
 
                 } else {
 
                     $eventos[] =
-                        "💬 $nomeNPC conversou com $nomeAlvo.";
+                        es3RelatoAoVivo("conversar", $nomeNPC, $nomeAlvo);
                 }
             }
 
@@ -370,7 +372,7 @@ function gerarAcoesNPC(
 
 
                         $eventos[] =
-                            "🐍 $nomeNPC espalhou comentários contra $meuNome. A rivalidade aumentou.";
+                            es3RelatoAoVivo("fofoca", $nomeNPC, $meuNome);
 
                     } else {
 
@@ -383,7 +385,7 @@ function gerarAcoesNPC(
 
 
                         $eventos[] =
-                            "🐍 $nomeNPC espalhou comentários contra $nomeAlvo.";
+                            es3RelatoAoVivo("fofoca", $nomeNPC, $nomeAlvo);
                     }
 
                 } else {
@@ -417,12 +419,12 @@ function gerarAcoesNPC(
 
 
                         $eventos[] =
-                            "🤝 $nomeNPC tentou se aproximar de $meuNome. Sua afinidade com $nomeNPC subiu.";
+                            es3RelatoAoVivo("reconciliar", $nomeNPC, $meuNome);
 
                     } else {
 
                         $eventos[] =
-                            "🤝 $nomeNPC tentou se aproximar de $nomeAlvo.";
+                            es3RelatoAoVivo("reconciliar", $nomeNPC, $nomeAlvo);
                     }
                 }
             }
@@ -463,7 +465,7 @@ function gerarAcoesNPC(
 
 
                     $eventos[] =
-                        "🔥 $nomeNPC teve um atrito com $meuNome. Sua afinidade com $nomeNPC caiu.";
+                        es3RelatoAoVivo("discutir", $nomeNPC, $meuNome);
 
                 } else {
 
@@ -476,7 +478,7 @@ function gerarAcoesNPC(
 
 
                     $eventos[] =
-                        "🔥 $nomeNPC teve um atrito com $nomeAlvo.";
+                        es3RelatoAoVivo("discutir", $nomeNPC, $nomeAlvo);
                 }
             }
 
@@ -516,7 +518,7 @@ function gerarAcoesNPC(
 
 
                     $eventos[] =
-                        "👀 $nomeNPC começou uma possível aliança com $meuNome. Sua afinidade com $nomeNPC subiu bastante.";
+                        es3RelatoAoVivo("alianca", $nomeNPC, $meuNome);
 
                 } else {
 
@@ -529,7 +531,7 @@ function gerarAcoesNPC(
 
 
                     $eventos[] =
-                        "👀 $nomeNPC começou uma possível aliança com $nomeAlvo.";
+                        es3RelatoAoVivo("alianca", $nomeNPC, $nomeAlvo);
                 }
 
 

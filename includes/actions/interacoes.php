@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../logica/relatos_ao_vivo.php';
+
 
 /** @var string $fase */
 /** @var array $jogadores */
@@ -134,8 +136,7 @@ if (
                 true
             );
 
-            $evento =
-                "🔥 $meuNome criou intriga entre $alvo e $alvo2.";
+            $evento = es3RelatoAoVivo('intriga', $meuNome, $alvo);
 
         } else {
 
@@ -166,8 +167,7 @@ if (
                 true
             );
 
-            $evento =
-                "🔥 $meuNome tentou criar intriga, mas $alvo e $alvo2 desconfiaram.";
+            $evento = es3RelatoAoVivo('intriga_falhou', $meuNome, $alvo);
         }
     }
 
@@ -239,9 +239,13 @@ if (
     /* 📩 RECRUTAR PARA A ALIANÇA ATUAL */
     if ($acao === 'recrutar_alianca') {
         $nomes = $_POST['convidados_alianca'] ?? [];
-        if (obterAliancaJogador($jogadores,$meuNome) && is_array($nomes) && count($nomes)>0) {
-            $evento = es2ConvidarMembros($jogadores,$meuNome,$nomes);
-            $_SESSION['evento_extra'][]='🤝 '.$meuNome.' tentou reforçar a própria aliança durante as interações.';
+        if (!obterAliancaJogador($jogadores, $meuNome)) {
+            $_SESSION['es2_erro_interacao'] = 'Você precisa estar em uma aliança para convidar participantes.';
+        } elseif (!is_array($nomes) || count($nomes) === 0) {
+            $_SESSION['es2_erro_interacao'] = 'Marque ao menos um participante para convidar.';
+        } else {
+            $evento = es2ConvidarMembros($jogadores, $meuNome, $nomes);
+            $_SESSION['es2_resultado_interacao'] = $evento;
         }
     }
 
@@ -287,8 +291,7 @@ if (
                 6
             );
 
-            $evento =
-                "👑 $meuNome tentou se aproximar do líder $lider e ganhou afinidade.";
+            $evento = es3RelatoAoVivo('lider', $meuNome, $lider);
 
         } else {
 
@@ -317,8 +320,7 @@ if (
             }
         }
 
-        $evento =
-            "🍳 $meuNome cozinhou para a casa e agradou alguns participantes.";
+        $evento = es3RelatoAoVivo('cozinhar', $meuNome);
     }
 
 
@@ -337,8 +339,7 @@ if (
             "brigou com alguém querido pelo público"
         );
 
-        $evento =
-            "😡 $meuNome discutiu com $alvo e o clima pesou.";
+        $evento = es3RelatoAoVivo('discutir', $meuNome, $alvo);
 
         if (function_exists('registrarHistoricoTemporada')) {
             registrarHistoricoTemporada(
@@ -377,8 +378,7 @@ if (
             true
         );
 
-        $evento =
-            "😶 $meuNome ficou na sua e evitou conflitos.";
+        $evento = es3RelatoAoVivo('observar', $meuNome);
     }
 
 
