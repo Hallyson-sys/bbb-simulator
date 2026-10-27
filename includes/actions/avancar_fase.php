@@ -414,8 +414,7 @@ if (isset($_POST['avancar_fase'])) {
     }
 
     if ($fase == 'festa') {
-        if (function_exists('dsAplicarImunidade')) dsAplicarImunidade($jogadores);
-        if (function_exists('dsAplicarCarta')) dsAplicarCarta($jogadores);
+        if (function_exists('dsConcluirFesta')) dsConcluirFesta($jogadores);
         $_SESSION['jogadores']=$jogadores;
 
         if (

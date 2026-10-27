@@ -45,6 +45,8 @@ $nomeFaseMobile = $rotulosFaseMobile[$fase] ?? ('🎮 ' . ucwords(str_replace('_
             <div class="ds3-selo">● REC • COMUNICADO DA PRODUÇÃO • SEMANA <?= (int)$rodada ?></div>
             <h3><?= htmlspecialchars($aviso['titulo'], ENT_QUOTES, 'UTF-8') ?></h3>
             <p><?= htmlspecialchars($aviso['descricao'], ENT_QUOTES, 'UTF-8') ?></p>
+            <?php $estadoDin = function_exists('dsResumoPublico') ? dsResumoPublico() : ''; ?>
+            <?php if($estadoDin !== ''): ?><p class="ds3-estado" role="status"><?= htmlspecialchars($estadoDin,ENT_QUOTES,'UTF-8') ?></p><?php endif; ?>
         </section>
     <?php endif; ?>
 

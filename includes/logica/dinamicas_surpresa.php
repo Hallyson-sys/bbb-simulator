@@ -24,6 +24,79 @@ function dsPreparar(array $jogadores): void {
     if(function_exists('registrarHistoricoTemporada')) registrarHistoricoTemporada('dinamica_surpresa',$dados['titulo'],$dados['descricao'],[],'🚨',null,'ds3|'.$rodada);
 }
 
+
+/** Registro público único, usado por Ao Vivo, painel e Histórico. Não publica votos secretos. */
+function dsRegistrarEfeito(string $chave, string $titulo, string $mensagem, array $participantes=[]): bool {
+    $rodada=(int)($_SESSION['rodada']??1);
+    if (!isset($_SESSION['ds3']) || !is_array($_SESSION['ds3']) || (int)($_SESSION['ds3']['rodada']??0)!==$rodada) return false;
+    if (!isset($_SESSION['ds3']['efeitos']) || !is_array($_SESSION['ds3']['efeitos'])) $_SESSION['ds3']['efeitos']=[];
+    if (isset($_SESSION['ds3']['efeitos'][$chave])) return false;
+    $_SESSION['ds3']['efeitos'][$chave]=['titulo'=>$titulo,'mensagem'=>$mensagem,'rodada'=>$rodada];
+    if (!isset($_SESSION['evento_extra']) || !is_array($_SESSION['evento_extra'])) $_SESSION['evento_extra']=[];
+    $_SESSION['evento_extra'][]=$mensagem;
+    if (function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada('dinamica_efeito',$titulo,$mensagem,$participantes,'🎲',$rodada,'ds3_efeito|'.$chave.'|'.$rodada);
+    }
+    return true;
+}
+
+/** Progresso da dinâmica mostrado sem informações privadas dos NPCs. */
+function dsResumoPublico(): string {
+    $d=dsAtual(); $tipo=(string)($d['tipo']??''); $rodada=(int)($_SESSION['rodada']??1);
+    $efeitos=(array)($d['efeitos']??[]);
+    if($tipo==='imunidade_surpresa') {
+        $im=$_SESSION['ds3_imune']??[];
+        return (int)($im['rodada']??0)===$rodada && !empty($im['nome'])
+            ? '✅ Efeito realizado: '.(string)$im['nome'].' recebeu imunidade extra e não pode ser indicado nesta semana.'
+            : '⏳ Pendente: a proteção será concedida ao terminar a Festa.';
+    }
+    if($tipo==='carta_misteriosa') {
+        $c=$_SESSION['ds3_carta']??[];
+        return (int)($c['rodada']??0)===$rodada && !empty($c['nome'])
+            ? '✅ Carta entregue a '.(string)$c['nome'].'. O voto terá peso dois quando for computado.'
+            : '⏳ Pendente: a carta será entregue depois da Festa.';
+    }
+    if($tipo==='votacao_aberta') return !empty($_SESSION['ds3_votos_publicos']) && (int)($_SESSION['ds3_votos_publicos']['rodada']??0)===$rodada
+        ? '✅ Votos da casa declarados: confira a tabela no Ao Vivo.'
+        : '⏳ Pendente: os votos serão públicos após a votação, inclusive se houver desempate.';
+    if($tipo==='voto_em_dobro') return isset($efeitos['apuracao'])
+        ? '✅ Votos da casa contabilizados com peso dois. Consulte a apuração no Ao Vivo.'
+        : '⏳ Pendente: o peso dobrado será aplicado na votação da casa.';
+    if($tipo==='paredao_especial') return isset($efeitos['paredao'])
+        ? '✅ Formação especial realizada. Consulte os nomes do Paredão no Ao Vivo.'
+        : '⏳ Pendente: formação especial prevista para até quatro participantes elegíveis.';
+    if($tipo==='contragolpe_especial') return isset($efeitos['contragolpe'])
+        ? '✅ Contragolpe aplicado: confira quem foi puxado no Ao Vivo.'
+        : '⏳ Pendente: o indicado do Líder poderá puxar alguém após a formação.';
+    return '';
+}
+
+/** Publicar efeitos da apuração sem revelar votos individuais em semanas sigilosas. */
+function dsRegistrarApuracao(array $detalhes, array $votos): void {
+    $tipo=(string)(dsAtual()['tipo']??'');
+    if(!in_array($tipo,['voto_em_dobro','carta_misteriosa'],true)) return;
+    $totalVotos=count($detalhes);
+    $totalPeso=array_sum(array_map(fn($d)=>(int)($d['peso']??0),$detalhes));
+    if($tipo==='voto_em_dobro') {
+        dsRegistrarEfeito('apuracao','Votação Turbinada',"⚡ VOTAÇÃO TURBINADA — $totalVotos voto(s) válido(s) da casa somaram $totalPeso voto(s) ponderado(s). O peso dois foi usado na apuração do Paredão.");
+    } else {
+        $c=$_SESSION['ds3_carta']??[]; $nome=(string)($c['nome']??'');
+        if($nome==='') return;
+        $pesoCarta=null;
+        foreach($detalhes as $d) if(function_exists('nomeIgual') && nomeIgual($nome,(string)($d['votante']??''))) $pesoCarta=(int)($d['peso']??1);
+        $mensagem=$pesoCarta!==null ? "✉️ CARTA MISTERIOSA — O voto de $nome contou com peso $pesoCarta na apuração. Resultado: $totalPeso voto(s) ponderado(s), de $totalVotos voto(s) válido(s)." : "✉️ CARTA MISTERIOSA — $nome recebeu a carta, mas não teve voto válido computado nessa formação.";
+        dsRegistrarEfeito('apuracao','Carta Misteriosa: apuração',$mensagem,[$nome]);
+    }
+}
+
+/** Registrar o paredão efetivamente formado (antes de eventual Bate-Volta). */
+function dsRegistrarParedao(array $paredao): void {
+    if(!dsTipo('paredao_especial')) return;
+    $nomes=array_values(array_filter(array_map('strval',$paredao)));
+    $n=count($nomes);
+    dsRegistrarEfeito('paredao','Paredão Especial',"💥 PAREDÃO ESPECIAL — A formação colocou $n participante(s) na berlinda: ".implode(' × ',$nomes).'. A Prova Bate-Volta poderá alterar a composição.', $nomes);
+}
+
 /** Reações públicas simples, sensíveis à personalidade; nunca usa segredos internos. */
 function dsReacoesCasa(array $jogadores,string $tipo): array {
     $participantes=[];
@@ -80,8 +153,15 @@ function dsAplicarImunidade(array &$jogadores): void {
     $n=$candidatos[array_rand($candidatos)];
     $_SESSION['ds3']['imunidade_aplicada']=true;
     $_SESSION['ds3_imune']=['rodada'=>(int)($_SESSION['rodada']??1),'nome'=>$n];
-    $_SESSION['evento_extra'][]="🛡️ IMUNIDADE SURPRESA — $n recebeu a proteção da produção e está imune ao Paredão desta semana.";
-    if (function_exists('registrarHistoricoTemporada')) registrarHistoricoTemporada('imunidade','Imunidade surpresa',"$n recebeu uma imunidade da produção.",[$n],'🛡️',null,'ds3_imune|'.($_SESSION['rodada']??1));
+    // Atualizar também o status exibido no painel de participantes.
+    foreach($jogadores as &$participante) {
+        if(function_exists('nomeIgual') && nomeIgual((string)($participante['nome']??''),$n)) {
+            if(!isset($participante['status']) || !is_array($participante['status'])) $participante['status']=[];
+            $participante['status']['imune']=true;
+        }
+    }
+    unset($participante);
+    dsRegistrarEfeito('imunidade','Imunidade Surpresa',"🛡️ IMUNIDADE SURPRESA — A produção concedeu imunidade a $n. $n não pode ser indicado ao Paredão desta semana.",[$n]);
 }
 function dsImune(string $nome): bool {
     $v=$_SESSION['ds3_imune']??[];
@@ -99,8 +179,34 @@ function dsAplicarCarta(array $jogadores): void {
     $n=$candidatos[array_rand($candidatos)];
     $_SESSION['ds3']['carta_aplicada']=true;
     $_SESSION['ds3_carta']=['rodada'=>(int)($_SESSION['rodada']??1),'nome'=>$n];
-    $_SESSION['evento_extra'][]="✉️ $n abriu a Carta Misteriosa: o voto de $n terá peso dois na votação da casa.";
+    dsRegistrarEfeito('carta','Carta Misteriosa',"✉️ CARTA MISTERIOSA — $n recebeu da produção um voto de peso dois para a votação desta semana.",[$n]);
 }
+/** Chamada por TODOS os caminhos que concluem a Festa. Efeitos idempotentes. */
+function dsConcluirFesta(array &$jogadores): void {
+    dsAplicarImunidade($jogadores);
+    dsAplicarCarta($jogadores);
+    $_SESSION['jogadores']=$jogadores;
+}
+
+/** Recuperação de saves desta mesma semana com benefício já recebido, sem sortear de novo. */
+function dsSincronizarBeneficios(): void {
+    $d=dsAtual();$rodada=(int)($_SESSION['rodada']??1);
+    if(($d['tipo']??'')==='imunidade_surpresa') {
+        $im=$_SESSION['ds3_imune']??[];
+        if((int)($im['rodada']??0)===$rodada && !empty($im['nome'])) {
+            $nome=(string)$im['nome'];
+            dsRegistrarEfeito('imunidade','Imunidade Surpresa',"🛡️ IMUNIDADE SURPRESA — A produção concedeu imunidade a $nome. $nome não pode ser indicado ao Paredão desta semana.",[$nome]);
+        }
+    }
+    if(($d['tipo']??'')==='carta_misteriosa') {
+        $c=$_SESSION['ds3_carta']??[];
+        if((int)($c['rodada']??0)===$rodada && !empty($c['nome'])) {
+            $nome=(string)$c['nome'];
+            dsRegistrarEfeito('carta','Carta Misteriosa',"✉️ CARTA MISTERIOSA — $nome recebeu da produção um voto de peso dois para a votação desta semana.",[$nome]);
+        }
+    }
+}
+
 function dsPesoVoto(int $original, string $votante=''): int {
     if(dsTipo('voto_em_dobro')) return max(2,$original);
     $c=$_SESSION['ds3_carta']??[];
@@ -109,18 +215,34 @@ function dsPesoVoto(int $original, string $votante=''): int {
     return $original;
 }
 function dsRegistrarVotosPublicos(array &$jogadores, array $detalhes): void {
-    if (!dsTipo('votacao_aberta') || !empty($_SESSION['ds3_votos_revelados_rodada']) && $_SESSION['ds3_votos_revelados_rodada']==($_SESSION['rodada']??1)) return;
-    $_SESSION['ds3_votos_revelados_rodada']=(int)($_SESSION['rodada']??1);
-    $falas=[];
+    if (!dsTipo('votacao_aberta')) return;
+    $rodada=(int)($_SESSION['rodada']??1);
+    if((int)($_SESSION['ds3_votos_revelados_rodada']??0)===$rodada) return;
+    $linhas=[];$falas=[];
     foreach($detalhes as $d) {
         $v=(string)($d['votante']??'');$alvo=(string)($d['voto']??'');
         if ($v===''||$alvo==='') continue;
-        $falas[]="$v votou em $alvo";
-        if(function_exists('aplicarConsequenciaSocial')) aplicarConsequenciaSocial($jogadores,$v,$alvo,'voto_revelado','ds3_aberto|'.($_SESSION['rodada']??1).'|'.$v.'|'.$alvo,"$v teve seu voto declarado diante da casa em $alvo.");
+        $peso=max(1,(int)($d['peso']??1));
+        $linhas[]=['votante'=>$v,'voto'=>$alvo,'peso'=>$peso];
+        $falas[]="$v votou em $alvo".($peso>1 ? " (peso $peso)" : '');
     }
-    if ($falas) {
-        $_SESSION['evento_extra'][]='🗳️ VOTAÇÃO ABERTA — '.implode('; ',$falas).'.';
-        $_SESSION['ds3_votos_publicos']=['rodada'=>(int)($_SESSION['rodada']??1),'votos'=>$falas];
+    $_SESSION['ds3_votos_revelados_rodada']=$rodada;
+    $_SESSION['ds3_votos_publicos']=['rodada'=>$rodada,'votos'=>$falas,'detalhes'=>$linhas];
+    if(!$linhas) return;
+    // O registro fica antes da etapa de desempate. Assim o Líder já vê a votação aberta.
+    dsRegistrarEfeito('votacao_aberta','Votação Aberta',
+        '🗳️ VOTAÇÃO ABERTA — Todos os votos válidos foram declarados à casa. Veja a tabela completa de quem votou em quem no Ao Vivo.',
+        array_values(array_unique(array_merge(array_column($linhas,'votante'),array_column($linhas,'voto')))));
+    if(function_exists('registrarHistoricoTemporada')) {
+        registrarHistoricoTemporada('votacao_aberta','Votos públicos da casa',
+            'Votação Aberta — '.implode('; ',$falas).'.',
+            array_values(array_unique(array_merge(array_column($linhas,'votante'),array_column($linhas,'voto')))),
+            '🗳️',$rodada,'ds3_votos_detalhados|'.$rodada, ['votos'=>$linhas]);
+    }
+    foreach($linhas as $d) {
+        if(function_exists('aplicarConsequenciaSocial')) aplicarConsequenciaSocial($jogadores,$d['votante'],$d['voto'],'voto_revelado',
+            'ds3_aberto|'.$rodada.'|'.$d['votante'].'|'.$d['voto'],
+            $d['votante'].' declarou seu voto em '.$d['voto'].' diante da casa.');
     }
 }
 
@@ -150,13 +272,12 @@ function dsVerificarContragolpe(array &$jogadores): bool {
 }
 function dsAplicarContragolpe(array &$jogadores,string $origem,string $alvo): bool {
     if(($_SESSION['ds3_contra_resolvido']??0)===(int)($_SESSION['rodada']??1)||!dsTipo('contragolpe_especial')||!in_array($alvo,dsCandidatosContragolpe($jogadores),true))return false;
-    $_SESSION['ds3_contra_resolvido']=(int)($_SESSION['rodada']??1);
     $paredao=$_SESSION['paredao']??[];
     if(function_exists('adicionarAoParedaoSeValido'))adicionarAoParedaoSeValido($paredao,$jogadores,$alvo,'Contragolpe Especial');
     if(!in_array($alvo,$paredao,true))return false;
+    $_SESSION['ds3_contra_resolvido']=(int)($_SESSION['rodada']??1);
     $_SESSION['paredao']=array_values(array_unique($paredao));
-    $_SESSION['evento_extra'][]="🔥 Contragolpe Especial: $origem puxou $alvo para o Paredão.";
-    if(function_exists('registrarHistoricoTemporada')) registrarHistoricoTemporada('contragolpe_especial','Contragolpe Especial',"$origem puxou $alvo para o Paredão.",[$origem,$alvo],'🔥',null,'ds3_contra|'.($_SESSION['rodada']??1));
+    dsRegistrarEfeito('contragolpe','Contragolpe Especial',"🔥 CONTRAGOLPE ESPECIAL — $origem puxou $alvo para o Paredão.",[$origem,$alvo]);
     if(function_exists('aplicarConsequenciaSocial'))aplicarConsequenciaSocial($jogadores,$origem,$alvo,'indicacao_paredao','ds3_contra|'.($_SESSION['rodada']??1).'|'.$origem.'|'.$alvo,"$origem puxou $alvo para o Paredão no Contragolpe Especial.");
     return true;
 }

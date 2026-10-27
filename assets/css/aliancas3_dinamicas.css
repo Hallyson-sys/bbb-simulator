@@ -14,3 +14,13 @@
 .a3-alarme{color:#ffe49c!important}
 .a3-resultado p{margin-bottom:0}
 @media(max-width:768px){.ds3-aviso,.a3-reuniao,.a3-resultado{padding:15px 14px;border-radius:16px}.ds3-aviso h3{font-size:1.15rem}}
+
+/* Dinâmicas Surpresa 1.2: status e tabela pública dentro do Ao Vivo */
+.ds3-aviso .ds3-estado {margin-top:12px;padding:12px 14px;border:1px solid rgba(52,211,153,.28);border-radius:12px;background:rgba(28,70,67,.25);font-size:.92rem;line-height:1.5;color:#d7fff2}
+.ds3-tabela-votos{border:1px solid rgba(61,205,245,.32);background:rgba(10,16,38,.8);border-radius:14px;padding:12px;margin:12px 0;color:#effbff;font-size:.9rem}
+.ds3-tabela-votos strong{display:block;margin-bottom:10px;color:#b9f1ff;line-height:1.4}
+.ds3-tabela-overflow{overflow-x:auto;max-width:100%}
+.ds3-tabela-votos table{width:100%;border-collapse:collapse;font-size:inherit;table-layout:auto}
+.ds3-tabela-votos th,.ds3-tabela-votos td{padding:9px 7px;text-align:left;border-bottom:1px solid rgba(140,163,209,.17);overflow-wrap:normal;word-break:normal}
+.ds3-tabela-votos th{color:#77d9f3;font-size:.82em}
+.ds3-tabela-votos tr:last-child td{border-bottom:0}

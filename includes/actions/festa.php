@@ -69,6 +69,7 @@ if ($fase === 'festa' && isset($_POST['es2_festa_acao'])) {
                 foreach(atualizarAliancasAutomaticas($jogadores,$meuNome) as $ev)$_SESSION['evento_extra'][]=$ev;
                 $_SESSION['npc_festa_feita']=true;$_SESSION['jogadores']=$jogadores;
             }
+            if(function_exists('dsConcluirFesta')) dsConcluirFesta($jogadores);
             $_SESSION['fase_semana']=!empty($_SESSION['anjo_autoimune'])?'paredao':'imunizacao_anjo';
             $_SESSION['acoes_festa']=3;
         }
@@ -470,6 +471,8 @@ if ($_SESSION['acoes_festa'] <= 0) {
         $_SESSION['npc_festa_feita'] = true;
         $_SESSION['jogadores'] = $jogadores;
     }
+
+    if(function_exists('dsConcluirFesta')) dsConcluirFesta($jogadores);
 
     if (!empty($_SESSION['anjo_autoimune'])) {
         $_SESSION['fase_semana'] = 'paredao';

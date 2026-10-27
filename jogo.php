@@ -513,6 +513,12 @@ sincronizarFasesFinais(
 
 /* 🎲 Produção e grupos: um sorteio e uma avaliação por rodada, sem reexecutar no refresh. */
 dsPreparar($jogadores);
+if(function_exists('dsSincronizarBeneficios')) dsSincronizarBeneficios();
+// Compatibilidade: saves criados na tela de desempate antes da correção da Votação Aberta.
+if(function_exists('dsTipo') && dsTipo('votacao_aberta') && !empty($_SESSION['pd_pendente']['detalhes'])
+    && (int)($_SESSION['pd_pendente']['rodada']??0)===(int)($_SESSION['rodada']??1)) {
+    dsRegistrarVotosPublicos($jogadores,(array)$_SESSION['pd_pendente']['detalhes']);
+}
 a3Preparar($jogadores, $meuNome);
 $_SESSION['jogadores']=$jogadores;
 
@@ -674,7 +680,7 @@ atualizarFeedPublicoInteligente(
 
 
 
-<link rel="stylesheet" href="assets/css/aliancas3_dinamicas.css?v=1">
+<link rel="stylesheet" href="assets/css/aliancas3_dinamicas.css?v=2">
 </head>
 
 <body>

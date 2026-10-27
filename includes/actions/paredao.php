@@ -1517,6 +1517,12 @@ if (
 
 
 
+    // Apuração persistida antes do eventual desempate do Líder.
+    // Em Votação Aberta os votos já são conhecidos pela casa neste momento.
+    if(function_exists('dsRegistrarVotosPublicos')) dsRegistrarVotosPublicos($jogadores,$votosDetalhados);
+    if(function_exists('dsRegistrarApuracao')) dsRegistrarApuracao($votosDetalhados,$votos);
+    $_SESSION['jogadores']=$jogadores;
+
     // Tamanho do paredão é sorteado uma só vez, não muda com reload ou desempate.
     $limiteParaDesempate=(int)($_SESSION['pd_limite_paredao']??0);
     if($limiteParaDesempate<1){
@@ -1568,7 +1574,6 @@ if (
     }
     unset($_SESSION['pd_pendente'],$_SESSION['pd_escolhido']);
 
-    if (function_exists('dsRegistrarVotosPublicos')) dsRegistrarVotosPublicos($jogadores, $votosDetalhados);
     if (function_exists('a3RegistrarVotosPrivados')) a3RegistrarVotosPrivados($jogadores, $votosDetalhados);
 
     /* Negociações da festa são verificadas em privado; sem spoilers no Ao Vivo. */
@@ -1961,6 +1966,8 @@ if (
 
 
 
+
+    if(function_exists('dsRegistrarParedao')) dsRegistrarParedao($_SESSION['paredao'] ?? []);
 
     $_SESSION['paredao_formado'] =
 

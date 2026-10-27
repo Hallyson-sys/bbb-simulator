@@ -1,0 +1,25 @@
+BBB SIMULATOR — DINÂMICAS SURPRESA V1.2
+========================================
+Base: ZIP Modo DEV 2.0 enviado pelo usuário.
+
+CORREÇÕES
+1) Festa: os três caminhos de finalização agora executam a mesma função idempotente, para conceder Imunidade Surpresa e Carta Misteriosa mesmo quando a última ação encerra automaticamente a Festa.
+2) Imunidade Surpresa: registra o nome do contemplado na sessão, status e Ao Vivo; o motor do Paredão usa a verificação de imunidade existente. O Histórico registra a concessão.
+3) Carta Misteriosa: registra o contemplado e o benefício com peso dois; na apuração informa se seu voto foi computado ou não. O alvo do voto continua secreto fora de Votação Aberta.
+4) Votação Aberta: salva os votos válidos com votante, alvo e peso; agora publica os votos antes do desempate do Líder, incluindo saves antigos que estiverem parados na etapa de desempate. O Ao Vivo mostra a tabela, e o Histórico contém os votos declarados.
+5) Votação Turbinada: contabiliza peso dois e registra o total de votos válidos e o total ponderado, sem revelar votos individuais.
+6) Paredão Especial: registra os nomes e quantidade de emparedados na formação; a Prova Bate-Volta ainda pode mudar o paredão final.
+7) Contragolpe Especial: só marca a escolha como concluída após incluir validamente o indicado. Registra a escolha no Ao Vivo e Histórico.
+8) Painel central: cada dinâmica tem um indicador público de pendência ou execução.
+9) Registros deduplicados por semana, protegendo contra reload e repetição de POST; compatível com estrutura anterior de saves.
+
+COMO TESTAR
+- Abra o Modo DEV no localhost. Forçar uma dinâmica não aplica automaticamente efeitos cuja execução depende da Festa ou da votação.
+- Imunidade Surpresa/Carta: force a dinâmica antes do encerramento da Festa, execute a última ação ou avance. Confira o comunicado e o beneficiado no Ao Vivo e painel.
+- Votação Aberta: force antes da apuração, avance até a formação e confira a tabela no Ao Vivo. Se houver empate, a tabela já aparece enquanto o Líder desempata.
+- Votação Turbinada: force antes da apuração e confira os totais ponderados no Ao Vivo, mantendo o sigilo de quem votou em quem.
+- Paredão Especial: force antes da formação e confira os quatro nomes (quando houver elegíveis suficientes); depois confira o Bate-Volta.
+- Contragolpe: force antes da formação e confira se o indicado do Líder pôde puxar alguém válido.
+
+LIMITAÇÃO
+Os testes efetuados incluem validação de sintaxe do projeto e testes isolados de aplicação/registro dos efeitos. Não substituem uma temporada completa no navegador ou a validação depois do deploy no Render.
