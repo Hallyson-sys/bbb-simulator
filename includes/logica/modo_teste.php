@@ -10,35 +10,15 @@
    ========================================================= */
 function modoTestePermitido()
 {
-    $host =
-        strtolower(
-            (string)($_SERVER['HTTP_HOST'] ?? '')
-        );
-
-    $server =
-        strtolower(
-            (string)($_SERVER['SERVER_NAME'] ?? '')
-        );
-
-    $hostsLocais = [
-        'localhost',
-        '127.0.0.1',
-        '::1'
-    ];
-
-    foreach ($hostsLocais as $local) {
-
-        if (
-            str_contains($host, $local) ||
-            $server === $local
-        ) {
-            return true;
-        }
-    }
-
-    return false;
+    // Checar endereço de origem E nome do host, nunca confiar só no cabeçalho Host.
+    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    $servidor = strtolower((string)($_SERVER['SERVER_NAME'] ?? ''));
+    $localIp = in_array($ip, ['127.0.0.1', '::1'], true);
+    $localHost = (bool)preg_match('/^(?:localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/', $host);
+    $localServer = in_array($servidor, ['localhost', '127.0.0.1', '::1'], true);
+    return $localIp && ($localHost || $localServer);
 }
-
 
 /* =========================================================
    📅 FASES DISPONÍVEIS

@@ -122,45 +122,18 @@ $totalPostsFeed = count(
             </button>
 
             <?php
-$hostAtual =
-    strtolower(
-        $_SERVER['HTTP_HOST']
-        ?? ''
-    );
-
-$ehLocal =
-    str_contains(
-        $hostAtual,
-        'localhost'
-    ) ||
-    str_contains(
-        $hostAtual,
-        '127.0.0.1'
-    );
-?>
-
-<?php if ($ehLocal): ?>
-
-    <a
-        href="modo_teste.php"
-        style="
-            margin-left:auto;
-            text-decoration:none;
-            padding:10px 14px;
-            border-radius:12px;
-            color:#fff;
-            font-weight:800;
-            background:linear-gradient(
-                90deg,
-                #d00074,
-                #7535ea
-            );
-        "
-    >
-        🧪 DEV
-    </a>
-
-<?php endif; ?>
+            // A central DEV só deve ficar visível na execução local.
+            $devLocal = (bool)preg_match('/^(?:localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/i',
+                (string)($_SERVER['HTTP_HOST'] ?? '')) &&
+                in_array((string)($_SERVER['REMOTE_ADDR'] ?? ''), ['127.0.0.1','::1'], true);
+            ?>
+            <?php if ($devLocal): ?>
+                <a href="modo_teste.php" class="header-feed-btn header-dev-btn" title="Abrir laboratório de testes local">
+                    <span class="header-feed-icon">🧪</span>
+                    <span class="header-feed-info"><strong>Modo DEV</strong><small>Testar dinâmicas</small></span>
+                    <span class="header-feed-arrow">→</span>
+                </a>
+            <?php endif; ?>
 
         </div>
 

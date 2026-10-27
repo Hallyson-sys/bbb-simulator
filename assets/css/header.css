@@ -354,3 +354,11 @@
 .header-raiox-btn.header-feed-btn .header-feed-info{display:flex;flex-direction:column;gap:3px;}
 .header-raiox-btn.header-feed-btn .header-feed-info small{font-weight:400;font-size:10px;opacity:.68;}
 @media(max-width:768px){.header-raiox-btn.header-feed-btn{display:none;}}
+
+/* Botão DEV: mesmo tamanho, estrutura e animação do Feed e do Raio-X. */
+.header-dev-btn.header-feed-btn {
+    min-width:165px; width:auto; justify-content:space-between;
+    text-decoration:none; flex:0 0 auto; margin-left:0;
+}
+.header-dev-btn .header-feed-icon { background:linear-gradient(135deg,#8a00b7,#6242c7); }
+@media (max-width:768px) { .header-dev-btn.header-feed-btn { display:none; } }

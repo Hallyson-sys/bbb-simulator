@@ -1,0 +1,19 @@
+BBB SIMULATOR — MODO DEV 2.0 (somente localhost)
+
+1) Abra o jogo no XAMPP/localhost com uma temporada iniciada.
+2) No cabeçalho desktop, clique em "Modo DEV" (mesmo visual de Feed e Raio-X).
+3) Em "Laboratório de dinâmicas surpresa", selecione uma das seis regras e clique em Ativar.
+   • Imunidade Surpresa e Carta Misteriosa: clique em "Conceder efeito agora" para testar a concessão.
+   • Votação Aberta, Votação Turbinada, Paredão Especial: continue até a Formação do Paredão.
+   • Contragolpe Especial: continue até a indicação do Líder e a formação.
+4) Em "Alianças 3.0", veja os índices internos de lealdade, prepare uma crise em um integrante da sua aliança
+   ou libere uma nova reunião em Interações 1.
+5) Em "Eventos de Convivência", escolha Interações/Festa e gere uma cena para teste.
+6) Os controles anteriores de semana/fase/status/paredão e outras ferramentas DEV foram preservados.
+
+ATENÇÃO: o Modo DEV altera o save atualmente aberto. Use uma temporada de testes ou salve antes.
+A proteção de acesso continua exclusiva para conexões locais (localhost/127.0.0.1).
+O laboratório usa as funções reais das dinâmicas; não cria novas regras para o jogo público.
+Desativar regra não desfaz efeitos que já tenham sido concluídos.
+O campo de alteração de semana foi corrigido (antes usava uma variável indefinida).
+Os formulários foram protegidos por token de sessão.

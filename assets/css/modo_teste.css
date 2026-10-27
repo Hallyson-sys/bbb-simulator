@@ -424,3 +424,21 @@ button.especial {
             1fr;
     }
 }
+/* Modo DEV 2.0: novos laboratórios com indicação clara dos efeitos. */
+.dev-help { color:#c0bcd1; font-size:14px; line-height:1.55; margin:4px 0 16px; }
+.dev-tool-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.dev-tool-columns form { padding:16px; border:1px solid rgba(255,255,255,.09); border-radius:14px; background:rgba(255,255,255,.03); }
+.dev-status-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:16px 0; }
+.dev-state { padding:14px; border:1px solid rgba(0,216,255,.16); border-radius:12px; background:rgba(0,216,255,.04); overflow-wrap:anywhere; }
+.dev-state small { display:block; color:#b9b7cc; margin-bottom:8px; }
+.dev-state strong { font-size:15px; }
+.dev-tip { padding:14px; border-left:3px solid #08c8ff; border-radius:8px; color:#c5cce1; background:rgba(2,186,255,.06); line-height:1.55; }
+.dev-flash { padding:16px 20px; margin:0 0 20px; border:1px solid rgba(4,218,255,.35); color:#def8ff; background:#0d2833; border-radius:14px; }
+.dev-aliados { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:18px; }
+.dev-aliado { border:1px solid rgba(255,255,255,.09); border-radius:12px; padding:12px; background:rgba(255,255,255,.04); display:flex; justify-content:space-between; gap:12px; }
+.dev-aliado strong { color:#00d9ff; }
+.dev-card button:disabled { opacity:.42; cursor:not-allowed; filter:grayscale(.3); }
+.dev-card button:disabled:hover { transform:none; }
+.dev-inline-form { max-width:460px; }
+@media(max-width:900px) {.dev-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.dev-tool-columns{grid-template-columns:1fr}.dev-status-grid{grid-template-columns:1fr}}

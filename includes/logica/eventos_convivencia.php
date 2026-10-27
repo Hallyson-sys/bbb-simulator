@@ -152,15 +152,16 @@ function ecTalvezGerar(&$jogadores,$meuNome,$fase){
   ecTalvezCircularFofocas($jogadores,$meuNome,$fase);
   if(!empty($_SESSION['evento_convivencia_ativo'])) return;
 
+  $forcadoDev = !empty($_SESSION['dev_ec_forcar']);
   $ch='ec_tentado_'.$fase.'_'.ecRodadaAtual();
-  if(!empty($_SESSION[$ch])) return;
+  if(!empty($_SESSION[$ch]) && !$forcadoDev) return;
   $_SESSION[$ch]=true;
 
   // Momentos especiais são raros e respeitam um intervalo entre aparições.
   $ultima=(int)($_SESSION['ec_ultima_semana_especial']??0);
-  if($ultima>0 && ecRodadaAtual()-$ultima<2) return;
+  if(!$forcadoDev && $ultima>0 && ecRodadaAtual()-$ultima<2) return;
   $chance=$fase==='festa'?35:20;
-  if(random_int(1,100)>$chance) return;
+  if(!$forcadoDev && random_int(1,100)>$chance) return;
 
   $cand=[];
   foreach($jogadores as $j){
@@ -204,6 +205,7 @@ function ecTalvezGerar(&$jogadores,$meuNome,$fase){
   }
 
   if(!$evento) return;
+  unset($_SESSION['dev_ec_forcar']);
   $_SESSION['ec_ultima_semana_especial']=ecRodadaAtual();
   $_SESSION['ec_ultimos_tipos']=array_slice(array_merge((array)($_SESSION['ec_ultimos_tipos']??[]),[$evento[0]]),-12);
   $_SESSION['evento_convivencia_ativo']=[
