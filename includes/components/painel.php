@@ -39,6 +39,15 @@ $nomeFaseMobile = $rotulosFaseMobile[$fase] ?? ('🎮 ' . ucwords(str_replace('_
         <a href="temporada.php" class="btn" style="display:inline-block;text-decoration:none;">📖 Temporada</a>
     </div>
 
+    <?php $dsAtual = function_exists('dsAtual') ? dsAtual() : []; ?>
+    <?php if (!empty($dsAtual['tipo']) && isset(dsDescricoes()[$dsAtual['tipo']])): $aviso = dsDescricoes()[$dsAtual['tipo']]; ?>
+        <section class="ds3-aviso" aria-label="Dinâmica surpresa da produção">
+            <div class="ds3-selo">● REC • COMUNICADO DA PRODUÇÃO • RODADA <?= (int)$rodada ?></div>
+            <h3><?= htmlspecialchars($aviso['titulo'], ENT_QUOTES, 'UTF-8') ?></h3>
+            <p><?= htmlspecialchars($aviso['descricao'], ENT_QUOTES, 'UTF-8') ?></p>
+        </section>
+    <?php endif; ?>
+
     <div class="box">
         🎯 Fase atual:
         <b>

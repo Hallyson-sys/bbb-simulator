@@ -26,6 +26,58 @@
         </div>
         <?php unset($_SESSION['es2_erro_interacao']); ?>
     <?php endif; ?>
+    <?php if (!empty($_SESSION['a3_resultado'])): ?>
+        <div class="a3-resultado" role="status"><strong>🤝 Resultado da reunião</strong>
+            <p><?= htmlspecialchars((string)$_SESSION['a3_resultado'],ENT_QUOTES,'UTF-8') ?></p></div>
+        <?php unset($_SESSION['a3_resultado']); ?>
+    <?php endif; ?>
+    <?php
+        $a3Grupo = obterAliancaJogador($jogadores,$meuNome);
+        $a3Membros = $a3Grupo ? membrosDaAlianca($jogadores,$a3Grupo):[];
+        $a3Feita = $a3Grupo && (int)($_SESSION['a3_reuniao_realizada'][$a3Grupo]??0)===(int)$rodada;
+        $a3Fora = [];
+        if ($a3Grupo) foreach ($jogadores as $j) {
+            $n=(string)($j['nome']??'');
+            if($n!=='' && empty($j['eliminado']) && ($j['alianca']??null)!==$a3Grupo && empty($j['status']['lider'])) $a3Fora[]=$n;
+        }
+    ?>
+    <?php if (!empty($a3Membros) && count($a3Membros)>=2 && !$a3Feita && ($_SESSION['acoes_restantes']??0)>0 && empty($_SESSION['acao_selecionada'])): ?>
+    <details class="a3-reuniao">
+        <summary>🤝 Reunião da minha aliança — <?= htmlspecialchars($a3Grupo,ENT_QUOTES,'UTF-8') ?></summary>
+        <p>Consome uma interação. Os integrantes podem discordar, sugerir outras estratégias e até recusar um alvo.</p>
+        <?php if(!empty($_SESSION['a3_sugestao']) && ($_SESSION['a3_sugestao']['rodada']??0)===$rodada && ($_SESSION['a3_sugestao']['grupo']??'')===$a3Grupo): ?>
+            <p>🎯 Um integrante sugeriu conversar sobre <strong><?= htmlspecialchars($_SESSION['a3_sugestao']['alvo'],ENT_QUOTES,'UTF-8') ?></strong> como possível alvo. Ainda não existe decisão conjunta.</p>
+        <?php endif; ?>
+        <?php if(!empty($_SESSION['a3_aviso'])): ?>
+            <p class="a3-alarme">⚠️ <?= htmlspecialchars((string)$_SESSION['a3_aviso'],ENT_QUOTES,'UTF-8') ?></p>
+        <?php endif; ?>
+        <form method="post">
+            <label for="a3_decisao">Como conduzir a reunião?</label>
+            <select id="a3_decisao" name="a3_decisao" required>
+                <option value="articular">🎯 Propor um nome para a votação</option>
+                <option value="mediar">🤝 Mediar tensões e fortalecer a confiança</option>
+                <option value="livres">🧊 Liberar votos diferentes</option>
+                <option value="afastar">🚪 Propor a saída de um integrante</option>
+            </select>
+            <label for="a3_alvo">Quem está envolvido? (necessário para propor voto ou afastamento)</label>
+            <select id="a3_alvo" name="a3_alvo">
+                <option value="">Escolha o participante</option>
+                <optgroup label="Possíveis alvos de voto">
+                <?php foreach($a3Fora as $n): ?>
+                    <option value="<?= htmlspecialchars($n, ENT_QUOTES,'UTF-8') ?>"><?= htmlspecialchars($n, ENT_QUOTES,'UTF-8') ?></option>
+                <?php endforeach; ?>
+                </optgroup>
+                <optgroup label="Integrantes da aliança">
+                <?php foreach ($a3Membros as $n): if($n===$meuNome)continue; ?>
+                    <option value="<?= htmlspecialchars($n, ENT_QUOTES,'UTF-8') ?>"><?= htmlspecialchars($n, ENT_QUOTES,'UTF-8') ?></option>
+                <?php endforeach; ?>
+                </optgroup>
+            </select>
+            <button type="submit" class="btn" name="a3_reunir" value="1">🎙️ Reunir aliança</button>
+        </form>
+    </details>
+    <?php endif; ?>
+
     <div class="box">
         <h3>💬 Interações — <?php echo $_SESSION['acoes_restantes']; ?> restantes</h3>
         <p>Você pode fazer suas ações ou continuar a semana quando quiser.</p>

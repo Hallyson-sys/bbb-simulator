@@ -41,6 +41,8 @@ require_once __DIR__ . '/includes/logica/popularidade.php';
 require_once __DIR__ . '/includes/logica/romance.php';
 
 require_once __DIR__ . '/includes/logica/aliancas.php';
+require_once __DIR__ . '/includes/logica/aliancas_3.php';
+require_once __DIR__ . '/includes/logica/dinamicas_surpresa.php';
 require_once __DIR__ . '/includes/logica/estrategia_social.php';
 
 require_once __DIR__ . '/includes/logica/inteligencia_npc.php';
@@ -508,6 +510,11 @@ sincronizarFasesFinais(
 
 );
 
+/* 🎲 Produção e grupos: um sorteio e uma avaliação por rodada, sem reexecutar no refresh. */
+dsPreparar($jogadores);
+a3Preparar($jogadores, $meuNome);
+$_SESSION['jogadores']=$jogadores;
+
 /* =========================================================
    🎮 ACTIONS
    ========================================================= */
@@ -523,6 +530,7 @@ ecTalvezGerar($jogadores, $meuNome, $fase);
 
 require_once __DIR__ . '/includes/actions/festa.php';
 
+require_once __DIR__ . '/includes/actions/aliancas_3.php';
 require_once __DIR__ . '/includes/actions/interacoes.php';
 
 require_once __DIR__ . '/includes/actions/curinga.php';
@@ -547,6 +555,7 @@ require_once __DIR__ . '/includes/actions/discordia.php';
 require_once __DIR__ . '/includes/actions/vip_xepa.php';
 
 require_once __DIR__ . '/includes/actions/raio_x_estrategico.php';
+require_once __DIR__ . '/includes/actions/dinamicas_surpresa.php';
 require_once __DIR__ . '/includes/actions/avancar_fase.php';
 
 require_once __DIR__ . '/includes/actions/queridometro.php';
@@ -664,6 +673,7 @@ atualizarFeedPublicoInteligente(
 
 
 
+<link rel="stylesheet" href="assets/css/aliancas3_dinamicas.css?v=1">
 </head>
 
 <body>

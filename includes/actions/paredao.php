@@ -84,7 +84,7 @@ function pesoVotoComPoderes($votante)
 
      */
 
-    return max(
+    $peso = max(
 
         pesoVotoCuringa(
 
@@ -99,10 +99,8 @@ function pesoVotoComPoderes($votante)
         )
 
     );
-
+    return function_exists('dsPesoVoto') ? dsPesoVoto($peso, (string)$votante) : $peso;
 }
-
-
 
 
 
@@ -1268,6 +1266,8 @@ if (
 
 
 
+                if (empty($origensPeso)) $origensPeso = ['Dinâmica da Produção'];
+
                 $_SESSION['evento_extra'][] =
 
                     "🗳️ " .
@@ -1452,6 +1452,8 @@ if (
 
 
 
+                if (empty($origensPeso)) $origensPeso = ['Dinâmica da Produção'];
+
                 $_SESSION['evento_extra'][] =
 
                     "🗳️ " .
@@ -1493,6 +1495,9 @@ if (
 
 
 
+
+    if (function_exists('dsRegistrarVotosPublicos')) dsRegistrarVotosPublicos($jogadores, $votosDetalhados);
+    if (function_exists('a3RegistrarVotosPrivados')) a3RegistrarVotosPrivados($jogadores, $votosDetalhados);
 
     /* Negociações da festa são verificadas em privado; sem spoilers no Ao Vivo. */
     if(function_exists('es2RegistrarResultadoAcordos'))es2RegistrarResultadoAcordos($votosDetalhados);

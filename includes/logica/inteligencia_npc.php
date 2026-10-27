@@ -1410,6 +1410,11 @@ function pontuarAlvoNPCInteligente(
         $score += $positivo ? 23 : -47;
     }
 
+    /* Alianças 3.0: lealdade real e planos coletivos, sem voto obrigatório. */
+    if (function_exists('a3BonusVoto')) {
+        $score += a3BonusVoto($jogadores, (string)$npc, (string)$alvo, (string)$contexto);
+    }
+
     /* Acordos de voto têm peso real, mas não são ordens aos NPCs. */
     if (function_exists('es2BonusVoto')) {
         $score += es2BonusVoto($jogadores, $npc, $alvo, $contexto);

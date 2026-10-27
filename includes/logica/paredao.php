@@ -12,6 +12,7 @@
 function definirTamanhoParedao($jogadores)
 {
     $total = count($jogadores);
+    if (function_exists('dsTipo') && dsTipo('paredao_especial') && $total >= 8) return 4;
 
     if ($total <= 4) {
         return 3;
@@ -41,6 +42,8 @@ function definirTamanhoParedao($jogadores)
 
 function definirFaseDepoisDaFormacaoDoParedao(&$jogadores)
 {
+    if (function_exists('dsVerificarContragolpe') && dsVerificarContragolpe($jogadores)) return;
+
     $meuNome =
         $_SESSION['meu_nome'] ?? '';
 
@@ -284,11 +287,13 @@ function estaImune($jogadores, $nome)
     if ($nome == '') {
         return false;
     }
+    if (function_exists('dsImune') && dsImune((string)$nome)) return true;
 
 
     $fontesImunidade = [
 
         $_SESSION['imune'] ?? '',
+        ((int)(($_SESSION['ds3_imune']['rodada']??0)) === (int)($_SESSION['rodada']??1) ? ($_SESSION['ds3_imune']['nome']??'') : ''),
 
         $_SESSION['imunidade_curinga'] ?? '',
 
@@ -361,6 +366,7 @@ function sincronizarImunidadesGlobais(&$jogadores)
 
     $fontes = [
 
+        ((int)(($_SESSION['ds3_imune']['rodada']??0)) === (int)($_SESSION['rodada']??1) ? ($_SESSION['ds3_imune']['nome']??'') : ''),
         $_SESSION['imune'] ?? '',
 
         $_SESSION['imunidade_curinga'] ?? '',

@@ -1,0 +1,16 @@
+
+.ds3-aviso{margin:14px 0 20px;padding:20px 18px;text-align:left;border:1px solid rgba(255,100,178,.5);border-radius:20px;background:linear-gradient(130deg,rgba(142,0,116,.27),rgba(17,43,86,.43));box-shadow:0 12px 35px rgba(0,0,0,.16)}
+.ds3-aviso .ds3-selo{font-size:11px;letter-spacing:.12em;font-weight:800;color:#7ad7fa}
+.ds3-aviso h3{margin:10px 0 8px;font-size:1.32rem;color:white}
+.ds3-aviso p{margin:0;line-height:1.5;color:#e8ddf2}
+.a3-reuniao,.a3-resultado{margin:18px 0;padding:20px;border:1px solid rgba(131,93,225,.48);border-radius:20px;background:linear-gradient(140deg,rgba(70,26,84,.6),rgba(25,36,66,.9));color:#fff;text-align:left}
+.a3-reuniao summary{cursor:pointer;list-style:none;font-weight:800;font-size:1.13rem;padding:5px;line-height:1.4}
+.a3-reuniao summary:focus-visible{outline:2px solid #7bd4ff;outline-offset:6px}
+.a3-reuniao summary::-webkit-details-marker{display:none}
+.a3-reuniao p{line-height:1.5;color:#d8d1e9}
+.a3-reuniao label{display:block;font-weight:700;margin:14px 0 8px;color:white}
+.a3-reuniao select{display:block;width:100%;font:inherit;font-size:16px;border-radius:12px;padding:13px 10px;color:#fff;background:#252039;border:1px solid #665d82;margin-bottom:10px}
+.a3-reuniao .btn{width:100%;min-height:48px;margin-top:14px}
+.a3-alarme{color:#ffe49c!important}
+.a3-resultado p{margin-bottom:0}
+@media(max-width:768px){.ds3-aviso,.a3-reuniao,.a3-resultado{padding:15px 14px;border-radius:16px}.ds3-aviso h3{font-size:1.15rem}}

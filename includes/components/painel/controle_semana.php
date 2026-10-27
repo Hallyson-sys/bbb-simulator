@@ -474,6 +474,23 @@
 <?php endif; ?>
 
 
+<?php if ($fase === 'ds3_contragolpe'): ?>
+    <div class="box"><h3>🔥 Contragolpe Especial</h3>
+        <p>Você foi indicado pelo Líder e ganhou o direito de puxar outro participante para o Paredão.</p>
+        <?php $candidatosDs = dsCandidatosContragolpe($jogadores); ?>
+        <?php if($candidatosDs): ?>
+        <form method="post">
+            <div class="participantes-escolha">
+                <?php foreach($candidatosDs as $n): ?>
+                    <label class="participante-btn"><input type="radio" name="ds3_alvo" value="<?= htmlspecialchars($n,ENT_QUOTES,'UTF-8') ?>" required> <?= htmlspecialchars($n,ENT_QUOTES,'UTF-8') ?></label>
+                <?php endforeach; ?>
+            </div>
+            <button class="btn" name="ds3_contragolpe_escolher" value="1">🔥 Confirmar Contragolpe</button>
+        </form>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
+
 <?php if ($fase == 'contra_golpe_curinga'): ?>
     <?php
     $origemPoderPosParedao = $_SESSION['poder_pos_paredao_origem'] ?? 'curinga';

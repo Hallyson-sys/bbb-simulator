@@ -1,0 +1,35 @@
+BBB SIMULATOR — REVIRAVOLTAS & ALIANÇAS 3.0 (V1)
+Base: Convivência 2.1 (mantidas correções de Prova do Anjo, convites e eventos).
+
+DINÂMICAS SURPRESA IMPLEMENTADAS (6 TIPOS JOGÁVEIS):
+- Votação Aberta: o voto individual só é publicado depois de confirmado e processado; ações de voto revelado geram consequências sociais.
+- Imunidade Surpresa: a produção sorteia um participante elegível ao término da Festa; imunidade é respeitada na formação.
+- Paredão Especial: 4 candidatos quando há pelo menos 8 participantes ativos; preserva restrições de imunidade.
+- Votação Turbinada: os votos da casa valem 2, sem acumular sobre outros poderes de voto duplo.
+- Carta Misteriosa: após a Festa, um participante elegível ganha voto de peso 2 nesta rodada.
+- Contragolpe Especial: o indicado do Líder puxa uma pessoa elegível. Se for o jogador, ele escolhe. Se for um NPC, a IA escolhe.
+
+Os anúncios aparecem no controle da semana e são registrados no Histórico.
+Não há reviravolta em todas as semanas: 42% de chance de sorteio nas rodadas elegíveis, intervalo de pelo menos uma rodada, a partir da rodada 2 e com 7+ ativos.
+
+ALIANÇAS 3.0:
+- Reunião na fase de Interações: definir alvo, mediar tensões, autorizar votos livres ou propor afastamento de um membro.
+- Ações válidas consomem 1 interação; reunião só pode ser feita uma vez por aliança a cada rodada.
+- Lealdade interna baseada em relações e histórico, com influência efetiva sobre indicação e voto.
+- Membros podem aceitar ou recusar proposta de alvo, segundo relação com alvo e lealdade.
+- Acordos secretos são avaliados depois da votação e não divulgados automaticamente.
+- NPCs podem sugerir alvos internamente e desentendimentos podem resultar em rompimentos.
+- Compatibilidade com saves antigos: novas chaves são criadas sob demanda.
+
+ESPAÇO RESERVADO PARA EVOLUÇÕES POSTERIORES:
+- Semana Turbo com eliminação extra exige revisar resultado.php e todos os fluxos de retorno.
+- Liderança Dupla exige modificar provas e indicação.
+- Prova em Duplas exige interface e simulador próprios.
+Essas três NÃO foram habilitadas nesta versão para evitar quebrar fases atuais ou saves.
+
+TESTES:
+- lint PHP de todos os arquivos.
+- testes isolados das seis dinâmicas, inclusive idempotência e seleção pelo jogador no Contragolpe.
+- reunião válida/inválida e proteção da aliança em votos; nenhuma duplicação de gasto.
+- integridade do ZIP.
+Necessária uma temporada de teste no navegador (desktop/mobile) para validar transições entre poderes, Paredão e Bate-Volta.
