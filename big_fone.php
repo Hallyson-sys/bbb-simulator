@@ -66,6 +66,11 @@ if ($estadoBigFone !== 'tocou') {
 
 require_once __DIR__ . '/includes/actions/big_fone.php';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && !isset($_SESSION['bigfone_inicio'])) {
+    $_SESSION['bigfone_inicio'] = microtime(true);
+}
+
+
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -85,9 +90,10 @@ require_once __DIR__ . '/includes/actions/big_fone.php';
     <h1>☎️ BIG FONE TOCOU!</h1>
 
     <p>O telefone mais temido da casa está tocando.</p>
-    <p>Você tem <b>3 segundos</b> para decidir se vai atender.</p>
+    <p>Você tem <b>3 segundos</b> para tentar atender. Mas cuidado: outro participante pode chegar primeiro!</p>
 
-    <div class="timer" id="timer">3</div>
+    <?php $segundosRestantes = max(0, min(3, (int)ceil(3 - (microtime(true) - (float)($_SESSION['bigfone_inicio'] ?? 0))))); ?>
+    <div class="timer" id="timer"><?= $segundosRestantes ?></div>
 
     <!-- Usado automaticamente quando o tempo termina. -->
     <form method="POST" id="formNao">
@@ -111,16 +117,17 @@ require_once __DIR__ . '/includes/actions/big_fone.php';
     </div>
 
     <p class="aviso">
-        Se o tempo acabar, um participante aleatório atenderá.
+        Mesmo tocando em Atender, a corrida é disputada: os outros participantes também podem chegar antes. Quanto mais rápido você reagir, melhores suas chances.
     </p>
 
 </div>
 
 <script>
-let tempo = 3;
+let tempo = <?= $segundosRestantes ?>;
 const timer = document.getElementById('timer');
 const formNao = document.getElementById('formNao');
 
+if (tempo <= 0 && formNao) { formNao.submit(); }
 const intervalo = setInterval(() => {
     tempo--;
 

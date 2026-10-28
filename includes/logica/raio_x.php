@@ -28,8 +28,8 @@ function rxEventosPublicos(array $historico, ?int $ateSemana = null, ?int $apena
         $tipo = (string)($evento['tipo'] ?? '');
         $rodada = max(1, (int)($evento['rodada'] ?? 1));
         if (!in_array($tipo, $tipos, true)) continue;
-        if ($ateSemana !== null && $rodada > $ateRodada) continue;
-        if ($apenasSemana !== null && $rodada !== $apenasRodada) continue;
+        if ($ateSemana !== null && $rodada > $ateSemana) continue;
+        if ($apenasSemana !== null && $rodada !== $apenasSemana) continue;
         $chave = (string)($evento['chave'] ?? '');
         if ($chave !== '' && isset($vistos[$chave])) continue;
         if ($chave !== '') $vistos[$chave] = true;

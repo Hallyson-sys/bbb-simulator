@@ -291,7 +291,7 @@ function atualizarAliancasAutomaticas(&$jogadores, $meuNome = '')
         $nome = $j['nome'] ?? '';
         $alianca = $j['alianca'] ?? null;
 
-        if ($nome == '' || empty($alianca)) continue;
+        if ($nome == '' || empty($alianca) || ($meuNome !== '' && nomeIgual($nome, $meuNome))) continue;
 
         $media = relacaoMediaComAlianca($jogadores, $nome, $alianca, $meuNome);
 
@@ -304,7 +304,7 @@ function atualizarAliancasAutomaticas(&$jogadores, $meuNome = '')
     /* Entrada em alianças existentes */
     foreach ($jogadores as $j) {
         $nome = $j['nome'] ?? '';
-        if ($nome == '' || !empty($j['alianca'])) continue;
+        if ($nome == '' || !empty($j['alianca']) || ($meuNome !== '' && nomeIgual($nome, $meuNome))) continue;
 
         $melhorAlianca = null;
         $melhorScore = -999;
@@ -334,7 +334,7 @@ function atualizarAliancasAutomaticas(&$jogadores, $meuNome = '')
             $a = $jogadores[$i];
             $b = $jogadores[$k];
 
-            if (!empty($a['alianca']) || !empty($b['alianca'])) continue;
+            if (!empty($a['alianca']) || !empty($b['alianca']) || ($meuNome !== '' && (nomeIgual($a['nome'], $meuNome) || nomeIgual($b['nome'], $meuNome)))) continue;
 
             $relAB = obterRelacaoCompleta($jogadores, $a['nome'], $b['nome'], $meuNome);
             $relBA = obterRelacaoCompleta($jogadores, $b['nome'], $a['nome'], $meuNome);

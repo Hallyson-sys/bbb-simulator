@@ -16,10 +16,11 @@ if (empty($_SESSION['jogadores']) && empty($_SESSION['historico_temporada'])) {
 
 $rodadaAtual = (int)($_SESSION['rodada'] ?? 1);
 $historicoPorSemana = historicoTemporadaPorRodada();
+$historicoPorSemana = is_array($historicoPorSemana) ? $historicoPorSemana : [];
 $totalEventos = count($_SESSION['historico_temporada']);
 
 // Seleção por rodada sem modificar o estado da temporada.
-$rodadasDisponiveis = array_unique(array_merge([$rodadaAtual], array_keys($historicoPorRodada)));
+$rodadasDisponiveis = array_unique(array_merge([$rodadaAtual], array_keys($historicoPorSemana)));
 $rodadasDisponiveis = array_values(array_filter(array_map('intval', $rodadasDisponiveis),
     static fn($r) => $r >= 1 && $r <= $rodadaAtual));
 rsort($rodadasDisponiveis, SORT_NUMERIC);
@@ -59,7 +60,7 @@ function eTemp($texto)
 
     <section class="temporada-resumo">
         <div class="temporada-resumo-card"><strong><?= $rodadaAtual ?></strong><span>Semana atual</span></div>
-        <div class="temporada-resumo-card"><strong><?= count($historicoPorRodada) ?></strong><span>Rodadas registradas</span></div>
+        <div class="temporada-resumo-card"><strong><?= count($historicoPorSemana) ?></strong><span>Semanas registradas</span></div>
         <div class="temporada-resumo-card"><strong><?= $totalEventos ?></strong><span>Acontecimentos salvos</span></div>
     </section>
 
@@ -68,7 +69,7 @@ function eTemp($texto)
             <div>
                 <small>EDIÇÃO EM ANDAMENTO • O QUE A CASA VIVEU</small>
                 <h2 id="raiox-titulo">📊 Raio-X da Semana</h2>
-                <p>Acontecimentos públicos da rodada e reputações construídas por atitudes observáveis. <strong>A aprovação do público permanece secreta.</strong></p>
+                <p>Acontecimentos públicos da semana e reputações construídas por atitudes observáveis. <strong>A aprovação do público permanece secreta.</strong></p>
             </div>
             <div class="raiox-rodadas" aria-label="Consultar rodada">
                 <?php foreach ($rodadasDisponiveis as $numero): ?>
@@ -81,7 +82,7 @@ function eTemp($texto)
             </div>
         </div>
         <div class="raiox-visao-geral">
-            <article class="raiox-dado"><span>📅 Rodada</span><strong><?= (int)$rodadaSelecionada ?></strong></article>
+            <article class="raiox-dado"><span>📅 Semana</span><strong><?= (int)$rodadaSelecionada ?></strong></article>
             <article class="raiox-dado"><span>📺 Acontecimentos públicos</span><strong><?= (int)$raioX['total'] ?></strong></article>
             <article class="raiox-clima">
                 <span class="raiox-clima-icone"><?= eTemp($raioX['clima'][0]) ?></span>
@@ -90,7 +91,7 @@ function eTemp($texto)
         </div>
         <div class="raiox-blocos">
             <div class="raiox-bloco">
-                <h3>🎬 VT da rodada</h3>
+                <h3>🎬 VT da semana</h3>
                 <p class="raiox-ajuda">Últimos fatos registrados, sem contar conversas privadas ou estratégias escondidas.</p>
                 <?php if (empty($raioX['vt'])): ?>
                     <div class="raiox-vazio">Ainda não houve acontecimentos públicos suficientes para montar o VT desta rodada.</div>
@@ -129,7 +130,7 @@ function eTemp($texto)
         <p class="raiox-privacidade">🔒 Nenhum número de aprovação, saldo de popularidade, voto secreto, fofoca privada ou revelação antecipada do Quarto Secreto é exibido aqui.</p>
     </section>
 
-    <?php if (empty($historicoPorRodada)): ?>
+    <?php if (empty($historicoPorSemana)): ?>
         <div class="temporada-vazio">
             <h2>A temporada está só começando 👀</h2>
             <p>Os acontecimentos importantes aparecerão aqui conforme as próximas fases forem concluídas.</p>

@@ -1,0 +1,36 @@
+BBB SIMULATOR — Correções do Raio-X e Big Fone 2.0
+
+1) RAIO-X / HISTÓRICO
+- Corrigido o nome da variável usada em temporada.php.
+- Corrigida a inicialização da lista de semanas em historicoTemporadaPorRodada(),
+  inclusive quando a temporada ainda não registra nenhum evento.
+
+2) BIG FONE — DISPUTA DE ATENDIMENTO
+- Clicar em "Atender" significa tentar alcançar o telefone; não garante vitória.
+- O servidor decide a disputa e pode atribuir o atendimento a outro NPC.
+- Reagir rapidamente aumenta a probabilidade de vitória.
+- O relógio é vinculado à sessão, para que atualizar a página não reinicie o prazo.
+- O Ao Vivo identifica o atendente efetivo e informa quando outro participante
+  chega primeiro apesar da tentativa do jogador.
+
+3) PODER CURINGA INCORPORADO AO BIG FONE
+- Removido o sorteio e a fase independente do Poder Curinga.
+- O Big Fone oferece: imunidade do atendente, imunidade extra para escolher
+  outra pessoa, indicação ao Paredão, voto duplo, anulação de voto,
+  espionagem de voto, contragolpe e troca de emparedado.
+- A Imunidade Extra possui tela de escolha se o atendente for o jogador.
+- Se for um NPC, a IA escolhe o beneficiado elegível.
+- Os cálculos de voto consultam o Big Fone e as dinâmicas da semana,
+  sem aplicar poderes antigos do Curinga.
+- Saves antigos na fase Poder Curinga seguem para Interações 2.
+- Os nomes internos contra_golpe_curinga / troca_curinga foram mantidos
+  apenas como compatibilidade técnica com saves e formulários legados;
+  a interface mostra Big Fone.
+
+TESTES REALIZADOS
+- PHP: todos os arquivos passaram na verificação de sintaxe.
+- Raio-X: resposta HTTP 200 com histórico vazio; sem erro fatal.
+- Big Fone: testes de disputa probabilística e dezenas de atendimentos HTTP.
+- Imunidade Extra: seleção interativa, gravação em sessão, sem duplicidade.
+- Anulação/voto duplo: verificações isoladas do cálculo de votos.
+- Uma temporada completa no navegador ainda deve ser testada no seu ambiente.

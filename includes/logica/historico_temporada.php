@@ -87,7 +87,7 @@ function historicoTemporadaPorRodada()
 {
     garantirHistoricoTemporada();
 
-    $porSemana = [];
+    $porRodada = [];
 
     foreach ($_SESSION['historico_temporada'] as $evento) {
         $rodada = max(1, (int)($evento['rodada'] ?? 1));

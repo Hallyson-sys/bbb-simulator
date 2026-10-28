@@ -414,97 +414,28 @@
 <?php endif; ?>
 
 
-<?php
-/* =========================================================
-   🎁 PODER CURINGA
-   ========================================================= */
-?>
-
-<?php if ($fase == 'poder_curinga'): ?>
-    <?php
-    $poderAtual = obterPoderCuringaAtual();
-    $catalogoCuringa = catalogoPoderesCuringa();
-    $tipoCuringa = $poderAtual['tipo'] ?? '';
-    $donoCuringa = $poderAtual['dono'] ?? '';
-    $dadosCuringa = $catalogoCuringa[$tipoCuringa] ?? null;
-    ?>
-
-    <?php if ($poderAtual && $dadosCuringa): ?>
-        <div class="curinga-box">
-            <div class="curinga-topo">
-                <div class="curinga-icone"><?php echo $dadosCuringa['emoji']; ?></div>
-                <div>
-                    <h3>🎁 Poder Curinga</h3>
-                    <p><b><?php echo $dadosCuringa['nome']; ?></b></p>
-                </div>
-            </div>
-
-            <p><?php echo $dadosCuringa['descricao']; ?></p>
-            <span class="curinga-dono">Dono do poder: <?php echo $donoCuringa; ?></span>
-        </div>
-
-        <?php if (nomeIgual($donoCuringa, $meuNome)): ?>
+<?php if ($fase === 'bigfone_imunidade_extra'): ?>
+    <div class="box">
+        <h3>☎️ Big Fone — Imunidade Extra</h3>
+        <p>Você atendeu o Big Fone! Escolha um participante para proteger nesta semana.</p>
+        <?php $candidatosImunidadeBigFone = candidatosImunidadeExtraBigFone($jogadores); ?>
+        <?php if ($candidatosImunidadeBigFone): ?>
             <form method="POST">
-                <?php if (in_array($tipoCuringa, ['imunidade_extra', 'anular_voto', 'espiao'], true)): ?>
-                    <div class="box">
-                        <h3>🎯 Escolha o alvo do poder</h3>
-
-                        <div class="participantes-escolha">
-                            <?php foreach ($jogadores as $j): ?>
-                                <?php
-                                $nomeOpcao = $j['nome'] ?? '';
-
-                                if ($nomeOpcao == '') continue;
-                                if ($tipoCuringa != 'imunidade_extra' && nomeIgual($nomeOpcao, $meuNome)) continue;
-                                if ($tipoCuringa == 'imunidade_extra' && !empty($j['status']['lider'])) continue;
-                                ?>
-
-                                <label class="participante-btn">
-                                    <input
-                                        type="radio"
-                                        name="alvo_curinga"
-                                        value="<?php echo $nomeOpcao; ?>"
-                                        required>
-                                    <?php echo $nomeOpcao; ?>
-                                </label>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
-                <button class="btn" name="usar_poder_curinga">
-                    🎁 Usar Poder Curinga
-                </button>
+                <div class="participantes-escolha">
+                    <?php foreach ($candidatosImunidadeBigFone as $nome): ?>
+                        <label class="participante-btn">
+                            <input type="radio" name="alvo_imunidade_bigfone" value="<?= htmlspecialchars($nome, ENT_QUOTES, 'UTF-8') ?>" required>
+                            <?= htmlspecialchars($nome, ENT_QUOTES, 'UTF-8') ?>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+                <button class="btn" name="usar_bigfone_imunidade_extra" value="1">🛡️ Confirmar imunidade</button>
             </form>
         <?php else: ?>
-            <div class="box">
-                <p>
-                    Esse poder pertence a <b><?php echo $donoCuringa; ?></b>.
-                    Ao continuar, o jogo decide automaticamente como o NPC vai usar.
-                </p>
-
-                <form method="POST">
-                    <button class="btn" name="pular_poder_curinga">
-                        ⏭️ Continuar
-                    </button>
-                </form>
-            </div>
+            <form method="POST"><button class="btn" name="usar_bigfone_imunidade_extra" value="1">⏭️ Continuar</button></form>
         <?php endif; ?>
-
-    <?php else: ?>
-        <div class="box">
-            <h3>🎁 Poder Curinga</h3>
-            <p>Não há um poder válido carregado nesta rodada.</p>
-        </div>
-
-        <form method="POST">
-            <button class="btn" name="pular_poder_curinga">
-                ⏭️ Continuar Semana
-            </button>
-        </form>
-    <?php endif; ?>
+    </div>
 <?php endif; ?>
-
 
 <?php if ($fase === 'ds3_contragolpe'): ?>
     <div class="box"><h3>🔥 Contragolpe Especial</h3>
@@ -525,9 +456,9 @@
 
 <?php if ($fase == 'contra_golpe_curinga'): ?>
     <?php
-    $origemPoderPosParedao = $_SESSION['poder_pos_paredao_origem'] ?? 'curinga';
-    $rotuloOrigemPoder = $origemPoderPosParedao === 'bigfone' ? 'Big Fone' : 'Poder Curinga';
-    $candidatosContra = candidatosContraGolpeCuringa(
+    $origemPoderPosParedao = 'bigfone';
+    $rotuloOrigemPoder = 'Big Fone';
+    $candidatosContra = candidatosContraGolpeBigFone(
         $jogadores,
         $_SESSION['paredao'] ?? []
     );
@@ -578,8 +509,8 @@
 
 <?php if ($fase == 'troca_curinga'): ?>
     <?php
-    $origemPoderPosParedao = $_SESSION['poder_pos_paredao_origem'] ?? 'curinga';
-    $rotuloOrigemPoder = $origemPoderPosParedao === 'bigfone' ? 'Big Fone' : 'Poder Curinga';
+    $origemPoderPosParedao = 'bigfone';
+    $rotuloOrigemPoder = 'Big Fone';
     $indicacaoLiderCuringa = $_SESSION['indicacao_lider'] ?? '';
     $paredaoAtualCuringa = $_SESSION['paredao'] ?? [];
 
@@ -592,7 +523,7 @@
         )
     );
 
-    $entradasCuringa = candidatosTrocaCuringaEntrada(
+    $entradasCuringa = candidatosTrocaBigFoneEntrada(
         $jogadores,
         $paredaoAtualCuringa
     );
@@ -927,7 +858,7 @@ $fasesConhecidas = [
     'monstro',
     'bigfone',
     'casa_vidro',
-    'poder_curinga',
+    'bigfone_imunidade_extra',
     'festa',
     'imunizacao_anjo',
     'paredao',

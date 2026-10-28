@@ -2,7 +2,7 @@
 
 /* =========================================================
    ☎️ LÓGICA DO BIG FONE
-   Sistema totalmente separado do Poder Curinga.
+   Central de todos os poderes especiais da casa.
    ========================================================= */
 
 require_once __DIR__ . '/utilitarios.php';
@@ -68,7 +68,10 @@ function limparEstadoBigFoneNovaRodada()
         'bigfone_contragolpe_usado',
 
         'bigfone_troca_emparedado_pendente',
-        'bigfone_troca_usada'
+        'bigfone_troca_usada',
+        'bigfone_inicio',
+        'bigfone_imunidade_extra_pendente',
+        'bigfone_imunidade_extra_alvo'
     ];
 
     foreach ($chaves as $chave) {
@@ -95,8 +98,7 @@ function prepararBigFoneDaRodada()
 
     /*
      * Ao detectar uma nova rodada, limpa SOMENTE estados
-     * pertencentes ao Big Fone. O Poder Curinga permanece
-     * completamente independente.
+     * pertencentes ao Big Fone.
      */
     if (
         !isset($_SESSION['bigfone_tocou_rodada']) ||
@@ -219,10 +221,43 @@ function registrarPoderBigFoneBase(
 
 
 /* =========================================================
+   🛡️ IMUNIDADE EXTRA: antigo poder de proteger outra pessoa.
+   O titular escolhe se o jogador ganhou; NPC usa seu contexto social.
+   ========================================================= */
+function candidatosImunidadeExtraBigFone($jogadores)
+{
+    $resultado = [];
+    foreach ($jogadores as $j) {
+        $nome = (string)($j['nome'] ?? '');
+        if ($nome === '' || !empty($j['status']['lider']) || !empty($j['status']['imune'])) continue;
+        if (function_exists('estaImune') && estaImune($jogadores, $nome)) continue;
+        $resultado[] = $nome;
+    }
+    return $resultado;
+}
+
+function concederImunidadeExtraBigFone(&$jogadores, $alvo, $dono)
+{
+    if (!in_array($alvo, candidatosImunidadeExtraBigFone($jogadores), true)) return false;
+    foreach ($jogadores as &$j) {
+        if (!nomeIgualBigfone($j['nome'] ?? '', $alvo)) continue;
+        if (!isset($j['status']) || !is_array($j['status'])) $j['status'] = [];
+        $j['status']['imune'] = true;
+        if (!isset($j['estatisticas']) || !is_array($j['estatisticas'])) $j['estatisticas'] = [];
+        $j['estatisticas']['imune'] = ($j['estatisticas']['imune'] ?? 0) + 1;
+        break;
+    }
+    unset($j);
+    $_SESSION['bigfone_imunidade_extra_alvo'] = $alvo;
+    $_SESSION['evento_extra'][] = "🛡️ Pelo Big Fone, $dono concedeu imunidade extra a $alvo nesta semana.";
+    return true;
+}
+
+/* =========================================================
    🎁 APLICAR PODER DO BIG FONE
 
    IMPORTANTE:
-   Nenhum poder daqui utiliza variáveis curinga_*.
+   Todos os poderes anteriormente separados estão no Big Fone.
    ========================================================= */
 
 function aplicarPoderBigFone(
@@ -231,6 +266,7 @@ function aplicarPoderBigFone(
 ) {
     $poderes = [
         'imunidade',
+        'imunidade_extra',
         'indicacao',
         'voto_duplo',
         'anular_voto',
@@ -296,6 +332,26 @@ function aplicarPoderBigFone(
             "🛡️ $atendente ganhou imunidade pelo Big Fone.";
     }
 
+
+    /* =========================
+       🛡️ IMUNIDADE EXTRA (ALVO ESCOLHIDO)
+       ========================= */
+    if ($poder === 'imunidade_extra') {
+        if (nomeIgualBigfone($atendente, $meuNome)) {
+            $_SESSION['bigfone_imunidade_extra_pendente'] = true;
+            $texto = "🛡️ $atendente recebeu o poder de escolher quem será imunizado pelo Big Fone.";
+        } else {
+            $candidatos = candidatosImunidadeExtraBigFone($jogadores);
+            $alvo = $candidatos ? escolherProtegidoNPCInteligente($jogadores, $atendente, $candidatos, true) : null;
+            if (!in_array($alvo, $candidatos, true)) $alvo = $candidatos ? $candidatos[array_rand($candidatos)] : null;
+            if ($alvo !== null) {
+                concederImunidadeExtraBigFone($jogadores, $alvo, $atendente);
+                $texto = "☎️ $atendente recebeu a Imunidade Extra do Big Fone.";
+            } else {
+                $texto = "☎️ $atendente recebeu a Imunidade Extra, mas não havia ninguém elegível.";
+            }
+        }
+    }
 
     /* =========================
        🎯 INDICAÇÃO AO PAREDÃO
@@ -1020,6 +1076,30 @@ function npcAtendeBigFone(
 
 
 /* =========================================================
+   🏃 DISPUTA REAL: clicar em Atender não garante o prêmio.
+   A chance considera tempo decorrido e quantidade de rivais.
+   Nunca confia em campos hidden enviados pelo navegador.
+   ========================================================= */
+function disputarAtendimentoBigFone($jogadores, $meuNome)
+{
+    $inicio = (float)($_SESSION['bigfone_inicio'] ?? 0);
+    $tempo = $inicio > 0 ? max(0, microtime(true) - $inicio) : 999;
+    $adversarios = 0;
+    foreach ($jogadores as $j) {
+        if (($j['nome'] ?? '') !== '' && !nomeIgualBigfone($j['nome'], $meuNome)) $adversarios++;
+    }
+    if ($adversarios === 0) return ['vencedor' => $meuNome, 'jogador_venceu' => true];
+    $chance = $tempo <= 1 ? 82 : ($tempo <= 2 ? 69 : ($tempo <= 3.5 ? 52 : 0));
+    $chance = max(25, $chance - min(18, max(0, $adversarios - 3) * 2));
+    if ($tempo > 3.5) $chance = 0;
+    $jogadorVenceu = random_int(1, 100) <= $chance;
+    return [
+        'vencedor' => $jogadorVenceu ? $meuNome : npcAtendeBigFone($jogadores, $meuNome),
+        'jogador_venceu' => $jogadorVenceu,
+    ];
+}
+
+/* =========================================================
    ☎️ FINALIZAR ATENDIMENTO
    ========================================================= */
 
@@ -1028,6 +1108,7 @@ function finalizarAtendimentoBigFone(
     $atendente,
     $atendeuAntesDeTodoMundo = false
 ) {
+    if (!empty($_SESSION['bigfone_feito'])) return;
     garantirEventosBigFone();
 
     $_SESSION['evento_extra'][] =

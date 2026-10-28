@@ -141,6 +141,7 @@ if (
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Noite de Eliminação</title>
 <link rel="stylesheet" href="assets/css/resultado.css">
 <style>
@@ -179,9 +180,11 @@ if (
 <div class="container">
 
     <div class="topo">
-        <div class="badge">📡 Transmissão ao vivo • Semana <?php echo e($rodada); ?></div>
-        <h1>Noite de Eliminação</h1>
-        <p>O público decidiu. Um participante deixa a casa agora.</p>
+        <div class="badge">● REC <span class="live-pulse"></span> • SEMANA <?php echo e($rodada); ?> • AO VIVO</div>
+        <div class="elim-glow-mark">✦ A DECISÃO DO BRASIL ✦</div>
+        <h1>NOITE DE <span>ELIMINAÇÃO</span></h1>
+        <p>Três histórias em jogo. Uma despedida. O público tem a palavra.</p>
+        <div class="elim-divider"><i></i><span>🔴 TRANSMISSÃO AO VIVO</span><i></i></div>
     </div>
 
     <?php if(!$mostrarResultado): ?>
@@ -190,17 +193,23 @@ if (
 
             <div class="box">
 
-                <h2>🚨 Paredão da Semana</h2>
+                <div class="elim-section-label">01 / NA BERLINDA</div>
+                <h2>🔥 Quem continua na casa?</h2>
+                <p class="elim-section-sub">Os emparedados aguardam a decisão do público.</p>
 
                 <div class="paredao-grid">
 
-                    <?php foreach($paredao as $nome): ?>
+                    <?php foreach($paredao as $posicao => $nome): ?>
                         <?php $jogadorParedao = buscarJogadorResultado($jogadores, $nome); ?>
 
                         <div class="card-paredao">
-                            <div class="label">Emparedado</div>
-                            <h3><?php echo e($nome); ?></h3>
-                            <p><?php echo e(resumoParticipanteResultado($jogadorParedao)); ?></p>
+                            <div class="elim-avatar"><?=e(mb_strtoupper(mb_substr((string)$nome,0,1,'UTF-8'),'UTF-8'))?></div>
+                            <div class="elim-participante-texto">
+                                <div class="label">NA BERLINDA • <?=e((int)$posicao+1)?></div>
+                                <h3><?php echo e($nome); ?></h3>
+                                <p><?php echo e(resumoParticipanteResultado($jogadorParedao)); ?></p>
+                            </div>
+                            <span class="elim-card-glow">✦</span>
                         </div>
 
                     <?php endforeach; ?>
@@ -211,19 +220,20 @@ if (
 
             <div class="box">
 
-                <h2>🎤 Discurso do Tadeu</h2>
-
+                <div class="elim-section-label">02 / O ÚLTIMO DISCURSO</div>
+                <h2>🎙️ A mensagem do apresentador</h2>
+                <p class="elim-section-sub">A casa fica em silêncio. As luzes diminuem. É hora da decisão.</p>
                 <div class="discurso">
-                    <div class="fala">🗣️ “Boa noite, brothers e sisters.”</div>
-                    <div class="fala">🗣️ “Hoje termina a caminhada de um de vocês dentro da casa.”</div>
-                    <div class="fala">🗣️ “Lá fora, o público viu cada escolha, cada silêncio e cada movimento.”</div>
-                    <div class="fala">🗣️ “Quem fica, ganha mais uma chance de reescrever a própria história.”</div>
-                    <div class="fala">🗣️ “Quem sai, descobre agora o peso da decisão do Brasil.”</div>
+                    <div class="fala">🎙️ “Boa noite, pessoal. Chegou a hora que ninguém queria que chegasse.”</div>
+                    <div class="fala">“Vocês viveram coisas que só quem está aí entende. Cada relação deixou uma marca.”</div>
+                    <div class="fala">“Mas lá fora, cada escolha também construiu uma história diferente para quem assistiu.”</div>
+                    <div class="fala">“Quem fica hoje ainda tem a chance de mudar o próprio destino.”</div>
+                    <div class="fala final-fala">“Respirem fundo... o Brasil já decidiu.”</div>
                 </div>
 
                 <form method="POST">
                     <button class="btn" name="revelar">
-                        📺 Revelar Resultado
+                        📺 DESCOBRIR QUEM SAIU <span aria-hidden="true">→</span>
                     </button>
                 </form>
 
@@ -235,8 +245,9 @@ if (
 
         <div class="box reveal-wrap">
 
-            <p class="suspense">🗣️ “Quando eu terminar, seremos um a menos...”</p>
-            <p class="suspense">🗣️ “Quem sai hoje é...”</p>
+            <span class="elim-section-label">03 / DECISÃO FINAL</span>
+            <p class="suspense">O Brasil fez sua escolha.</p>
+            <p class="suspense">E quem deixa a casa nesta noite é...</p>
 
             <div class="nomeSaiu">
                 <?php echo e($eliminado); ?>

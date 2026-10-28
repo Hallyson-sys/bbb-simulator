@@ -50,8 +50,8 @@ if (
 ) {
 
     if (isset($_SESSION['vip_definido'])) {
-        $_SESSION['fase_semana'] = 'anjo';
-        $faseAtual = 'anjo';
+        $_SESSION['fase_semana'] = bbbFaseAposVip($jogadores);
+        $faseAtual = $_SESSION['fase_semana'];
     } else {
         $_SESSION['fase_semana'] = 'vip_xepa_revelar';
         $faseAtual = 'vip_xepa_revelar';
@@ -67,8 +67,8 @@ if (
     $faseAtual == 'vip_xepa_revelar' &&
     isset($_SESSION['vip_definido'])
 ) {
-    $_SESSION['fase_semana'] = 'anjo';
-    $faseAtual = 'anjo';
+    $_SESSION['fase_semana'] = bbbFaseAposVip($jogadores);
+    $faseAtual = $_SESSION['fase_semana'];
 }
 
 
@@ -96,17 +96,10 @@ if (
     isset($_SESSION['bigfone_feito'])
 ) {
 
-    if (
-        function_exists('prepararSorteioPoderCuringa') &&
-        prepararSorteioPoderCuringa($jogadores)
-    ) {
-        $_SESSION['fase_semana'] = 'poder_curinga';
-        $faseAtual = 'poder_curinga';
-    } else {
-        $_SESSION['fase_semana'] = 'interacoes_2';
-        $_SESSION['acoes_restantes'] = 3;
-        $faseAtual = 'interacoes_2';
-    }
+    // O Big Fone é a fonte única de poderes especiais.
+    $_SESSION['fase_semana'] = 'interacoes_2';
+    $_SESSION['acoes_restantes'] = 3;
+    $faseAtual = 'interacoes_2';
 }
 
 

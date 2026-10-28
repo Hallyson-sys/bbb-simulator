@@ -1,16 +1,18 @@
 <?php
 /** Reviravoltas V1: estado inteiramente serializável na sessão/save. */
 function dsAtual(): array {
+    // Na reta final (Top 5 em diante), não existe dinâmica surpresa ativa.
+    if (isset($_SESSION['jogadores']) && count((array)$_SESSION['jogadores']) <= 5) return [];
     $d = $_SESSION['ds3'] ?? [];
     return is_array($d) && (int)($d['rodada'] ?? -1)===(int)($_SESSION['rodada'] ?? 1) ? $d : [];
 }
 function dsTipo(string $tipo): bool { return (dsAtual()['tipo'] ?? '') === $tipo; }
 function dsPreparar(array $jogadores): void {
     $rodada = (int)($_SESSION['rodada'] ?? 1);
-    if ($rodada < 2 || ($_SESSION['fase_semana'] ?? '') !== 'interacoes_1') return;
+    if ($rodada < 2 || count($jogadores) <= 5 || ($_SESSION['fase_semana'] ?? '') !== 'interacoes_1') return;
     if ((int)($_SESSION['ds3_ultimo_sorteio'] ?? 0) === $rodada) return;
     $_SESSION['ds3_ultimo_sorteio']=$rodada;
-    if (count($jogadores)<7 || $rodada - (int)($_SESSION['ds3_ultima_ocorrencia']??-10)<2 || random_int(1,100)>42) {
+    if (count($jogadores)<6 || $rodada - (int)($_SESSION['ds3_ultima_ocorrencia']??-10)<2 || random_int(1,100)>42) {
         $_SESSION['ds3']=['rodada'=>$rodada,'tipo'=>'']; return;
     }
     $tipos=['votacao_aberta','imunidade_surpresa','voto_em_dobro','carta_misteriosa','contragolpe_especial'];

@@ -50,8 +50,6 @@ function definirFaseDepoisDaFormacaoDoParedao(&$jogadores)
     $paredaoAtual =
         $_SESSION['paredao'] ?? [];
 
-    $poderAtualCuringa =
-        obterPoderCuringaAtual();
 
 
     /* =====================================================
@@ -94,46 +92,6 @@ function definirFaseDepoisDaFormacaoDoParedao(&$jogadores)
          * Mantemos o nome da fase para não quebrar
          * o componente visual já existente.
          */
-        $_SESSION['fase_semana'] =
-            'contra_golpe_curinga';
-
-        return;
-    }
-
-
-    /* =====================================================
-       ⚡ 2. CONTRA-GOLPE DO PODER CURINGA — JOGADOR
-       ===================================================== */
-
-    if (
-        $poderAtualCuringa &&
-        ($poderAtualCuringa['tipo'] ?? '')
-            == 'contra_golpe' &&
-        nomeIgual(
-            $poderAtualCuringa['dono'] ?? '',
-            $meuNome
-        ) &&
-        in_array(
-            $meuNome,
-            $paredaoAtual
-        ) &&
-        !isset(
-            $_SESSION[
-                'curinga_contra_golpe_usado'
-            ]
-        ) &&
-        !empty(
-            candidatosContraGolpeCuringa(
-                $jogadores,
-                $paredaoAtual
-            )
-        )
-    ) {
-
-        $_SESSION[
-            'poder_pos_paredao_origem'
-        ] = 'curinga';
-
         $_SESSION['fase_semana'] =
             'contra_golpe_curinga';
 
@@ -197,55 +155,6 @@ function definirFaseDepoisDaFormacaoDoParedao(&$jogadores)
     }
 
 
-    /* =====================================================
-       🔁 4. TROCA DO PODER CURINGA — JOGADOR
-       ===================================================== */
-
-    if (
-        $poderAtualCuringa &&
-        ($poderAtualCuringa['tipo'] ?? '')
-            == 'trocar_emparedado' &&
-        nomeIgual(
-            $poderAtualCuringa['dono'] ?? '',
-            $meuNome
-        ) &&
-        !isset(
-            $_SESSION[
-                'curinga_troca_usada'
-            ]
-        ) &&
-        count(
-            array_filter(
-                $paredaoAtual,
-                function ($nome) {
-                    return !nomeIgual(
-                        $nome,
-                        $_SESSION[
-                            'indicacao_lider'
-                        ] ?? ''
-                    );
-                }
-            )
-        ) > 0 &&
-        !empty(
-            candidatosTrocaCuringaEntrada(
-                $jogadores,
-                $paredaoAtual
-            )
-        )
-    ) {
-
-        $_SESSION[
-            'poder_pos_paredao_origem'
-        ] = 'curinga';
-
-        $_SESSION['fase_semana'] =
-            'troca_curinga';
-
-        return;
-    }
-
-
     /*
      * Nenhum poder pós-paredão aguardando escolha.
      */
@@ -273,8 +182,7 @@ function definirFaseDepoisDaFormacaoDoParedao(&$jogadores)
        🔥 6. SEGUE PARA DISCÓRDIA
        ===================================================== */
 
-    $_SESSION['fase_semana'] =
-        'discordia';
+    $_SESSION['fase_semana'] = bbbFaseAposParedao($jogadores);
 }
 
 
@@ -302,7 +210,7 @@ function estaImune($jogadores, $nome)
         $_SESSION['imune'] ?? '',
         ((int)(($_SESSION['ds3_imune']['rodada']??0)) === (int)($_SESSION['rodada']??1) ? ($_SESSION['ds3_imune']['nome']??'') : ''),
 
-        $_SESSION['imunidade_curinga'] ?? '',
+        $_SESSION['bigfone_imunidade_extra_alvo'] ?? '',
 
         $_SESSION['bigfone_imune'] ?? '',
 
@@ -376,7 +284,7 @@ function sincronizarImunidadesGlobais(&$jogadores)
         ((int)(($_SESSION['ds3_imune']['rodada']??0)) === (int)($_SESSION['rodada']??1) ? ($_SESSION['ds3_imune']['nome']??'') : ''),
         $_SESSION['imune'] ?? '',
 
-        $_SESSION['imunidade_curinga'] ?? '',
+        $_SESSION['bigfone_imunidade_extra_alvo'] ?? '',
 
         $_SESSION['bigfone_imune'] ?? '',
 

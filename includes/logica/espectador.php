@@ -314,6 +314,15 @@ function simularRodadaEspectador(
         return;
     }
 
+    // Semifinal: também no modo espectador a última vaga é conquistada em prova,
+    // sem simular uma semana comum entre quatro participantes.
+    if (count($jogadores) === 4 && empty($_SESSION['top4_concluido'])) {
+        $_SESSION['rodada'] = (int)($_SESSION['rodada'] ?? 1) + 1;
+        $_SESSION['fase_semana'] = 'top4_prova';
+        $_SESSION['jogadores'] = $jogadores;
+        return;
+    }
+
     $_SESSION['rodada'] =
         (int)($_SESSION['rodada'] ?? 1) + 1;
 
@@ -755,15 +764,7 @@ function simularRodadaEspectador(
 
         $peso = 1;
 
-        if (
-            !empty($_SESSION['curinga_voto_duplo_ativo']) &&
-            nomeIgual(
-                $_SESSION['curinga_voto_duplo_ativo'],
-                $nomeVotante
-            )
-        ) {
-            $peso = 2;
-        }
+        $peso = function_exists('pesoVotoBigFone') ? pesoVotoBigFone($nomeVotante) : 1;
 
         $votos[$voto] =
             ($votos[$voto] ?? 0) + $peso;

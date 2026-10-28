@@ -36,7 +36,7 @@ if (nomeIgual($lider, $meuNome)) {
 
 /* Evita calcular ou registrar o mesmo VIP duas vezes. */
 if (isset($_SESSION['vip_definido'])) {
-    $_SESSION['fase_semana'] = 'anjo';
+    $_SESSION['fase_semana'] = bbbFaseAposVip($jogadores);
     header('Location: jogo.php');
     exit;
 }
@@ -180,7 +180,7 @@ foreach ($jogadores as &$j) {
 unset($j);
 
 $_SESSION['jogadores'] = array_values($jogadores);
-$_SESSION['fase_semana'] = 'anjo';
+$_SESSION['fase_semana'] = bbbFaseAposVip($jogadores);
 
 header('Location: jogo.php');
 exit;

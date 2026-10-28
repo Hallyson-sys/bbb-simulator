@@ -13,6 +13,7 @@ require_once __DIR__ . '/includes/logica/aliancas_3.php';
 require_once __DIR__ . '/includes/logica/dinamicas_surpresa.php';
 require_once __DIR__ . '/includes/logica/paredao.php';
 require_once __DIR__ . '/includes/logica/provas_novas.php';
+require_once __DIR__ . '/includes/logica/reta_final.php';
 
 
 /* =========================================================

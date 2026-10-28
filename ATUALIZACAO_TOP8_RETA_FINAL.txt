@@ -1,0 +1,11 @@
+BBB Simulator — Reta Final (Top 8)
+
+A partir de 8 participantes ainda na disputa:
+- Não há mais Prova do Anjo.
+- Não há Castigo do Monstro nem imunização pelo Anjo.
+- Após VIP/Xepa, segue direto ao Big Fone.
+- Após a Festa, segue direto à formação do Paredão.
+- A Prova do Líder, o Big Fone e imunidades de poderes e dinâmicas especiais continuam.
+- Um aviso de Top 8 aparece uma única vez no Ao Vivo.
+- Saves já parados em Anjo/Monstro/Imunização do Anjo são encaminhados à fase correta.
+- Falso eliminado não antecipa Top 8, pois continua na disputa.

@@ -1,0 +1,10 @@
+BBB Simulator — Reta Final: ajustes adicionais
+
+- Top 8: encerra o Jogo da Discórdia, além da Prova do Anjo e Monstro.
+- Após a formação do Paredão (sem Bate-Volta) ou após o Bate-Volta, avança diretamente para Interações 3.
+- Saves antigos parados em Discórdia no Top 8 são normalizados sem perder o andamento.
+- Top 4: A Última Resistência substitui as quatro perguntas da antiga semifinal.
+- Oito ciclos de equilíbrio com medidor interativo, escolhas de postura, energia e foco,
+  NPCs que também se desgastam e podem abandonar; progresso é salvo por ciclo.
+- O último Paredão contém os outros três participantes, enquanto o vencedor ganha vaga na final.
+- Se um save estava no meio do antigo quiz do Top 4, ele inicia a nova modalidade.

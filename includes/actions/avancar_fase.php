@@ -261,7 +261,7 @@ if (isset($_POST['avancar_fase'])) {
         ) {
             $_SESSION['fase_semana'] =
                 isset($_SESSION['vip_definido'])
-                    ? 'anjo'
+                    ? bbbFaseAposVip($jogadores)
                     : 'vip_xepa_revelar';
 
             header("Location: jogo.php");
@@ -299,7 +299,7 @@ if (isset($_POST['avancar_fase'])) {
 
         unset($j);
 
-        $_SESSION['fase_semana'] = 'anjo';
+        $_SESSION['fase_semana'] = bbbFaseAposVip($jogadores);
 
         header("Location: jogo.php");
         exit;
@@ -311,6 +311,11 @@ if (isset($_POST['avancar_fase'])) {
     }
 
     if ($fase == 'anjo') {
+        if (bbbRetaFinalSemAnjo($jogadores)) {
+            bbbSincronizarRetaFinal($jogadores);
+            header('Location: jogo.php');
+            exit;
+        }
         header("Location: prova_anjo.php");
         exit;
     }
@@ -368,20 +373,8 @@ if (isset($_POST['avancar_fase'])) {
             $_SESSION['jogadores'] =
                 array_values($jogadores);
 
-            if (
-                function_exists('prepararSorteioPoderCuringa') &&
-                prepararSorteioPoderCuringa($jogadores)
-            ) {
-                $_SESSION['fase_semana'] =
-                    'poder_curinga';
-
-            } else {
-                $_SESSION['fase_semana'] =
-                    'interacoes_2';
-
-                $_SESSION['acoes_restantes'] =
-                    3;
-            }
+            $_SESSION['fase_semana'] = 'interacoes_2';
+            $_SESSION['acoes_restantes'] = 3;
 
             header("Location: jogo.php");
             exit;
@@ -428,11 +421,7 @@ if (isset($_POST['avancar_fase'])) {
         $_SESSION['evento_extra'][] =
             "🎉 A festa movimentou a casa com conversas, olhares, alianças e tensão.";
 
-        if (!empty($_SESSION['anjo_autoimune'])) {
-            $_SESSION['fase_semana'] = 'paredao';
-        } else {
-            $_SESSION['fase_semana'] = 'imunizacao_anjo';
-        }
+        $_SESSION['fase_semana'] = bbbFaseAposFesta($jogadores);
 
         header("Location: jogo.php");
         exit;

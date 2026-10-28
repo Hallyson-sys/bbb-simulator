@@ -331,98 +331,6 @@ function feedIntelProcessarBigFone($jogadores, $rodada)
 
 
 /* =========================================================
-   🎁 PODER CURINGA
-   ========================================================= */
-function feedIntelNomePoderCuringa($tipo)
-{
-    if (function_exists('catalogoPoderesCuringa')) {
-        $catalogo = catalogoPoderesCuringa();
-
-        if (isset($catalogo[$tipo]['nome'])) {
-            return $catalogo[$tipo]['nome'];
-        }
-    }
-
-    $mapa = [
-        'voto_duplo' => 'Voto Duplo',
-        'imunidade_extra' => 'Imunidade Extra',
-        'anular_voto' => 'Anular Voto',
-        'espiao' => 'Espião do Confessionário',
-        'contra_golpe' => 'Contra-Golpe',
-        'trocar_emparedado' => 'Troca de Emparedado'
-    ];
-
-    return $mapa[$tipo] ?? 'Poder Curinga';
-}
-
-function feedIntelProcessarCuringa($jogadores, $rodada)
-{
-    $poder = $_SESSION['poder_curinga'] ?? null;
-
-    if (!$poder || !is_array($poder)) {
-        return;
-    }
-
-    if (
-        (int)($poder['rodada'] ?? $rodada) !==
-        (int)$rodada
-    ) {
-        return;
-    }
-
-    $dono = $poder['dono'] ?? '';
-    $tipo = $poder['tipo'] ?? '';
-
-    if ($dono == '' || $tipo == '') {
-        return;
-    }
-
-    $chave =
-        'intel_curinga|' .
-        $rodada . '|' .
-        $dono . '|' .
-        $tipo;
-
-    if (feedIntelProcessado($chave)) {
-        return;
-    }
-
-    $nomePoder = feedIntelNomePoderCuringa($tipo);
-
-    adicionarPostFeedPublico(
-        $jogadores,
-        feedIntelEscolherTexto([
-            "$dono ficou com o Poder Curinga: $nomePoder. Agora quero ver a movimentação 👀",
-            "$nomePoder caiu na mão de $dono. Essa semana ganhou uma camada nova.",
-            "O Poder Curinga é de $dono e o poder é $nomePoder. A casa que lute."
-        ]),
-        'curinga',
-        [$dono]
-    );
-
-    if (
-        in_array(
-            $tipo,
-            ['contra_golpe', 'trocar_emparedado'],
-            true
-        )
-    ) {
-        adicionarPostFeedPublico(
-            $jogadores,
-            feedIntelEscolherTexto([
-                "$dono pode guardar esse Curinga até a formação do Paredão. Isso é MUITO perigoso.",
-                "Esse $nomePoder do $dono pode mudar um Paredão inteiro no último segundo."
-            ]),
-            'curinga',
-            [$dono]
-        );
-    }
-
-    feedIntelMarcar($chave);
-}
-
-
-/* =========================================================
    📈 LEITURA INTERNA DA REAÇÃO DO PÚBLICO
    Os valores continuam secretos para quem joga.
    ========================================================= */
@@ -1314,10 +1222,7 @@ function atualizarFeedPublicoInteligente(
         $rodada
     );
 
-    feedIntelProcessarCuringa(
-        $jogadores,
-        $rodada
-    );
+
 
     feedIntelProcessarPopularidade(
         $jogadores,
@@ -1430,30 +1335,6 @@ function gerarTrendingTopicsFeedInteligente(
                 $tag,
                 $rodada,
                 26000
-            )
-        );
-    }
-
-    /* 🎁 Curinga */
-    $curinga = $_SESSION['poder_curinga'] ?? null;
-
-    if (
-        is_array($curinga) &&
-        !empty($curinga['dono']) &&
-        (int)($curinga['rodada'] ?? $rodada) === (int)$rodada
-    ) {
-        $tag =
-            '#' .
-            hashtagNomeFeed($curinga['dono']) .
-            'Curinga';
-
-        feedIntelAdicionarTrending(
-            $lista,
-            $tag,
-            feedIntelPostsTrending(
-                $tag,
-                $rodada,
-                22000
             )
         );
     }

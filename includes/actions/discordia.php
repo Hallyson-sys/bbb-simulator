@@ -10,7 +10,9 @@ require_once __DIR__ . '/../logica/consequencias_sociais.php';
    🔥 PROCESSAR JOGO DA DISCÓRDIA
 ========================= */
 
-if (isset($_POST['fazer_discordia'])) {
+if (isset($_POST['fazer_discordia'])
+    && ($_SESSION['fase_semana'] ?? '') === 'discordia'
+    && !bbbRetaFinalSemDiscordia($jogadores)) {
 
     $tema =
         $_SESSION['tema_discordia']

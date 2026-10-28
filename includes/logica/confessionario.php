@@ -9,7 +9,14 @@
    Gera falas com base em afinidade, rivalidade, confiança, romance e personalidade.
 ========================= */
 
-function escolherFalaNaoRepetida($opcoes, $historico)
+function falaNormalizadaConf($fala): string {
+    $texto = trim(strip_tags((string)$fala));
+    // Desconsiderar emoji e nome antes dos dois-pontos: a frase é o que importa.
+    $texto = preg_replace('/^.*?:\s*["“]?/u', '', $texto, 1);
+    return strtolower(trim(preg_replace('/\s+/u', ' ', $texto)));
+}
+
+function escolherFalaNaoRepetida($opcoes, $historico, $falasNestaSessao = [])
 {
 
     if (empty($opcoes)) {
@@ -24,18 +31,19 @@ function escolherFalaNaoRepetida($opcoes, $historico)
         return trim(strip_tags((string)$fala));
     }, $historico);
 
+    $jaUsadas = array_map('falaNormalizadaConf', $falasNestaSessao);
     shuffle($opcoes);
-
     foreach ($opcoes as $fala) {
-        $falaLimpa = trim(strip_tags((string)$fala));
-
-        if (!in_array($falaLimpa, $historicoLimpo)) {
-            return $fala;
-        }
+        $normal = falaNormalizadaConf($fala);
+        if (!in_array($normal, $jaUsadas, true) &&
+            !in_array(trim(strip_tags((string)$fala)), $historicoLimpo, true)) return $fala;
     }
-
-    /* Se já usou todas, permite repetir para não travar o jogo */
-    return $opcoes[array_rand($opcoes)];
+    // Repetição de uma mesma pessoa em semanas diferentes é menos grave do que
+    // duplicar a MESMA frase entre dois NPCs na mesma sessão.
+    foreach ($opcoes as $fala) {
+        if (!in_array(falaNormalizadaConf($fala), $jaUsadas, true)) return $fala;
+    }
+    return '';
 }
 
 /* =========================
@@ -428,7 +436,7 @@ function gerarConfessionarioInteligente(&$jogadores, $meuNome)
             ];
         }
 
-        $fala = escolherFalaNaoRepetida($opcoes, $historicoConfessionario);
+        $fala = escolherFalaNaoRepetida($opcoes, $historicoConfessionario, $falas);
 
         if ($fala == '') {
             continue;

@@ -3,6 +3,7 @@
 session_start();
 
 require_once __DIR__ . '/includes/logica/final.php';
+require_once __DIR__ . '/includes/logica/final_cerimonia.php';
 
 $jogadores =
     array_values(
@@ -14,6 +15,30 @@ if (count($jogadores) !== 3) {
     header("Location: jogo.php");
     exit;
 }
+
+// A popularidade só recebe o efeito dos pedidos de voto UMA vez, antes de calcular o ranking.
+finalPrepararCerimonia($jogadores);
+$jogadores = array_values((array)($_SESSION['jogadores'] ?? $jogadores));
+if (isset($_POST['final_confirmar']) && empty($_SESSION['final_cerimonia']['concluida']) &&
+    !empty($_SESSION['modo_espectador']) && isset($_POST['torcida_espectador'])) {
+    finalRegistrarTorcidaEspectador($jogadores,(string)$_POST['torcida_espectador']);
+}
+if (isset($_POST['final_confirmar']) && empty($_SESSION['final_cerimonia']['concluida'])) {
+    $precisaTorcida=!empty($_SESSION['modo_espectador']) &&
+        in_array((string)($_SESSION['meu_nome']??''),(array)($_SESSION['historico_eliminados']??[]),true);
+    if ($precisaTorcida && empty($_SESSION['final_cerimonia']['torcida_espectador'])) {
+        $_SESSION['final_cerimonia']['aviso']='Escolha um dos finalistas para receber sua torcida.';
+    } else {
+        unset($_SESSION['final_cerimonia']['aviso']);
+        finalConfirmarDiscurso($jogadores, (string)($_POST['tom_discurso'] ?? ''));
+        header('Location: final.php'); exit;
+    }
+}
+if (empty($_SESSION['final_cerimonia']['concluida'])) {
+    require __DIR__ . '/includes/components/final_cerimonia.php';
+    exit;
+}
+$jogadores = array_values((array)($_SESSION['jogadores'] ?? []));
 
 if (
     !isset($_SESSION['ranking_final']) ||

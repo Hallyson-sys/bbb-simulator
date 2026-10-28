@@ -50,9 +50,6 @@ function fasesDisponiveisModoTeste()
         'bigfone' =>
             '☎️ Big Fone',
 
-        'poder_curinga' =>
-            '🎁 Poder Curinga',
-
         'interacoes_2' =>
             '💬 Interações 2',
 

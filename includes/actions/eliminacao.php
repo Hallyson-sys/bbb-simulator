@@ -74,11 +74,10 @@ if (
     /* =====================================================
        🚨 DECIDIR SE É PAREDÃO FALSO
        ===================================================== */
-    $ehParedaoFalso =
-        prepararParedaoFalsoDaRodada(
-            $jogadores,
-            $rodada
-        );
+    $ehParedaoFalso = !empty($_SESSION['top4_concluido'])
+        && (int)($_SESSION['top4_rodada'] ?? 0) === (int)$rodada
+        ? false
+        : prepararParedaoFalsoDaRodada($jogadores, $rodada);
 
     if ($ehParedaoFalso) {
         $registrado =
@@ -216,6 +215,13 @@ if (isset($_POST['continuar'])) {
         exit;
     }
 
+    // A semifinal também pode ser acompanhada pelo modo espectador.
+    if (!empty($_SESSION['modo_espectador']) && count($_SESSION['jogadores'] ?? []) <= 3) {
+        $_SESSION['fase_semana'] = 'finalistas';
+        header('Location: final.php');
+        exit;
+    }
+
     if (count($_SESSION['jogadores'] ?? []) <= 3) {
         $_SESSION['fase_semana'] = 'finalistas';
 
@@ -228,6 +234,13 @@ if (isset($_POST['continuar'])) {
     iniciarNovaRodadaAposEliminacao(
         $jogadores
     );
+
+    if (count($jogadores) === 4 && empty($_SESSION['paredao_falso_ativo'])) {
+        $_SESSION['fase_semana'] = 'top4_prova';
+        $_SESSION['evento_extra'][] = '🏆 TOP 4 — Uma prova decisiva dará a primeira vaga na Grande Final. Os três perdedores irão ao último Paredão!';
+        header('Location: top4.php');
+        exit;
+    }
 
     header("Location: jogo.php");
     exit;

@@ -6,15 +6,24 @@
    
 function alterarPopularidade(&$jogadores, $nome, $valor)
 {
-
+    $mudancaReal=0;
     foreach ($jogadores as &$j) {
 
         if ($j['nome'] == $nome) {
 
-            $j['popularidade'] =
-                limitar(($j['popularidade'] ?? 50) + $valor, 0, 100);
+            $atual = limitar((int)($j['popularidade'] ?? 50), 0, 100);
+            // Retornos positivos decrescentes: chegar a 90+ exige constância,
+            // e não apenas acumular os muitos bônus pequenos das interações.
+            if ($valor > 0) {
+                $fator = max(0.12, min(1.0, (100 - $atual) / 48));
+                $valor = max(1, (int)round($valor * $fator));
+            }
+            $j['popularidade'] = limitar($atual + $valor, 0, 100);
+            $mudancaReal = (int)$j['popularidade'] - $atual;
         }
     }
+    unset($j);
+    return $mudancaReal;
 }
 
 
@@ -29,7 +38,8 @@ function alterarPopularidadeMotivo(&$jogadores, $nome, $min, $max, $motivo, $mos
         return 0;
     }
 
-    alterarPopularidade($jogadores, $nome, $valor);
+    $valor = alterarPopularidade($jogadores, $nome, $valor);
+    if ($valor === 0) return 0;
 
     if ($mostrarNoAoVivo) {
         if (!isset($_SESSION['evento_extra'])) {
@@ -37,9 +47,9 @@ function alterarPopularidadeMotivo(&$jogadores, $nome, $min, $max, $motivo, $mos
         }
 
         if ($valor > 0) {
-            $_SESSION['evento_extra'][] = "📈 $nome ganhou $valor de popularidade: $motivo.";
+            $_SESSION['evento_extra'][] = "📈 O público repercutiu o momento de $nome: $motivo.";
         } else {
-            $_SESSION['evento_extra'][] = "📉 $nome perdeu " . abs($valor) . " de popularidade: $motivo.";
+            $_SESSION['evento_extra'][] = "📉 A atitude de $nome gerou críticas do público: $motivo.";
         }
     }
 
@@ -119,7 +129,8 @@ function alterarPopularidadePublica(&$jogadores, $nome, $min, $max, $motivo, $mo
         return 0;
     }
 
-    alterarPopularidade($jogadores, $nome, $valor);
+    $valor = alterarPopularidade($jogadores, $nome, $valor);
+    if ($valor === 0) return 0;
     registrarHistoricoPopularidade($jogadores, $nome, $valor, $motivo);
 
     if ($mostrarNoAoVivo) {
@@ -128,9 +139,9 @@ function alterarPopularidadePublica(&$jogadores, $nome, $min, $max, $motivo, $mo
         }
 
         if ($valor > 0) {
-            $_SESSION['evento_extra'][] = "📈 O público reagiu bem: $nome ganhou $valor de popularidade ($motivo).";
+            $_SESSION['evento_extra'][] = "📈 O público reagiu bem ao momento de $nome ($motivo).";
         } else {
-            $_SESSION['evento_extra'][] = "📉 O público reagiu mal: $nome perdeu " . abs($valor) . " de popularidade ($motivo).";
+            $_SESSION['evento_extra'][] = "📉 O público criticou a atitude de $nome ($motivo).";
         }
     }
 
@@ -297,6 +308,17 @@ function aplicarDesgasteSemanalPublico(&$jogadores)
         }
     }
 
+    // Desgaste da atenção do público no decorrer da temporada. Aplica-se
+    // uma vez por semana e é gradual, preservando os efeitos das escolhas.
+    foreach ($jogadores as &$j) {
+        if (!isset($j['nome'])) continue;
+        $atual = (int)($j['popularidade'] ?? 50);
+        if ($atual >= 95) $j['popularidade'] = max(0, $atual - random_int(4, 7));
+        elseif ($atual >= 85) $j['popularidade'] = max(0, $atual - random_int(2, 4));
+        elseif ($atual >= 75) $j['popularidade'] = max(0, $atual - random_int(1, 2));
+        elseif ($atual <= 22) $j['popularidade'] = min(100, $atual + random_int(0, 2));
+    }
+    unset($j);
     $_SESSION[$chave] = true;
 }
 

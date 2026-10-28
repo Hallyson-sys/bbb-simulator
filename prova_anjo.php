@@ -8,6 +8,7 @@ session_start();
 require_once __DIR__ . '/includes/logica/historico_temporada.php';
 require_once __DIR__ . '/includes/logica/utilitarios.php';
 require_once __DIR__ . '/includes/logica/prova_anjo.php';
+require_once __DIR__ . '/includes/logica/reta_final.php';
 
 if (!isset($_SESSION['jogadores'])) {
     header('Location: index.php');
@@ -20,6 +21,11 @@ if (!isset($_SESSION['lider'])) {
 }
 
 $jogadores = array_values($_SESSION['jogadores']);
+if (bbbRetaFinalSemAnjo($jogadores)) {
+    bbbSincronizarRetaFinal($jogadores);
+    header('Location: jogo.php');
+    exit;
+}
 $lider = (string)$_SESSION['lider'];
 $meuNome = (string)($_SESSION['meu_nome'] ?? '');
 

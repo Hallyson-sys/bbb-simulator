@@ -11,6 +11,20 @@ session_start();
    🧭 NAVEGAÇÃO
    ========================================================= */
 
+// Compatibilidade: saves antigos podem ter ficado na fase extinta do Poder Curinga.
+if (($_SESSION['fase_semana'] ?? '') === 'poder_curinga') {
+    $_SESSION['fase_semana'] = 'interacoes_2';
+    $_SESSION['acoes_restantes'] = $_SESSION['acoes_restantes'] ?? 3;
+}
+foreach (['poder_curinga','curinga_decidido_rodada','curinga_voto_duplo_ativo',
+    'curinga_anular_voto_de','curinga_espiar_voto_de','curinga_contra_golpe_usado',
+    'curinga_troca_usada','imunidade_curinga'] as $chaveExtinta) {
+    unset($_SESSION[$chaveExtinta]);
+}
+if (($_SESSION['poder_pos_paredao_origem'] ?? '') === 'curinga') {
+    unset($_SESSION['poder_pos_paredao_origem']);
+}
+
 require_once __DIR__ . '/includes/actions/navegacao.php';
 
 require_once __DIR__ . '/includes/helpers/render.php';
@@ -27,6 +41,7 @@ require_once __DIR__ . '/includes/logica/historico_temporada.php';
 require_once __DIR__ . '/includes/logica/perfil_participante.php';
 
 require_once __DIR__ . '/includes/logica/semana.php';
+require_once __DIR__ . '/includes/logica/reta_final.php';
 
 require_once __DIR__ . '/includes/logica/participantes.php';
 
@@ -47,7 +62,7 @@ require_once __DIR__ . '/includes/logica/estrategia_social.php';
 
 require_once __DIR__ . '/includes/logica/inteligencia_npc.php';
 
-require_once __DIR__ . '/includes/logica/curinga.php';
+// O Poder Curinga foi incorporado ao Big Fone.
 
 require_once __DIR__ . '/includes/logica/big_fone.php';
 
@@ -210,6 +225,26 @@ if (
 
 }
 
+
+// Top 4: a disputa especial substitui a semana comum e define a primeira vaga na final.
+// Não antecipar a etapa durante Paredão Falso / Casa de Vidro / modo espectador.
+if (count($jogadores) === 4 && empty($_SESSION['paredao_falso_ativo'])
+    && empty($_SESSION['casa_vidro_ativa'])
+    && empty($_SESSION['top4_concluido'])
+    && !in_array((string)($_SESSION['fase_semana'] ?? ''),
+        ['jogador_eliminado', 'eliminacao', 'quarto_secreto'], true)) {
+    $_SESSION['fase_semana'] = 'top4_prova';
+}
+if (($_SESSION['fase_semana'] ?? '') === 'top4_prova') {
+    header('Location: top4.php');
+    exit;
+}
+
+// Top 8: normaliza fases antigas e anuncia a reta final só uma vez.
+bbbSincronizarRetaFinal($jogadores);
+bbbAnunciarTop8($jogadores);
+bbbAnunciarTop5($jogadores);
+$fase = $_SESSION['fase_semana'] ?? $fase;
 
 /* =========================================================
    🪙 MOEDAS DO PÚBLICO
@@ -529,6 +564,7 @@ $_SESSION['jogadores']=$jogadores;
 
 
 
+require_once __DIR__ . '/includes/actions/convite_npc.php';
 require_once __DIR__ . '/includes/actions/espectador.php';
 
 require_once __DIR__ . '/includes/actions/eventos_convivencia.php';
@@ -541,7 +577,7 @@ require_once __DIR__ . '/includes/actions/festa.php';
 require_once __DIR__ . '/includes/actions/aliancas_3.php';
 require_once __DIR__ . '/includes/actions/interacoes.php';
 
-require_once __DIR__ . '/includes/actions/curinga.php';
+require_once __DIR__ . '/includes/actions/bigfone_poderes.php';
 
 require_once __DIR__ . '/includes/actions/paredao.php';
 
@@ -682,9 +718,34 @@ atualizarFeedPublicoInteligente(
 
 
 <link rel="stylesheet" href="assets/css/aliancas3_dinamicas.css?v=2">
+<link rel="stylesheet" href="assets/css/convites_npc.css?v=1">
 </head>
 
 <body>
+<?php if(!empty($_SESSION['a3_convite_pendente']) && empty($_SESSION['modo_espectador']) &&
+    ($_SESSION['fase_semana']??'')==='interacoes_1' &&
+    (int)($_SESSION['a3_convite_pendente']['rodada']??0)===(int)($_SESSION['rodada']??1)):
+    $conviteNpc=$_SESSION['a3_convite_pendente']; ?>
+<div class="convite-npc-overlay" role="dialog" aria-modal="true" aria-labelledby="conviteNpcTitulo">
+  <section class="convite-npc-card">
+    <span class="convite-npc-kicker">● REC • CONVERSA NA CASA</span>
+    <div class="convite-npc-avatar">🤝</div>
+    <h2 id="conviteNpcTitulo">Um convite inesperado!</h2>
+    <p><strong><?=htmlspecialchars((string)$conviteNpc['autor'],ENT_QUOTES,'UTF-8')?></strong> te chama para conversar sobre o jogo.</p>
+    <blockquote>"Acho que a gente poderia se proteger aqui dentro. <?=!empty($conviteNpc['grupo'])?'Você topa fazer parte do nosso grupo?':'Que tal a gente formar uma aliança?'?>"</blockquote>
+    <?php if(!empty($conviteNpc['grupo'])):?><p class="convite-npc-grupo">🤝 <?=htmlspecialchars((string)$conviteNpc['grupo'],ENT_QUOTES,'UTF-8')?></p><?php endif;?>
+    <form method="post" class="convite-npc-botoes">
+      <button type="submit" name="a3_responder_convite" value="aceitar">🤝 Aceitar convite</button>
+      <button type="submit" name="a3_responder_convite" value="recusar">🧊 Recusar</button>
+    </form>
+    <small>Você decide: nenhum NPC pode colocar você numa aliança sem sua aprovação.</small>
+  </section>
+</div>
+<?php endif; ?>
+<?php if(!empty($_SESSION['a3_convite_resposta'])): ?>
+  <div class="convite-npc-feedback" role="status"><?=htmlspecialchars(strip_tags((string)$_SESSION['a3_convite_resposta']),ENT_QUOTES,'UTF-8')?></div>
+  <?php unset($_SESSION['a3_convite_resposta']); ?>
+<?php endif; ?>
 
 <?php
 

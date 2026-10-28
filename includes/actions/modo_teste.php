@@ -31,6 +31,9 @@ if(isset($_POST['dev_prova_interativa'])){
     if(!in_array($classe,['lider','anjo'],true)||!pnEstaNova($classe,$tipo)){
         devAvisar('Escolha uma prova válida.');devVoltar();
     }
+    if($classe==='anjo' && bbbRetaFinalSemAnjo($jogadores)){
+        devAvisar('No Top 8 não há mais Prova do Anjo. Escolha uma Prova do Líder para testar.');devVoltar();
+    }
     if($classe==='anjo'&&empty($_SESSION['lider'])){
         devAvisar('Defina um Líder no modo DEV antes de testar uma Prova do Anjo.');devVoltar();
     }
@@ -53,7 +56,8 @@ if (isset($_POST['dev_dinamica'])) {
     $semana = (int)($_SESSION['rodada'] ?? 1);
     if (!isset($lista[$tipo])) devAvisar('Escolha uma dinâmica válida.');
     elseif ($semana < 2) devAvisar('Avance para a Semana 2 ou posterior antes de testar dinâmicas surpresa.');
-    elseif (count($jogadores) < ($tipo === 'paredao_especial' ? 8 : 7)) devAvisar('Participantes insuficientes para essa dinâmica.');
+    elseif (count($jogadores) <= 5) devAvisar('No Top 5 não existem mais dinâmicas surpresa, nem mesmo pelo modo DEV.');
+    elseif (count($jogadores) < ($tipo === 'paredao_especial' ? 8 : 6)) devAvisar('Participantes insuficientes para essa dinâmica.');
     elseif (!empty($_SESSION['paredao_formado']) || in_array((string)($_SESSION['fase_semana'] ?? ''), ['eliminacao','resultado'], true)) devAvisar('Esta semana já tem um Paredão em andamento. Teste a regra antes da formação.');
     else {
         $_SESSION['ds3'] = ['rodada'=>$semana, 'tipo'=>$tipo, 'imunidade_aplicada'=>false, 'carta_aplicada'=>false];

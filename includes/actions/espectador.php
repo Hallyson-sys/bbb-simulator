@@ -49,6 +49,11 @@ if (
     $_SESSION['jogadores'] =
         array_values($jogadores);
 
+    if (($_SESSION['fase_semana'] ?? '') === 'top4_prova') {
+        header('Location: top4.php');
+        exit;
+    }
+
     header('Location: jogo.php');
     exit;
 }

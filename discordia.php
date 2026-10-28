@@ -9,6 +9,16 @@ if(!isset($_SESSION['jogadores'])){
 }
 
 $jogadores = $_SESSION['jogadores'];
+// O Top 8 já não tem Jogo da Discórdia (nem por URL antiga).
+require_once __DIR__ . '/includes/logica/reta_final.php';
+if (bbbRetaFinalSemDiscordia((array)$jogadores)) {
+    if (($_SESSION['fase_semana'] ?? '') === 'discordia') {
+        $_SESSION['fase_semana'] = 'interacoes_3';
+        $_SESSION['acoes_restantes'] = 3;
+    }
+    header('Location: jogo.php'); exit;
+}
+
 $meuNome = $_SESSION['meu_nome'] ?? '';
 
 if(!isset($_SESSION['evento_extra'])){

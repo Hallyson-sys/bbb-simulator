@@ -22,8 +22,33 @@ function a3Lealdade(array $jogadores,string $nome): int {
 function a3Preparar(array &$jogadores,string $meuNome): void {
     $r=a3Rodada(); if($r<2 || ($_SESSION['fase_semana']??'')!=='interacoes_1' || ($_SESSION['a3_preparada_rodada']??0)===$r) return;
     $_SESSION['a3_preparada_rodada']=$r;
+    if (!empty($_SESSION['a3_convite_pendente']) &&
+        (int)($_SESSION['a3_convite_pendente']['rodada']??0) !== $r) {
+        unset($_SESSION['a3_convite_pendente']);
+    }
     $grupos=[];
     foreach($jogadores as $j) if(!empty($j['alianca']) && empty($j['eliminado'])) $grupos[(string)$j['alianca']]=true;
+    // Convite individual ao jogador: NPCs não podem colocá-lo numa aliança
+    // automaticamente. O pedido fica pendente até ACEITAR ou RECUSAR.
+    if (empty($_SESSION['modo_espectador']) && $meuNome !== '' &&
+        !obterAliancaJogador($jogadores, $meuNome) &&
+        empty($_SESSION['a3_convite_pendente']) && random_int(1,100)<=43) {
+        $candidatos=[];
+        foreach($jogadores as $j) {
+            $nome=(string)($j['nome']??'');
+            if ($nome==='' || nomeIgual($nome,$meuNome) || !empty($j['eliminado'])) continue;
+            $grupo=(string)($j['alianca']??'');
+            if ($grupo!=='' && tamanhoAlianca($jogadores,$grupo)>=5) continue;
+            $rel=a3Relacao($jogadores,$nome,$meuNome);
+            $score=(float)($rel['amizade']??30) + (float)($rel['confianca']??25) - (float)($rel['rivalidade']??0);
+            if ($score>=50) $candidatos[]=['nome'=>$nome,'grupo'=>$grupo,'score'=>$score];
+        }
+        usort($candidatos,fn($a,$b)=>$b['score']<=>$a['score']);
+        if($candidatos) {
+            $c=$candidatos[random_int(0,min(2,count($candidatos)-1))];
+            $_SESSION['a3_convite_pendente']=['rodada'=>$r,'autor'=>$c['nome'],'grupo'=>$c['grupo']];
+        }
+    }
     foreach(array_keys($grupos) as $grupo) {
         $membros=membrosDaAlianca($jogadores,$grupo);
         if(count($membros)<2) continue;

@@ -1,0 +1,13 @@
+BBB SIMULATOR — Correções de convivência, final e eliminação (V1.6)
+
+Base: Reta Final 3.0 V1.5 (Top 4 resistência).
+
+1) Confessionário: falas normalizadas e exclusão de duplicações entre NPCs na mesma sessão, sem perder o histórico de falas anteriores.
+2) Convites de alianças: nas Interações da Semana 2 em diante, NPC com afinidade suficiente pode fazer convite. Jogador decide aceitar/recusar numa cena própria; não entra automaticamente. Convite por semana, com verificação no servidor e PRG.
+3) Eliminação: novo acabamento visual, com cards, avatares, abertura de transmissão, discurso e efeito de revelação. A apuração foi preservada.
+4) Grande Final: amplia repertório das torcidas dos eliminados; espectador que foi eliminado escolhe para quem vai sua torcida. A escolha é registrada antes do resultado e permanece oculta como intenção de voto fora da cerimônia.
+5) Popularidade: ganhos decrescentes quanto maior o indicador, desgaste moderado semanal para perfis muito valorizados e correção de saves antigos em que os três finalistas já chegaram saturados a 100. Valores permanecem ocultos durante a temporada.
+
+Dicas de teste: em save Semana 2+ sem aliança, avance às primeiras Interações; para ver convite pode ser necessário jogar algumas semanas. Na final, elimine o jogador e continue como espectador para escolher a torcida.
+
+Validação de sintaxe PHP concluída e testes isolados das novas regras. Ainda é recomendável testar uma temporada completa e a interface no navegador mobile antes do deploy de produção.

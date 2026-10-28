@@ -21,7 +21,7 @@ $rotulosFaseMobile = [
     'interacoes' => '💬 Vida na Casa',
     'vip_xepa' => '🍽️ VIP & Xepa',
     'monstro' => '👹 Castigo do Monstro',
-    'curinga' => '🃏 Poder Curinga'
+    'bigfone' => '☎️ Big Fone'
 ];
 $nomeFaseMobile = $rotulosFaseMobile[$fase] ?? ('🎮 ' . ucwords(str_replace('_', ' ', $fase)));
 ?>
@@ -34,6 +34,12 @@ $nomeFaseMobile = $rotulosFaseMobile[$fase] ?? ('🎮 ' . ucwords(str_replace('_
     </div>
 
     <h2 class="desktop-panel-title">🎮 Controle da Semana</h2>
+    <?php if (function_exists('bbbRetaFinalSemAnjo') && bbbRetaFinalSemAnjo($jogadores)): ?>
+      <div class="box" style="border:1px solid #be6af0;background:linear-gradient(120deg,#261035,#12192f);margin-bottom:12px;">
+        🏁 <strong>Reta Final — Top 8</strong><br>
+        <span style="font-size:.91em;opacity:.9">Sem Prova do Anjo e Monstro. Big Fone, Liderança e dinâmicas surpresa continuam!</span>
+      </div>
+    <?php endif; ?>
 
     <div style="margin-bottom: 14px;">
         <a href="temporada.php" class="btn" style="display:inline-block;text-decoration:none;">📖 Temporada</a>

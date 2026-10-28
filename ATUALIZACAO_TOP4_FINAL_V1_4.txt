@@ -1,0 +1,33 @@
+BBB SIMULATOR — RETA FINAL V1.4
+
+1) As Dinâmicas Surpresa são permitidas até o Top 6 (inclusive).
+   No Top 5 elas deixam de acontecer; o Modo DEV não pode forçá-las nessa fase.
+   O Ao Vivo anuncia o início da reta final sem novos twists.
+
+2) Com 4 participantes, o jogo abre top4.php automaticamente.
+   Quatro desafios interativos: Código da Final, Memória da Casa,
+   Cofre da Semifinal e Última Decisão.
+   Os NPCs competem com pontuação própria e as respostas são verificadas no PHP.
+   Um vencedor fica imune, classifica-se direto para a final;
+   os outros três enfrentam o último Paredão sem Bate-Volta nem Paredão Falso.
+   O jogador eliminado pode acompanhar a prova no modo espectador.
+
+3) Na Grande Final, antes da apuração, os finalistas fazem pedidos de voto.
+   O jogador pode escolher um entre quatro discursos.
+   Os NPCs também pedem votos. O efeito pequeno na popularidade é oculto,
+   aplicado uma única vez e registrado na sessão.
+   Os ex-participantes revelam suas torcidas usando relações guardadas
+   quando saíram da casa, sem conhecer automaticamente eventos posteriores.
+   Após confirmar, a votação final é calculada e a revelação normal continua.
+
+4) Compatibilidade: dados novos são inicializados sob demanda; saves antigos
+   seguem válidos. Os testes não substituem uma partida inteira no celular.
+
+Arquivos principais:
+- top4.php; includes/logica/top4.php; assets/css/top4.css
+- includes/logica/final_cerimonia.php
+- includes/components/final_cerimonia.php
+- assets/css/final_cerimonia.css
+- final.php, jogo.php, includes/actions/eliminacao.php
+- includes/logica/dinamicas_surpresa.php, includes/logica/reta_final.php
+- includes/logica/espectador.php, includes/actions/espectador.php

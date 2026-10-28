@@ -247,7 +247,7 @@ function resolverBateVoltaJogador(&$jogadores, $escolha)
     $_SESSION['evento_extra'][] =
         "🚨 Paredão final após o Bate-Volta: <b>" . implode(" x ", $_SESSION['paredao']) . "</b>.";
 
-    $_SESSION['fase_semana'] = 'discordia';
+    $_SESSION['fase_semana'] = bbbFaseAposParedao($jogadores);
 
     if (nomeIgual($vencedor, $meuNome)) {
         alterarPopularidadePublica($jogadores, $meuNome, 4, 6, "venceu o Bate-Volta e escapou do paredão", true);

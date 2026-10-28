@@ -23,134 +23,20 @@ require_once __DIR__ . '/../logica/consequencias_sociais.php';
 
 
 function origensAnulacaoVotoEspecial($votante)
-
 {
-
-    $origens = [];
-
-
-
-    if (
-
-        votoEstaAnuladoPeloCuringa(
-
-            $votante
-
-        )
-
-    ) {
-
-        $origens[] = 'Poder Curinga';
-
-    }
-
-
-
-    if (
-
-        votoEstaAnuladoPeloBigFone(
-
-            $votante
-
-        )
-
-    ) {
-
-        $origens[] = 'Big Fone';
-
-    }
-
-
-
-    return $origens;
-
+    return votoEstaAnuladoPeloBigFone($votante) ? ['Big Fone'] : [];
 }
 
-
-
-
-
 function pesoVotoComPoderes($votante)
-
 {
-
-    /*
-
-     * Caso a mesma pessoa receba Voto Duplo pelas duas fontes,
-
-     * o efeito não acumula para quatro votos.
-
-     * O voto continua valendo por dois.
-
-     */
-
-    $peso = max(
-
-        pesoVotoCuringa(
-
-            $votante
-
-        ),
-
-        pesoVotoBigFone(
-
-            $votante
-
-        )
-
-    );
+    $peso = pesoVotoBigFone($votante);
     return function_exists('dsPesoVoto') ? dsPesoVoto($peso, (string)$votante) : $peso;
 }
 
-
-
 function origensVotoDuploEspecial($votante)
-
 {
-
-    $origens = [];
-
-
-
-    if (
-
-        pesoVotoCuringa(
-
-            $votante
-
-        ) > 1
-
-    ) {
-
-        $origens[] = 'Poder Curinga';
-
-    }
-
-
-
-    if (
-
-        pesoVotoBigFone(
-
-            $votante
-
-        ) > 1
-
-    ) {
-
-        $origens[] = 'Big Fone';
-
-    }
-
-
-
-    return $origens;
-
+    return pesoVotoBigFone($votante) > 1 ? ['Big Fone'] : [];
 }
-
-
-
-
 
 /* =========================
 
@@ -451,12 +337,6 @@ if (
         $_SESSION['lider'] ?? '';
 
 
-
-    reaplicarImunidadeCuringa(
-
-        $jogadores
-
-    );
 
 
 
@@ -1644,16 +1524,6 @@ if (
 
 
 
-
-
-    aplicarEspiaoCuringaNoResultado(
-
-        $votosDetalhados
-
-    );
-
-
-
     aplicarEspiaoBigFoneNoResultado(
 
         $votosDetalhados
@@ -1884,69 +1754,7 @@ if (
 
 
 
-    /* =====================================================
 
-       🎁 PODER CURINGA — NPC
-
-       ===================================================== */
-
-
-
-    $eventoContraGolpeNPC =
-
-        aplicarContraGolpeCuringaNPC(
-
-            $jogadores,
-
-            $_SESSION['paredao']
-
-        );
-
-
-
-    if (
-
-        $eventoContraGolpeNPC != ""
-
-    ) {
-
-
-
-        $_SESSION['evento_extra'][] =
-
-            $eventoContraGolpeNPC;
-
-    }
-
-
-
-
-
-    $eventoTrocaNPC =
-
-        aplicarTrocaEmparedadoCuringaNPC(
-
-            $jogadores,
-
-            $_SESSION['paredao']
-
-        );
-
-
-
-    if (
-
-        $eventoTrocaNPC != ""
-
-    ) {
-
-
-
-        $_SESSION['evento_extra'][] =
-
-            $eventoTrocaNPC;
-
-    }
 
 
 

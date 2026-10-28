@@ -96,7 +96,7 @@ if (isset($_POST['definir_vip'])) {
 
     $_SESSION['jogadores'] = $jogadores;
     $_SESSION['vip_definido'] = true;
-    $_SESSION['fase_semana'] = 'anjo';
+    $_SESSION['fase_semana'] = bbbFaseAposVip($jogadores);
 
     $vipLista = [];
     $xepaLista = [];
