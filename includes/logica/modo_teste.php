@@ -112,6 +112,7 @@ function limparEstadoSemanaModoTeste()
 {
     $chaves = [
         'lider',
+        'lideres_dupla','lider_dupla_semana','anjos_dupla','anjo_dupla_semana','pn_estado_lider','pn_estado_anjo',
         'anjo',
         'imune',
         'monstro',

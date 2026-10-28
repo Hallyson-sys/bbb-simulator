@@ -150,6 +150,12 @@
 
     <div class="box">
         <h3>😇 Você é o Anjo! Escolha quem será imunizado</h3>
+        <?php if((int)($_SESSION['anjo_dupla_semana']??0)===(int)($_SESSION['rodada']??1) && !empty($_SESSION['anjos_dupla'][1])):
+            $pnParceiro=(string)$_SESSION['anjos_dupla'][1];
+            $pnSugestao=pnPreferenciaParceiro($jogadores,$pnParceiro,'anjo'); ?>
+            <p class="pn-aviso">🤝 Anjo em Dupla: <b><?=htmlspecialchars($pnParceiro)?></b> prefere proteger
+               <b><?=htmlspecialchars($pnSugestao)?></b>. Você pode discordar, mas isso pode afetar a confiança entre vocês.</p>
+        <?php endif; ?>
     </div>
 
     <form method="POST">
@@ -210,6 +216,12 @@
 
     <div class="box">
         <h3>👑 Você é o Líder! Indique alguém ao Paredão</h3>
+        <?php if((int)($_SESSION['lider_dupla_semana']??0)===(int)($_SESSION['rodada']??1) && !empty($_SESSION['lideres_dupla'][1])):
+             $pnParceiro=(string)$_SESSION['lideres_dupla'][1];$pnSugestao=pnPreferenciaParceiro($jogadores,$pnParceiro,'lider'); ?>
+            <p class="pn-aviso">🤝 Liderança em Dupla: <b><?=htmlspecialchars($pnParceiro)?></b> sugere indicar
+            <b><?=htmlspecialchars($pnSugestao)?></b>. Vocês podem discordar; sua decisão será registrada.</p>
+        <?php endif; ?>
+
     </div>
 
     <form method="POST">

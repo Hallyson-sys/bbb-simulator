@@ -1,0 +1,53 @@
+BBB SIMULATOR — CONFESSIONÁRIO (CONTEÚDO EXPANDIDO) E PROVAS INTERATIVAS 2.0
+
+Base: Dinâmicas Surpresa — Correções V1.2 enviada pelo usuário.
+
+CONFESSIONÁRIO
+- 12 novos temas nos depoimentos dos NPCs, com 5 falas por tema,
+  incluindo cotidiano, saudade, tensão, coragem, autocritica, expectativas e provas.
+- Temas condicionais para Líder, Anjo, rival e aliado.
+- Anti-repetição dos últimos temas por NPC, armazenado no save/sessão.
+- Oito quadros adicionais de posicionamento privado do jogador com 3 escolhas.
+- Não expõe popularidade, votação secreta nem confidências privadas dos NPCs.
+
+PROVAS
+- Novas provas de Líder 14-18 (cinco) + 19 (dupla):
+  Código da Liderança, Ordem Magnética, Labirinto da Casa, Painel Oculto,
+  Tudo ou Nada e Conexão Perfeita — Duplas.
+- Novas provas de Anjo 5-9 (cinco) + 10 (dupla):
+  Cofre Secreto, Sequência das Cores, Caça às Chaves, Quebra-cabeça Relâmpago,
+  Precisão do Anjo e Anjo em Sintonia — Duplas.
+- Desafios gerados uma vez e persistidos por semana/tipo.
+- Correção de respostas pelo PHP, com ranking e resultados dos NPCs.
+- A conclusão normal encaminha à fase seguinte e impede duplicar a vitória.
+
+DUPLAS
+- O jogador escolhe um parceiro apto que pode aceitar ou recusar conforme a relação.
+- A equipe soma pontuação do jogador e contribuição do parceiro.
+- Os demais NPCs disputam em duplas no mesmo ranking.
+- Liderança: ambos são marcados como Líder e protegidos; o titular conduz VIP
+  e indicação, ouvindo a recomendação do colíder, que pode discordar.
+- Anjo: ambos ganham o título. Em semana autoimune, os dois ficam imunes.
+  Em semanas comuns, o titular decide uma imunidade, considerando a opinião do parceiro.
+- Apenas grupos completos podem vencer nas provas em dupla.
+- Duplas são escolhidas somente quando existe elenco elegível suficiente.
+- Vencedores e recomendações aparecem no Ao Vivo.
+
+DEV LOCAL
+- Novo Laboratório de Provas 4.0 para forçar qualquer uma das 12 modalidades.
+- Não concede automaticamente vitória; é necessário completar o desafio.
+
+TESTES
+- php -l em todos os arquivos PHP.
+- node --check no JS novo.
+- Smoke HTTP dos 12 formulários e respostas, com PHP local e polyfills
+  SOMENTE no ambiente de teste (sem modificar as dependências de produção).
+- Testes de validade/erro nas respostas e de ranks de duplas.
+- Testes isolados de imunidades em duplas e expiração da semana.
+- Testes de 125 lotes de confessionários para verificar variedade.
+
+OBSERVAÇÕES
+- Os jogos são componentes responsivos em PHP/HTML/CSS/JS e utilizam sessão PHP.
+- A escolha conjunta é mediada pelo Líder/Anjo titular (para manter compatibilidade
+  com o fluxo existente); não há controle simultâneo por duas pessoas reais.
+- Necessário continuar a validar temporadas inteiras no Chrome/Safari e no Render.

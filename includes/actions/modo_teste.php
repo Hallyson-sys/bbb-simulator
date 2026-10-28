@@ -24,6 +24,28 @@ function devVoltar(): never {
     exit;
 }
 
+// Testes das novas provas. A seleção NÃO concede vitória automaticamente.
+if(isset($_POST['dev_prova_interativa'])){
+    $valor=(string)($_POST['dev_tipo_prova']??'');
+    $partes=explode(':',$valor,2);$classe=$partes[0]??'';$tipo=(int)($partes[1]??0);
+    if(!in_array($classe,['lider','anjo'],true)||!pnEstaNova($classe,$tipo)){
+        devAvisar('Escolha uma prova válida.');devVoltar();
+    }
+    if($classe==='anjo'&&empty($_SESSION['lider'])){
+        devAvisar('Defina um Líder no modo DEV antes de testar uma Prova do Anjo.');devVoltar();
+    }
+    if($classe==='lider'){
+        $_SESSION['fase_semana']='lider';$_SESSION['prova_tipo']=$tipo;
+        unset($_SESSION['pn_estado_lider'],$_SESSION['resultado_prova_lider_interativa']);
+    }else{
+        $_SESSION['fase_semana']='anjo';$_SESSION['prova_anjo_rodada']=(int)($_SESSION['rodada']??1);
+        $_SESSION['prova_anjo_tipo']=$tipo;
+        unset($_SESSION['pn_estado_anjo'],$_SESSION['resultado_prova_anjo'],$_SESSION['prova_anjo_finalizada'],$_SESSION['prova_anjo_finalizada_rodada']);
+    }
+    $_SESSION['dev_aviso']='Prova preparada no ambiente local.';
+    header('Location: prova_'.$classe.'.php');exit;
+}
+
 // Forçar dinâmicas não confere vitória, voto nem poderes além do que o motor já implementa.
 if (isset($_POST['dev_dinamica'])) {
     $tipo = (string)($_POST['tipo'] ?? '');

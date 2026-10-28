@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/utilitarios.php';
+require_once __DIR__ . '/provas_novas.php';
 
 /* =========================================================
    👑 CATÁLOGO DE PROVAS DO LÍDER
@@ -20,7 +21,8 @@ function obterProvasLider()
         10 => ['titulo'=>'🌪️ Giro da Liderança','texto'=>'Escolha uma cor. A roleta vai decidir quem leva a liderança.','max'=>4,'tipo'=>'cor','categoria'=>'🍀 Sorte','dificuldade'=>1],
         11 => ['titulo'=>'🔥 Totem do Líder','texto'=>'Escolha um totem. O totem correto acende e garante a liderança.','max'=>5,'tipo'=>'totem','categoria'=>'🍀 Sorte','dificuldade'=>1],
         12 => ['titulo'=>'🔢 Sequência Lógica','texto'=>'Resolva três padrões. Cada acerto vale um ponto e o melhor desempenho conquista a liderança.','tipo'=>'logica','categoria'=>'🔢 Raciocínio','dificuldade'=>4],
-        13 => ['titulo'=>'🎯 Caminho Estratégico','texto'=>'Passe por três decisões de risco e recompensa. A maior pontuação vence.','tipo'=>'estrategia','categoria'=>'🎯 Estratégia','dificuldade'=>4]
+        13 => ['titulo'=>'🎯 Caminho Estratégico','texto'=>'Passe por três decisões de risco e recompensa. A maior pontuação vence.','tipo'=>'estrategia','categoria'=>'🎯 Estratégia','dificuldade'=>4],
+        ...pnCatalogo('lider')
     ];
 }
 
@@ -608,9 +610,11 @@ function prepararProvaLider()
     if(!isset($_SESSION['prova_tipo'])) $_SESSION['prova_tipo']=rand(1,count($provas));
     $tipo=(int)$_SESSION['prova_tipo'];
     if(!isset($provas[$tipo])){ $tipo=1; $_SESSION['prova_tipo']=1; }
+    if($tipo===19 && count((array)($_SESSION['jogadores']??[]))<4){$tipo=14;$_SESSION['prova_tipo']=$tipo;}
     if($tipo===3) prepararMemoriaLider();
     if($tipo===12) prepararSequenciaLogicaLider();
     if($tipo===13) prepararCaminhoEstrategicoLider();
+    if(pnEstaNova('lider',$tipo)) pnPreparar('lider',$tipo);
     return ['tipo'=>$tipo,'prova'=>$provas[$tipo]];
 }
 
@@ -665,6 +669,7 @@ function resolverProvaLider($jogadores,$meuNome,$tipoProva,$escolha,$prova)
    ========================================================= */
 function registrarLiderDaRodada(&$jogadores,$lider,$meuNome)
 {
+    unset($_SESSION['lideres_dupla'],$_SESSION['lider_dupla_semana']);
     $_SESSION['lider']=$lider;
     foreach($jogadores as &$j){
         if(!isset($j['status'])) $j['status']=[];
@@ -723,4 +728,24 @@ function textoBotaoProvaLider($tipo,$i)
     if($tipo==='cor'){ $c=['Rosa','Azul','Dourado','Roxo']; return "🌪️ ".($c[$i-1]??"Cor $i"); }
     if($tipo==='totem') return "🔥 Totem $i";
     return (string)$i;
+}
+
+/** Dupla vencedora: titular mantém os controles de indicação; parceiro também é Líder e imune. */
+function pnRegistrarDuplaLider(&$jogadores,$titular,$parceiro) {
+    if($parceiro===''||$titular===$parceiro)return;
+    $existe=false;
+    foreach($jogadores as &$j){
+        if(($j['nome']??'')!==$parceiro)continue;
+        $existe=true;
+        if(!isset($j['status'])||!is_array($j['status']))$j['status']=[];
+        $j['status']['lider']=true;
+        $j['status']['imune']=true;
+        if(!isset($j['estatisticas']))$j['estatisticas']=[];
+        $j['estatisticas']['lider']=($j['estatisticas']['lider']??0)+1;
+    }unset($j);
+    if(!$existe)return;
+    $_SESSION['lideres_dupla']=[$titular,$parceiro];
+    $_SESSION['lider_dupla_semana']=(int)($_SESSION['rodada']??1);
+    $_SESSION['jogadores']=array_values($jogadores);
+    $_SESSION['evento_extra'][]="🤝 $titular e $parceiro venceram a Liderança em Dupla. Os dois estão imunes; $titular conduz a indicação após ouvir o parceiro.";
 }

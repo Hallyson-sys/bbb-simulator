@@ -29,6 +29,50 @@ if (
 }
 
 /* =========================================================
+   🎮 PROVAS INTERATIVAS 4.0 — VALIDAÇÃO NO SERVIDOR
+   ========================================================= */
+if (isset($_POST['pn_jogar'])) {
+    if (!pnEstaNova('lider',$tipoProva) || ($_SESSION['fase_semana']??'')!=='lider') {
+        header('Location: jogo.php');exit;
+    }
+    $score=pnCorrigir('lider',$tipoProva,$_POST);
+    if ($score===null) {
+        $_SESSION['pn_feedback']='Preencha todas as etapas antes de concluir.';
+        header('Location: prova_lider.php');exit;
+    }
+    $dupla=(int)$tipoProva===19;
+    $parceiro='';
+    if ($dupla) {
+        $parceiro=(string)($_POST['pn_parceiro']??'');
+        if (!in_array($parceiro,pnParceiros($jogadores,$meuNome),true)) {
+            $_SESSION['pn_feedback']='Escolha um parceiro disponível.';
+            header('Location: prova_lider.php');exit;
+        }
+        if(!pnParceiroAceita($jogadores,$meuNome,$parceiro)) {
+            $_SESSION['pn_feedback']="$parceiro recusou o convite. Escolha outra pessoa para a dupla.";
+            header('Location: prova_lider.php');exit;
+        }
+        $score=min(100,(int)round($score*.75+random_int(50,95)*.25));
+    }
+    $ranking=pnRankingLider($jogadores,$meuNome,$score,$dupla,$parceiro);
+    $campeao=$ranking[0]['nome'];
+    $parceiroVencedor=(string)($ranking[0]['parceiro']??'');
+    $_SESSION['resultado_prova_lider_interativa']=[
+        'tipo'=>'novo','pontos_jogador'=>$score,
+        'ranking'=>array_slice($ranking,0,5),'vencedor'=>$campeao,
+        'titulo'=>$prova['titulo']??'Prova do Líder'
+    ];
+    registrarLiderDaRodada($jogadores,$campeao,$meuNome);
+    if($dupla) pnRegistrarDuplaLider($jogadores,$campeao,$parceiroVencedor);
+    // Trava a conclusão imediatamente, antes do redirect: duplo clique não premia de novo.
+    $_SESSION['fase_semana']=nomeIgual($campeao,$meuNome)?'vip_xepa':'vip_xepa_revelar';
+    $_SESSION['evento_extra'][]='🎮 '.($prova['titulo']??'Prova do Líder').": $meuNome marcou $score pontos; $campeao conquistou a liderança".($parceiroVencedor!==''?" ao lado de $parceiroVencedor.":'.');
+    premiarMoedasPorProva('lider',$campeao,$meuNome,15);
+    unset($_SESSION['pn_estado_lider']);
+    header('Location: jogo.php');exit;
+}
+
+/* =========================================================
    🎯 CAMINHO ESTRATÉGICO — MULTIETAPAS
    ========================================================= */
 if (isset($_POST['jogar_estrategia'])) {

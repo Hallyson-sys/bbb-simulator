@@ -1,0 +1,12 @@
+.pn-area {max-width:800px;margin:24px auto;color:#f8f4ff;font-family:inherit;}
+.pn-bloco {margin:16px 0;padding:22px;background:linear-gradient(135deg,#20122c,#11213a);border:1px solid #7e447e88;border-radius:22px;box-shadow:0 8px 28px #0005;}
+.pn-bloco h3{font-size:1.3rem;margin:0 0 12px;color:#fff;}.pn-bloco p{line-height:1.5;color:#dfd0e9;}
+.pn-pergunta{display:flex;flex-direction:column;gap:10px;padding:15px;margin:13px 0;border:1px solid #ffffff22;border-radius:15px;background:#0003;min-width:0;color:#fff}
+.pn-pergunta legend{padding:0 5px;font-weight:700}.pn-pergunta input[type=number]{width:100%;padding:13px;background:#151428;color:white;border:1px solid #8d769a;border-radius:12px;font-size:16px}
+.pn-alternativa,.pn-parceiros label{display:block;padding:13px;margin:6px 0;border:1px solid #ffffff2b;border-radius:12px;background:#17172b;cursor:pointer;min-height:44px}.pn-alternativa input,.pn-parceiros input{accent-color:#ec078a}
+.pn-pecas{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin:18px 0}.pn-pecas button{background:#27213d;color:#fff;border:1px solid #b869b9;border-radius:12px;min-height:58px;min-width:58px;font-size:26px;cursor:pointer}.pn-pecas button:disabled{opacity:.3}
+.pn-revelacao{text-align:center;font-size:2.2rem;letter-spacing:5px;padding:22px;background:#090d19;border:1px solid #b05aba;border-radius:14px;margin:15px 0}.pn-escolhido{text-align:center;padding:12px;background:#ffffff10;border-radius:12px}
+.pn-secundario{padding:12px 18px;min-height:44px;border:1px solid #9b72b0;background:#261b33;border-radius:12px;color:white;cursor:pointer;margin:12px 3px}
+.pn-enviar{width:100%;padding:16px;margin-top:17px;min-height:52px;background:linear-gradient(110deg,#f00080,#7c05df);border:0;color:white;font-weight:800;border-radius:14px;font-size:1rem;cursor:pointer}
+.pn-aviso{padding:13px;color:#ffe9a7;background:#51320d77;border-radius:10px}.pn-slider{width:100%;accent-color:#ec0aa1}.pn-valor{font-weight:800;color:#65dafa;text-align:center}
+@media(max-width:600px){.pn-bloco{padding:14px}.pn-revelacao{font-size:1.65rem;letter-spacing:1px}.pn-pecas button{min-width:49px;min-height:50px}}

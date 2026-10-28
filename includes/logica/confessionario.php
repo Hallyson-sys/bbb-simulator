@@ -155,11 +155,26 @@ function gerarConfessionarioInteligente(&$jogadores, $meuNome)
             $tiposPossiveis[] = 'desabafo';
         }
 
+        // Temas cotidianos e estratégicos independentes de segredos.
+        foreach (['rotina','limites','saudade','responsabilidade','festa','isolamento',
+                  'foco_provas','convivencia','autocritica','incerteza','coragem','expectativas'] as $extra) {
+            $tiposPossiveis[]=$extra;
+        }
+        if($melhorAliado && $melhorAliadoScore>=65)$tiposPossiveis[]='protecao';
+        if($maiorRival && $maiorRivalScore>=75)$tiposPossiveis[]='tensao_dia';
+        if(($nome===($_SESSION['lider']??'')))$tiposPossiveis[]='peso_lider';
+        if(($nome===($_SESSION['anjo']??'')))$tiposPossiveis[]='peso_anjo';
         $tiposPossiveis[] = 'observacao';
         $tiposPossiveis[] = 'sonho_vitoria';
         $tiposPossiveis[] = 'neutro';
 
-        $tipo = $tiposPossiveis[array_rand($tiposPossiveis)];
+        // Evita repetir o mesmo assunto nas últimas três aparições daquele NPC.
+        $temasAnteriores=(array)($_SESSION['conf4_temas'][$nome]??[]);
+        $disponiveis=array_values(array_diff($tiposPossiveis,array_slice($temasAnteriores,-3)));
+        if(!$disponiveis)$disponiveis=$tiposPossiveis;
+        $tipo=$disponiveis[array_rand($disponiveis)];
+        $_SESSION['conf4_temas'][$nome]=array_slice(array_merge($temasAnteriores,[$tipo]),-6);
+
 
         if ($tipo == 'romance' && $maiorRomance) {
             $opcoes = [
@@ -273,6 +288,134 @@ function gerarConfessionarioInteligente(&$jogadores, $meuNome)
                 "👑 <b>$nome</b>: \"Eu sei que ainda falta muito, mas eu consigo me ver no último dia.\"",
                 "💫 <b>$nome</b>: \"Se eu sobreviver às próximas semanas, ninguém mais me segura.\"",
                 "📣 <b>$nome</b>: \"Eu quero que o público olhe para mim e veja alguém que merece chegar longe.\""
+            ];
+        } elseif ($tipo == 'rotina') {
+            $opcoes = [
+                "☕ <b>$nome</b>: \"A cozinha parece pequena quando a gente precisa dividir tudo. Às vezes uma louça fora do lugar já vira discussão.\"",
+                "☕ <b>$nome</b>: \"Hoje eu fiquei pensando como as coisas mais simples revelam o jeito de cada um.\"",
+                "☕ <b>$nome</b>: \"Quando eu preciso de silêncio e a casa inteira resolve conversar, lembro que esse jogo também é convivência.\"",
+                "☕ <b>$nome</b>: \"Eu estou aprendendo a dividir espaço com pessoas completamente diferentes de mim.\"",
+                "☕ <b>$nome</b>: \"É estranho como uma conversa na mesa pode mudar o clima de um dia inteiro.\""
+            ];
+        } elseif ($tipo == 'limites') {
+            $opcoes = [
+                "🧊 <b>$nome</b>: \"Eu não quero brigar por qualquer coisa, mas também não vou deixar passarem por cima de mim.\"",
+                "🧊 <b>$nome</b>: \"Tem uma linha entre ser flexível e aceitar algo que te machuca. Estou tentando descobrir onde fica a minha.\"",
+                "🧊 <b>$nome</b>: \"Falar de boa não é ser fraco. Às vezes é a maneira mais difícil de resolver as coisas.\"",
+                "🧊 <b>$nome</b>: \"Nem sempre responder na hora é o melhor. Estou tentando escolher minhas batalhas.\"",
+                "🧊 <b>$nome</b>: \"Eu quero defender meu espaço sem transformar a casa numa guerra.\""
+            ];
+        } elseif ($tipo == 'saudade') {
+            $opcoes = [
+                "🏠 <b>$nome</b>: \"À noite a saudade aperta mais. Você deita e lembra que todo mundo lá fora continua vivendo.\"",
+                "🏠 <b>$nome</b>: \"Hoje eu queria contar pra alguém de casa como foi meu dia. Parece bobagem, mas faz falta.\"",
+                "🏠 <b>$nome</b>: \"Uma música na Festa me pegou de surpresa. Por alguns segundos esqueci que estava num jogo.\"",
+                "🏠 <b>$nome</b>: \"Tem horas que eu sinto falta de coisas tão pequenas... Até do silêncio do meu quarto.\"",
+                "🏠 <b>$nome</b>: \"Não é só ganhar prova. É aguentar os dias em que o coração pede pra estar em outro lugar.\""
+            ];
+        } elseif ($tipo == 'responsabilidade') {
+            $opcoes = [
+                "⚖️ <b>$nome</b>: \"Estou tentando ser justo com as pessoas sem esquecer que todo mundo precisa votar.\"",
+                "⚖️ <b>$nome</b>: \"Eu queria que minhas atitudes falassem mais alto que minhas promessas.\"",
+                "⚖️ <b>$nome</b>: \"Às vezes eu fico pensando se fui duro demais naquela conversa. Aqui uma frase pesa muito.\"",
+                "⚖️ <b>$nome</b>: \"Eu não quero prometer proteção que talvez eu não consiga cumprir.\"",
+                "⚖️ <b>$nome</b>: \"Assumir uma decisão é mais difícil do que explicar ela depois.\""
+            ];
+        } elseif ($tipo == 'festa') {
+            $opcoes = [
+                "🎉 <b>$nome</b>: \"Eu precisava dançar e rir um pouco. Por umas horas o clima de votação saiu da cabeça.\"",
+                "🎉 <b>$nome</b>: \"A Festa junta gente que normalmente nem se olha, e isso muda muita coisa.\"",
+                "🎉 <b>$nome</b>: \"Ontem uma conversa leve me fez lembrar que nem tudo é estratégia.\"",
+                "🎉 <b>$nome</b>: \"Durante a Festa eu consegui relaxar, mas percebi que ninguém desliga totalmente do jogo.\"",
+                "🎉 <b>$nome</b>: \"A música acaba, mas as conversas ficam na cabeça da gente por muito tempo.\""
+            ];
+        } elseif ($tipo == 'isolamento') {
+            $opcoes = [
+                "🌧️ <b>$nome</b>: \"Hoje eu me senti meio de fora de algumas conversas. Não sei se foi impressão minha.\"",
+                "🌧️ <b>$nome</b>: \"Às vezes eu estou cercado de gente e mesmo assim sinto uma solidão danada.\"",
+                "🌧️ <b>$nome</b>: \"Não estou dizendo que alguém me excluiu. Só que tem dias que parece difícil encontrar meu lugar.\"",
+                "🌧️ <b>$nome</b>: \"Eu queria me aproximar de mais gente sem parecer que é tudo interesse.\"",
+                "🌧️ <b>$nome</b>: \"O silêncio entre duas pessoas pode dizer mais que uma discussão inteira.\""
+            ];
+        } elseif ($tipo == 'foco_provas') {
+            $opcoes = [
+                "🏆 <b>$nome</b>: \"Na próxima prova eu quero ir além. Não dá pra controlar a sorte, mas dá pra me preparar.\"",
+                "🏆 <b>$nome</b>: \"Perder mexe comigo. Estou tentando não deixar um resultado estragar a semana toda.\"",
+                "🏆 <b>$nome</b>: \"Vejo gente que encara prova como brincadeira. Pra mim é chance real de mudar a semana.\"",
+                "🏆 <b>$nome</b>: \"Eu treino na cabeça mesmo quando não tem desafio: tento imaginar como vou reagir sob pressão.\"",
+                "🏆 <b>$nome</b>: \"Quero descobrir se consigo manter a calma quando o cronômetro começar.\""
+            ];
+        } elseif ($tipo == 'convivencia') {
+            $opcoes = [
+                "💬 <b>$nome</b>: \"Hoje uma conversa curta me deixou pensando. Tem gente aqui que eu ainda não conheço direito.\"",
+                "💬 <b>$nome</b>: \"O jeito que cada um reage a um problema diz muito mais do que qualquer discurso.\"",
+                "💬 <b>$nome</b>: \"Eu vim pra competir, mas seria mentira dizer que não me apeguei a algumas pessoas.\"",
+                "💬 <b>$nome</b>: \"Parece que um dia aqui rende uma semana inteira de sentimentos.\"",
+                "💬 <b>$nome</b>: \"Estou tentando ouvir mais, mesmo quando não concordo com tudo.\""
+            ];
+        } elseif ($tipo == 'autocritica') {
+            $opcoes = [
+                "🔄 <b>$nome</b>: \"Já falei coisas que, pensando melhor, poderia ter dito de outro jeito.\"",
+                "🔄 <b>$nome</b>: \"Eu não gosto de admitir erro, mas estou revendo algumas decisões minhas.\"",
+                "🔄 <b>$nome</b>: \"Quando as coisas dão errado, minha primeira reação é procurar um culpado. Estou tentando mudar isso.\"",
+                "🔄 <b>$nome</b>: \"Não quero que orgulho me impeça de pedir desculpas quando for necessário.\"",
+                "🔄 <b>$nome</b>: \"Às vezes minha leitura da casa falha. Tudo bem, preciso aprender com isso.\""
+            ];
+        } elseif ($tipo == 'incerteza') {
+            $opcoes = [
+                "❔ <b>$nome</b>: \"Não sei exatamente onde eu estou nessa casa hoje. E talvez ninguém saiba.\"",
+                "❔ <b>$nome</b>: \"As conversas mudam tão rápido que um plano de manhã pode não servir à noite.\"",
+                "❔ <b>$nome</b>: \"Eu fico tentando juntar as peças, mas falta informação e não vou fingir certeza.\"",
+                "❔ <b>$nome</b>: \"Tenho medo de interpretar tudo errado e afastar quem realmente está comigo.\"",
+                "❔ <b>$nome</b>: \"Estou começando a aceitar que nem sempre vou ter todas as respostas.\""
+            ];
+        } elseif ($tipo == 'coragem') {
+            $opcoes = [
+                "🔥 <b>$nome</b>: \"Não quero chegar ao final pensando que tive medo de me posicionar.\"",
+                "🔥 <b>$nome</b>: \"Coragem pra mim não é gritar mais alto. É bancar as próprias escolhas.\"",
+                "🔥 <b>$nome</b>: \"Eu posso até perder uma prova, mas não quero me perder de mim mesmo.\"",
+                "🔥 <b>$nome</b>: \"Hoje eu precisei respirar fundo antes de tomar uma atitude. Foi difícil.\"",
+                "🔥 <b>$nome</b>: \"Sei que algumas decisões vão desagradar, mas fazer nada também é uma escolha.\""
+            ];
+        } elseif ($tipo == 'expectativas') {
+            $opcoes = [
+                "🌟 <b>$nome</b>: \"Entrei aqui imaginando uma coisa e a convivência está me mostrando outra completamente diferente.\"",
+                "🌟 <b>$nome</b>: \"Eu pensava que conseguiria separar sentimento e voto com facilidade. Não é tão simples.\"",
+                "🌟 <b>$nome</b>: \"Às vezes tenho expectativas grandes demais das pessoas e acabo me frustrando.\"",
+                "🌟 <b>$nome</b>: \"Não sei se o público vai entender todas as minhas escolhas, mas eu preciso fazer o que acredito.\"",
+                "🌟 <b>$nome</b>: \"Eu queria sair daqui sentindo que vivi de verdade, não só que calculei cada passo.\""
+            ];
+        } elseif ($tipo == 'protecao') {
+            $opcoes = [
+                "🤝 <b>$nome</b>: \"Com $melhorAliado eu sinto que consigo conversar sem estar sempre me defendendo.\"",
+                "🤝 <b>$nome</b>: \"Eu gosto muito de $melhorAliado, mas sei que uma aliança exige atitudes, não só palavras.\"",
+                "🤝 <b>$nome</b>: \"Se $melhorAliado precisar de mim, vou tentar ajudar. Só não quero prometer algo impossível.\"",
+                "🤝 <b>$nome</b>: \"Eu espero não ter que escolher entre proteger $melhorAliado e me proteger.\"",
+                "🤝 <b>$nome</b>: \"O que construí com $melhorAliado foi aos poucos. Não quero jogar isso fora por impulso.\""
+            ];
+        } elseif ($tipo == 'tensao_dia') {
+            $opcoes = [
+                "🔥 <b>$nome</b>: \"Quando $maiorRival chega perto, eu fico desconfortável. Não sei se vamos nos entender tão cedo.\"",
+                "🔥 <b>$nome</b>: \"Eu não quero uma briga diária com $maiorRival. Só preciso que haja respeito.\"",
+                "🔥 <b>$nome</b>: \"Quero tentar escutar o lado de $maiorRival, mesmo com tudo que aconteceu.\"",
+                "🔥 <b>$nome</b>: \"Essa tensão com $maiorRival está me cansando. Eu não queria passar a semana inteira nisso.\"",
+                "🔥 <b>$nome</b>: \"Não consigo dizer que confio em $maiorRival hoje. Mas também não sei o que vai acontecer amanhã.\""
+            ];
+        } elseif ($tipo == 'peso_lider') {
+            $opcoes = [
+                "👑 <b>$nome</b>: \"Ser Líder parece ótimo até lembrar que você precisa escolher quem vai correr risco.\"",
+                "👑 <b>$nome</b>: \"Eu queria comemorar sem pensar na indicação, mas a responsabilidade vem junto.\"",
+                "👑 <b>$nome</b>: \"Não dá pra colocar todo mundo no VIP. Sei que alguém vai ficar chateado comigo.\"",
+                "👑 <b>$nome</b>: \"Hoje eu sinto que cada conversa tem um peso diferente porque estou com o poder.\"",
+                "👑 <b>$nome</b>: \"Quero usar a liderança com firmeza, sem humilhar ninguém.\""
+            ];
+        } elseif ($tipo == 'peso_anjo') {
+            $opcoes = [
+                "😇 <b>$nome</b>: \"Acho que o colar do Anjo pesa mais do que parece. Uma imunidade muda muita coisa.\"",
+                "😇 <b>$nome</b>: \"Eu queria poder proteger todo mundo de quem gosto, mas não funciona assim.\"",
+                "😇 <b>$nome</b>: \"Fico imaginando como alguém vai reagir se eu escolher outra pessoa pra imunizar.\"",
+                "😇 <b>$nome</b>: \"Não quero que minha decisão no Anjo seja interpretada como falta de carinho.\"",
+                "😇 <b>$nome</b>: \"Ganhar uma prova é bom. Ter que escolher quem salvar é outra história.\""
             ];
         } else {
             $opcoes = [

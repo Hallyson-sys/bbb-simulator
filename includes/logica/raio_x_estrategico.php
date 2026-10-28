@@ -110,6 +110,31 @@ function rx3BancoCenas(?string $amigo, ?string $rival, ?string $lider): array {
             rx3Opcao('afeto', '❤️ As relações também importam', 'Valorizar os vínculos construídos.', 'afetivo', 'Você escolheu dar espaço às conexões humanas.')
         ]
     ];
+    // Temas adicionais: não assumem dados secretos, voto de NPC nem popularidade.
+    $novos = [
+        ['rotina','☕','ROTINA DA CASA','Pequenos hábitos, grandes diferenças','A convivência diária também constrói afinidades. Como você quer lidar com costumes que te incomodam?',
+            [['tolerar','😊 Respirar e relevar','leve','Você prefere não transformar pequenos incômodos em conflito.'],['conversar','💬 Conversar com calma','diplomatico','Você decidiu comunicar seus limites de maneira respeitosa.'],['afastar','🧊 Dar um tempo','cauteloso','Você escolheu preservar seu espaço sem discutir.']]],
+        ['saudade','🏠','SAUDADE','Quando o jogo silencia','Há momentos em que a saudade e a pressão da convivência pesam, mesmo quando o jogo parece tranquilo.',
+            [['desabafar','💭 Admitir a saudade','sensivel','Você reconheceu uma parte íntima da experiência.'],['acolher','🤝 Buscar apoio','afetivo','Você decidiu se apoiar nas conexões que construiu.'],['persistir','💪 Transformar em força','resiliente','Você reafirmou por que continua no jogo.']]],
+        ['arrependimentos','🔄','REVISÃO DE ATITUDES','Se pudesse voltar atrás...','Pense em uma decisão de convivência que você faria de outro jeito. Nenhuma reação dos outros é certa.',
+            [['aprender','🧠 Reconhecer que errou','sincero','Você aceitou que algumas atitudes merecem revisão.'],['sustentar','🎯 Defender sua decisão','firme','Você reconheceu os custos mas manteve sua posição.'],['conversar','💬 Buscar reparar uma relação','diplomatico','Você quer conversar pessoalmente antes de tirar conclusões.']]],
+        ['vulnerabilidade','💗','VULNERABILIDADE','Ter coragem de sentir','As emoções mudam rapidamente dentro da casa. Como você lida quando se sente desamparado?',
+            [['mostrar','❤️ Não esconder a emoção','sensivel','Você permitiu que o depoimento fosse mais vulnerável.'],['desacelerar','🌙 Buscar tranquilidade','leve','Você decidiu respeitar seu próprio ritmo.'],['proteger','🧊 Guardar o que sente','cauteloso','Você prefere processar os sentimentos antes de falar.']]],
+        ['independencia','♟️','INDEPENDÊNCIA','Meu voto é meu','Você se aproxima de pessoas, mas precisa manter capacidade de decidir sozinho nas votações.',
+            [['autonomia','🎯 Não prometer o que não sei','firme','Você escolheu não antecipar seu voto.'],['negociar','🤝 Ouvir seus aliados','diplomatico','Você continua aberto a conversas sem garantir apoio.'],['analisar','👀 Reavaliar os riscos','estrategico','Você pretende avaliar cada votação no seu momento.']]],
+        ['confronto','🔥','LIMITES','Até onde vale uma discussão?','Quando a casa está tensa, uma resposta impulsiva pode mudar a convivência.',
+            [['esfriar','🧊 Não alimentar o conflito','cauteloso','Você prefere se afastar da tensão.'],['argumentar','💬 Falar diretamente','sincero','Você quer enfrentar o assunto sem provocar.'],['rebater','🔥 Se provocarem, vou responder','combativo','Você se sente disposto a defender sua posição.']]],
+        ['convivencia','🎉','LAÇOS DA CASA','Nem tudo é voto','Mesmo competindo, ainda existem festas, boas conversas e experiências que você pode aproveitar.',
+            [['aproveitar','😊 Quero viver mais o momento','leve','Você quer aproveitar a experiência para além das provas.'],['priorizar','🏆 Não perder o foco','competitivo','Você decidiu equilibrar diversão e competição.'],['aproximar','🤝 Conhecer gente diferente','afetivo','Você se permitiu ampliar os vínculos.']]],
+        ['futuro','🌟','VISÃO DE FUTURO','O que você quer deixar aqui?','Você ainda não sabe como a semana terminará. Mas pode decidir o que deseja construir no jogo.',
+            [['respeito','🤍 Deixar boas relações','diplomatico','Você escolheu valorizar o respeito como parte da trajetória.'],['marca','🔥 Ser lembrado por decisões','firme','Você quer assumir seus movimentos sem fingimento.'],['crescer','🧠 Sair aprendendo','resiliente','Você reconheceu o aprendizado dessa convivência.']]]
+    ];
+    foreach ($novos as [$id,$icone,$categoria,$titulo,$texto,$escolhas]) {
+        $opcoes=[];
+        foreach ($escolhas as [$oid,$rotulo,$tom,$resultado])
+            $opcoes[]=rx3Opcao($oid,$rotulo,'Seu posicionamento fica privado; só suas ações na casa poderão ter consequências sociais.',$tom,$resultado);
+        $cenas[$id]=['icone'=>$icone,'categoria'=>$categoria,'titulo'=>$titulo,'texto'=>$texto,'dica'=>'O que você declara às câmeras não é ouvido automaticamente por outros participantes.','alvo'=>null,'opcoes'=>$opcoes];
+    }
     return $cenas;
 }
 

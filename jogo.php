@@ -69,6 +69,7 @@ require_once __DIR__ . '/includes/logica/festa.php';
 
 require_once __DIR__ . '/includes/logica/confessionario.php';
 require_once __DIR__ . '/includes/logica/raio_x_estrategico.php';
+require_once __DIR__ . '/includes/logica/provas_novas.php';
 
 require_once __DIR__ . '/includes/logica/fofoca_vt.php';
 

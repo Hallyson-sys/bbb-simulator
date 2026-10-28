@@ -134,6 +134,7 @@ if (isset($_POST['avancar_fase'])) {
         if ($fase == 'interacoes_1') {
 
             unset($_SESSION['lider']);
+            unset($_SESSION['lideres_dupla'],$_SESSION['lider_dupla_semana'],$_SESSION['anjos_dupla'],$_SESSION['anjo_dupla_semana'],$_SESSION['pn_estado_lider'],$_SESSION['pn_estado_anjo']);
             unset($_SESSION['anjo']);
             unset($_SESSION['imune']);
             unset($_SESSION['monstro']);

@@ -287,6 +287,13 @@ function estaImune($jogadores, $nome)
     if ($nome == '') {
         return false;
     }
+    foreach (['lideres_dupla'=>'lider_dupla_semana','anjos_dupla'=>'anjo_dupla_semana'] as $lista=>$semana) {
+        if ((int)($_SESSION[$semana]??0)===(int)($_SESSION['rodada']??1)) {
+            foreach ((array)($_SESSION[$lista]??[]) as $integrante) {
+                if (nomeIgual((string)$integrante,(string)$nome) && ($lista==='lideres_dupla'||!empty($_SESSION['anjo_autoimune'])))return true;
+            }
+        }
+    }
     if (function_exists('dsImune') && dsImune((string)$nome)) return true;
 
 
@@ -391,6 +398,10 @@ function sincronizarImunidadesGlobais(&$jogadores)
     ];
 
 
+    if ((int)($_SESSION['lider_dupla_semana']??0)===(int)($_SESSION['rodada']??1))
+        $fontes=array_merge($fontes,(array)($_SESSION['lideres_dupla']??[]));
+    if (!empty($_SESSION['anjo_autoimune']) && (int)($_SESSION['anjo_dupla_semana']??0)===(int)($_SESSION['rodada']??1))
+        $fontes=array_merge($fontes,(array)($_SESSION['anjos_dupla']??[]));
     foreach ($fontes as $nome) {
 
         if (

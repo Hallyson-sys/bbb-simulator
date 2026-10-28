@@ -4,6 +4,8 @@
    😇 LÓGICA DA PROVA DO ANJO — MINIGAMES 2.0
    ========================================================= */
 
+require_once __DIR__.'/provas_novas.php';
+
 function obterProvasAnjo()
 {
     return [
@@ -34,7 +36,8 @@ function obterProvasAnjo()
             'texto' => 'Pare o marcador o mais perto possível do centro em três tentativas.',
             'categoria' => 'Precisão',
             'dificuldade' => 'Média'
-        ]
+        ],
+        ...pnCatalogo('anjo')
     ];
 }
 
@@ -52,7 +55,10 @@ function sincronizarEstadoProvaAnjoDaRodada()
         $_SESSION['prova_anjo_finalizada'],
         $_SESSION['prova_anjo_finalizada_rodada'],
         $_SESSION['anjo_autoimune_sorteado_rodada'],
-        $_SESSION['resultado_prova_anjo']
+        $_SESSION['resultado_prova_anjo'],
+        $_SESSION['pn_estado_anjo'],
+        $_SESSION['anjos_dupla'],
+        $_SESSION['anjo_dupla_semana']
     );
 
     $_SESSION['prova_anjo_rodada'] = $rodadaAtual;
@@ -63,7 +69,9 @@ function obterParticipantesProvaAnjo($jogadores, $lider)
     $participantes = [];
 
     foreach ($jogadores as $j) {
-        if (($j['nome'] ?? '') !== $lider) {
+        $nome=(string)($j['nome']??'');
+        $duplaAtual=(int)($_SESSION['lider_dupla_semana']??0)===(int)($_SESSION['rodada']??1);
+        if ($nome !== $lider && (!$duplaAtual || !in_array($nome,(array)($_SESSION['lideres_dupla']??[]),true))) {
             $participantes[] = $j;
         }
     }
@@ -110,6 +118,7 @@ function prepararProvaAnjo()
         $tipo = 1;
         $_SESSION['prova_anjo_tipo'] = 1;
     }
+    if($tipo===10 && count(obterParticipantesProvaAnjo((array)($_SESSION['jogadores']??[]),(string)($_SESSION['lider']??'')))<4){$tipo=5;$_SESSION['prova_anjo_tipo']=5;}
 
     return [
         'tipo' => $tipo,
@@ -366,4 +375,19 @@ function finalizarProvaAnjo(&$jogadores, $campeaoNome, $lider)
     }
 
     return true;
+}
+/** Anjo em dupla: parceiros compartilham vitória e, se houver autoimunidade, ambos ficam protegidos. */
+function pnRegistrarDuplaAnjo(&$jogadores,$titular,$parceiro) {
+    if(!$parceiro||$parceiro===$titular)return;
+    foreach($jogadores as &$j){if(($j['nome']??'')!==$parceiro)continue;
+        if(!isset($j['status']))$j['status']=[];
+        $j['status']['anjo']=true;
+        if(!isset($j['estatisticas']))$j['estatisticas']=[];
+        $j['estatisticas']['anjo']=($j['estatisticas']['anjo']??0)+1;
+        if(!empty($_SESSION['anjo_autoimune'])){$j['status']['imune']=true;$j['estatisticas']['imune']=($j['estatisticas']['imune']??0)+1;}
+    }unset($j);
+    $_SESSION['anjos_dupla']=[$titular,$parceiro];
+    $_SESSION['anjo_dupla_semana']=(int)($_SESSION['rodada']??1);
+    $_SESSION['jogadores']=array_values($jogadores);
+    $_SESSION['evento_extra'][]="🤝 $titular e $parceiro venceram a Prova do Anjo em dupla. $titular conduz a escolha da imunidade com o parceiro.";
 }

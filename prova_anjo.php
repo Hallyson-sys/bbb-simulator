@@ -52,7 +52,8 @@ if (
     ($_SESSION['fase_semana'] ?? '') === 'anjo'
 ) {
     $dadosQS = prepararProvaAnjo();
-    $rankingQS = gerarRankingProvaAnjo($participantes, $meuNome, null);
+    $duplaQS=(int)($dadosQS['tipo']??0)===10;
+    $rankingQS = $duplaQS ? pnRankingNPCsAnjo($participantes) : gerarRankingProvaAnjo($participantes, $meuNome, null);
     $campeaoNome = (string)($rankingQS[0]['nome'] ?? '');
 
     if ($campeaoNome !== '') {
@@ -61,6 +62,7 @@ if (
             $campeaoNome,
             $lider
         );
+        if($duplaQS)pnRegistrarDuplaAnjo($jogadores,$campeaoNome,(string)($rankingQS[0]['parceiro']??''));
     } else {
         $_SESSION['evento_extra'][] =
             '⚠️ Não havia participantes suficientes para a Prova do Anjo.';
@@ -87,6 +89,11 @@ if (!$resultadoProva) {
     $dadosProva = prepararProvaAnjo();
     $tipo = $dadosProva['tipo'];
     $provaAtual = $dadosProva['prova'];
+    if(pnEstaNova('anjo',$tipo)){
+        $pnEstado=pnPreparar('anjo',$tipo);
+        $pnClasse='anjo';
+        $pnParticipantes=$participantes;
+    }
 } else {
     $tipo = 0;
     $provaAtual = $resultadoProva['prova'] ?? [];
@@ -161,6 +168,7 @@ function classePosicaoAnjo($posicao)
 
             <p class="resultado-destaque">
                 <strong><?php echo eAnjo($campeao); ?></strong>
+                <?php if(!empty($resultadoProva['parceiro'])): ?> e <strong><?php echo eAnjo($resultadoProva['parceiro']); ?></strong><?php endif; ?>
                 venceu a <span><?php echo eAnjo($provaAtual['titulo'] ?? 'Prova do Anjo'); ?></span>.
             </p>
 
@@ -219,6 +227,9 @@ function classePosicaoAnjo($posicao)
         </div>
 
         <main class="minigame-card">
+            <?php if(pnEstaNova('anjo',$tipo)): ?>
+                <?php include __DIR__.'/includes/components/provas_novas.php'; ?>
+            <?php else: ?>
 
             <form method="POST" id="form-anjo">
                 <input type="hidden" name="jogar" value="1">
@@ -339,6 +350,7 @@ function classePosicaoAnjo($posicao)
                     </button>
                 </div>
             </form>
+            <?php endif; ?>
         </main>
 
         <footer class="anjo-footer">

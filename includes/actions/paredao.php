@@ -186,6 +186,17 @@ if (isset($_POST['indicar_lider'])) {
 
 
 
+    if((int)($_SESSION['lider_dupla_semana']??0)===(int)($_SESSION['rodada']??1) && !empty($_SESSION['lideres_dupla'][1])){
+        $pnParceiro=(string)$_SESSION['lideres_dupla'][1];
+        $pnPreferido=pnPreferenciaParceiro($jogadores,$pnParceiro,'lider');
+        if($pnPreferido!=='' && $indicadoLider!==$pnPreferido){
+            alterarAfinidade($jogadores,$pnParceiro,$meuNome,-2,2,-3);
+            $_SESSION['evento_extra'][]="🤝 $pnParceiro preferia indicar $pnPreferido, mas o Líder titular escolheu $indicadoLider.";
+        } elseif($pnPreferido!=='' ) {
+            alterarAfinidade($jogadores,$pnParceiro,$meuNome,2,-1,3);
+            $_SESSION['evento_extra'][]="🤝 $pnParceiro concordou com a indicação de $indicadoLider.";
+        }
+    }
     $_SESSION['indicacao_lider'] = $indicadoLider;
 
 

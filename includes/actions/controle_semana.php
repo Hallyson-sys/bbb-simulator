@@ -290,6 +290,17 @@ if (isset($_POST['definir_imunidade_anjo'])) {
         "$anjoAtual imunizou $imunizado."
     );
 
+    if((int)($_SESSION['anjo_dupla_semana']??0)===(int)($_SESSION['rodada']??1) && !empty($_SESSION['anjos_dupla'][1])){
+        $pnParceiro=(string)$_SESSION['anjos_dupla'][1];
+        $pnPreferido=pnPreferenciaParceiro($jogadores,$pnParceiro,'anjo');
+        if($pnPreferido!=='' && $pnPreferido!==$imunizado){
+            alterarAfinidade($jogadores,$pnParceiro,$meuNome,-2,1,-2);
+            $_SESSION['evento_extra'][]="🤝 $pnParceiro preferia salvar $pnPreferido, mas o Anjo titular optou por $imunizado.";
+        } elseif($pnPreferido!==''){
+            alterarAfinidade($jogadores,$pnParceiro,$meuNome,2,-1,2);
+            $_SESSION['evento_extra'][]="🤝 $pnParceiro apoiou a imunidade de $imunizado.";
+        }
+    }
     $_SESSION['jogadores'] = $jogadores;
     $_SESSION['imune'] = $imunizado;
     $_SESSION['imunizacao_anjo_feita'] = true;

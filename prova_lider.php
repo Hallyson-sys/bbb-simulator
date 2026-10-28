@@ -94,6 +94,12 @@ $npcsDesempateLogica=[];
 $estadoEstrategia=null;
 $opcoesEstrategia=[];
 
+if(pnEstaNova('lider',$tipoProva)){
+    $pnEstado=pnPreparar('lider',$tipoProva);
+    $pnClasse='lider';
+    $pnParticipantes=$jogadores;
+}
+
 if((int)$tipoProva===3){
     $sequenciaMemoria=prepararMemoriaLider();
 }
@@ -490,7 +496,10 @@ body .desempate-logica-cabecalho small{
 <h1><?= eLider($prova['titulo']??'Prova do Líder') ?></h1>
 <p class="prova-descricao"><?= eLider($prova['texto']??'') ?></p>
 
-<?php if((int)$tipoProva===2): ?>
+<?php if(pnEstaNova('lider',$tipoProva)): ?>
+    <?php include __DIR__.'/includes/components/provas_novas.php'; ?>
+
+<?php elseif((int)$tipoProva===2): ?>
 
 <div class="reflexo-area">
     <div class="reflexo-status aguardando" id="reflexoStatus">PREPARE-SE</div>

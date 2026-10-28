@@ -53,12 +53,53 @@ $dadosProvaAction = prepararProvaAnjo();
 $provaAction = $dadosProvaAction['prova'];
 
 /* =========================================================
+   🎮 PROVAS INTERATIVAS DO ANJO 4.0
+   ========================================================= */
+if (isset($_POST['pn_jogar'])) {
+    $tipoAtual=(int)($dadosProvaAction['tipo']??0);
+    if(!pnEstaNova('anjo',$tipoAtual)||($_SESSION['fase_semana']??'')!=='anjo'){
+        header('Location: jogo.php');exit;
+    }
+    $score=pnCorrigir('anjo',$tipoAtual,$_POST);
+    if($score===null){$_SESSION['pn_feedback']='Preencha todas as etapas antes de concluir.';header('Location: prova_anjo.php');exit;}
+    $dupla=$tipoAtual===10;$parceiro='';
+    if($dupla){
+        $parceiro=(string)($_POST['pn_parceiro']??'');
+        if(!in_array($parceiro,pnParceiros($participantes,$meuNome,$lider),true)){
+            $_SESSION['pn_feedback']='Selecione um parceiro disponível.';header('Location: prova_anjo.php');exit;
+        }
+        if(!pnParceiroAceita($jogadores,$meuNome,$parceiro)){
+            $_SESSION['pn_feedback']="$parceiro recusou o convite. Convide outro participante.";
+            header('Location: prova_anjo.php');exit;
+        }
+        $score=min(100,(int)round($score*.75+random_int(48,92)*.25));
+    }
+    $ranking=pnRankingAnjo($participantes,$meuNome,$score,$dupla,$parceiro);
+    $ganhador=(string)($ranking[0]['nome']??'');
+    $parceiroGanhador=(string)($ranking[0]['parceiro']??'');
+    finalizarProvaAnjo($jogadores,$ganhador,$lider);
+    if($dupla)pnRegistrarDuplaAnjo($jogadores,$ganhador,$parceiroGanhador);
+    salvarResultadoVisualProvaAnjo($ranking,$provaAction,$meuNome,true);
+    $_SESSION['resultado_prova_anjo']['parceiro']=$parceiroGanhador;
+    $_SESSION['evento_extra'][]='🎮 '.($provaAction['titulo']??'Prova do Anjo').": $meuNome marcou $score pontos; $ganhador venceu".($parceiroGanhador!==''?" com $parceiroGanhador.":'.');
+    premiarMoedasPorProva('anjo',$ganhador,$meuNome,15);
+    unset($_SESSION['pn_estado_anjo']);
+    header('Location: prova_anjo.php?resultado=1');exit;
+}
+
+/* =========================================================
    👑 LÍDER NÃO PARTICIPA, MAS VÊ O RESULTADO
    ========================================================= */
 
 if ($meuNome === $lider) {
-    $ranking = gerarRankingProvaAnjo($participantes, $meuNome, null);
+    $duplaNPC=(int)($dadosProvaAction['tipo']??0)===10;
+    if($duplaNPC) {
+        $ranking=pnRankingNPCsAnjo($participantes);
+    } else {
+        $ranking = gerarRankingProvaAnjo($participantes, $meuNome, null);
+    }
     $campeaoNome = (string)($ranking[0]['nome'] ?? '');
+    $parceiroCampeao=$duplaNPC?(string)($ranking[0]['parceiro']??''):'';
 
     if (!isset($_SESSION['evento_extra']) || !is_array($_SESSION['evento_extra'])) {
         $_SESSION['evento_extra'] = [];
@@ -68,7 +109,9 @@ if ($meuNome === $lider) {
         "👑 $lider já é Líder e ficou fora da Prova do Anjo.";
 
     finalizarProvaAnjo($jogadores, $campeaoNome, $lider);
+    if($duplaNPC)pnRegistrarDuplaAnjo($jogadores,$campeaoNome,$parceiroCampeao);
     salvarResultadoVisualProvaAnjo($ranking, $provaAction, $meuNome, false);
+    if($duplaNPC)$_SESSION['resultado_prova_anjo']['parceiro']=$parceiroCampeao;
 
     premiarMoedasPorProva(
         'anjo',

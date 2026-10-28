@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/logica/aliancas.php';
 require_once __DIR__ . '/includes/logica/aliancas_3.php';
 require_once __DIR__ . '/includes/logica/dinamicas_surpresa.php';
 require_once __DIR__ . '/includes/logica/paredao.php';
+require_once __DIR__ . '/includes/logica/provas_novas.php';
 
 
 /* =========================================================
@@ -194,6 +195,22 @@ function eDev($texto)
     <?php if ($devAviso !== ''): ?><div class="dev-flash" role="status"><?= eDev($devAviso) ?></div><?php endif; ?>
 
     <main class="dev-grid">
+      <section class="dev-card">
+        <h2>🎮 Laboratório de Provas 4.0</h2>
+        <p>Forçar uma prova individual ou cooperativa. Modifica o save de testes (somente localhost).</p>
+        <form method="POST">
+          <input type="hidden" name="dev_token" value="<?= eDev($devToken) ?>">
+          <label>Prova a testar</label>
+          <select name="dev_tipo_prova">
+            <?php foreach (['lider'=>'👑 Líder', 'anjo'=>'😇 Anjo'] as $classe=>$rotulo):
+              foreach(pnCatalogo($classe) as $id=>$meta): ?>
+                <option value="<?=eDev($classe.':'.$id)?>"><?=eDev($rotulo.' — '.$meta['titulo'])?></option>
+            <?php endforeach;endforeach; ?>
+          </select>
+          <button type="submit" name="dev_prova_interativa">▶ Testar prova</button>
+        </form>
+      </section>
+
 
 
         <!-- =============================================
