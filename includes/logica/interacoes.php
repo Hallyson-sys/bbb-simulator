@@ -149,6 +149,10 @@ function gerarAcoesNPC(
             );
 
 
+        if ($nomeNPC !== '' && $nomeNPC !== $meuNome && function_exists('e3AjustarPerfilInteracoes')) {
+            $perfil = e3AjustarPerfilInteracoes($perfil, (string)$nomeNPC);
+        }
+
         if (
             $nomeNPC == '' ||
             $nomeNPC == $meuNome
@@ -712,6 +716,10 @@ function npcExecutarInteracoesDaFase(
         $jogadores;
 
 
+    // Mesmo se o jogador pular as Interações, a casa segue vivendo.
+    if (function_exists('rc2ProcessarMomento')) {
+        rc2ProcessarMomento($jogadores, (string)$meuNome, (string)$fase, 'npc_fim', true);
+    }
     $_SESSION[$chave] =
         true;
 }

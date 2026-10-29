@@ -326,6 +326,14 @@ function registrarEmojiQueridometro(
 
     iniciarQueridometro();
 
+    // Registro estritamente privado. O resultado público permanece anônimo.
+    // Saves anteriores, que só possuem totais, NÃO recebem autores inventados.
+    $semana = (int)($_SESSION['rodada'] ?? 1);
+    if (!isset($_SESSION['queridometro_envios_privados']) || !is_array($_SESSION['queridometro_envios_privados'])) {
+        $_SESSION['queridometro_envios_privados'] = [];
+    }
+    $_SESSION['queridometro_envios_privados'][$semana][$para][$de] = $emoji;
+
     if (!isset($_SESSION['queridometro_resultado'][$para])) {
         $_SESSION['queridometro_resultado'][$para] = [];
     }

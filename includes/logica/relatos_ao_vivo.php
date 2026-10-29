@@ -96,6 +96,10 @@ function es3RelatoAoVivo($tipo, $ator, $alvo = '', $contexto = 'interacoes', $es
     $novos = array_values(array_diff($opcoes, $usados));
     $pool = $novos ?: $opcoes;
     $saida = $pool[array_rand($pool)];
+    if ($alvo !== '' && function_exists('generoParticipanteBBB')
+        && generoParticipanteBBB($ator) === 'f' && generoParticipanteBBB($alvo) === 'f') {
+        $saida = str_replace(['os dois', 'juntos', 'entre eles'], ['as duas', 'juntas', 'entre elas'], $saida);
+    }
     $_SESSION['es3_relatos_usados'] = array_slice(array_merge($usados, [$saida]), -36);
     return $saida;
 }
@@ -124,9 +128,9 @@ function es3RelatoVT($nome, $tipo) {
             "🎬 $nome resolveu expor sua leitura de jogo de forma direta e virou assunto entre os participantes."
         ],
         'vitima' => [
-            "💭 $nome falou sobre a pressão da convivência e a sensação de estar sendo mal interpretado.",
+            "💭 $nome falou sobre a pressão da convivência e a sensação de que algumas pessoas não entendem suas atitudes.",
             "🥺 $nome se emocionou ao desabafar sobre uma situação que marcou sua semana.",
-            "🎬 $nome relatou que está se sentindo isolado em algumas conversas da casa."
+            "🎬 $nome relatou que tem se sentido distante dos demais em algumas conversas da casa."
         ],
         'protagonista' => [
             "🌟 $nome esteve no centro de uma movimentação importante e o momento virou destaque da edição.",

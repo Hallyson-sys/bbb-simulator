@@ -375,6 +375,11 @@ function registrarMemoriaSocialNPC(
 
     unset($memoria);
 
+    // Experiências reais moldam a postura do NPC; sem expor fatos privados.
+    if (function_exists('e3RegistrarMemoria')) {
+        e3RegistrarMemoria($observador, $tipo, $forca);
+    }
+
     return true;
 }
 
@@ -914,6 +919,9 @@ function pontuarAlvoNPCInteligente(
         perfilInteligenciaNPC(
             $personalidade
         );
+    if (function_exists('e3AjustarPerfilIA')) {
+        $perfil = e3AjustarPerfilIA($perfil, (string)$npc);
+    }
 
     $relacao =
         function_exists(
@@ -1411,6 +1419,10 @@ function pontuarAlvoNPCInteligente(
     /* Alianças 3.0: lealdade real e planos coletivos, sem voto obrigatório. */
     if (function_exists('a3BonusVoto')) {
         $score += a3BonusVoto($jogadores, (string)$npc, (string)$alvo, (string)$contexto);
+    }
+    // Relações 4.0: subgrupos e casais afetam a decisão, sem voto obrigatório.
+    if (function_exists('r4BonusVoto')) {
+        $score += r4BonusVoto($jogadores, (string)$npc, (string)$alvo, (string)$contexto);
     }
 
     /* Acordos de voto têm peso real, mas não são ordens aos NPCs. */
@@ -2355,6 +2367,11 @@ function escolherAlvoInteracaoNPC(
     $momento = momentoEstrategicoNPC($jogadores, $npc);
 
     $chanceRival = (int)$t['rival'];
+    if (function_exists('e3Tracos')) {
+        $tracos = e3Tracos((string)$npc);
+        $chanceRival += (int)round(($tracos['reatividade'] - 50) * 0.30);
+        $chanceRival -= (int)round(($tracos['sociabilidade'] - 50) * 0.16);
+    }
 
     if (($momento['ressentimento'] ?? 0) >= 25) {
         $chanceRival += 15;

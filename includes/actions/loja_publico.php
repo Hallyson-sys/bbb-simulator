@@ -50,8 +50,12 @@ if (isset($_POST['usar_loja_publico'])) {
     /*
      * Mostra o resultado no Ao Vivo.
      */
-    $_SESSION['evento_extra'][] =
-        $resultadoLoja;
+    if ($itemLoja === 'revelar_queridometro') {
+        // O Ao Vivo é público: não publicar autores de um envio anônimo.
+        $_SESSION['loja_publico_feedback'] = $resultadoLoja;
+    } else {
+        $_SESSION['evento_extra'][] = $resultadoLoja;
+    }
 
 
     /*

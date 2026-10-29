@@ -17,6 +17,16 @@ function a3Lealdade(array $jogadores,string $nome): int {
         $total+=(float)($r['amizade']??35)*.35+(float)($r['confianca']??35)*.58-(float)($r['rivalidade']??0)*.48;
     }
     $bonus=(int)($_SESSION['a3_ajustes'][$nome]??0);
+    if (function_exists('e3Tracos')) {
+        $tracos = e3Tracos($nome);
+        $bonus += (int)round(($tracos['lealdade'] - 50) * 0.28);
+        // Subgrupos coesos favorecem a lealdade, sem substituir a afinidade real.
+        if (function_exists('r4SubgrupoAtivo')) {
+            foreach ($membros as $outro) {
+                if (r4SubgrupoAtivo($jogadores,$nome,$outro)) { $bonus += 5; break; }
+            }
+        }
+    }
     return a3Limitar(33+$total/count($membros)+$bonus);
 }
 function a3Preparar(array &$jogadores,string $meuNome): void {

@@ -980,6 +980,12 @@ function simularRodadaEspectador(
             )
         );
 
+    // Registra a entrevista de quem saiu nessa semana simulada.
+    require_once __DIR__ . '/bate_papo_eliminado.php';
+    bpPreparar((string)$eliminado,
+        (array)($_SESSION['participantes_eliminados_dados'][$eliminado] ?? []),
+        (int)$rodada, false);
+
     $_SESSION['ultimo_eliminado_espectador'] =
         $eliminado;
 

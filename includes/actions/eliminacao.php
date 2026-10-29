@@ -161,6 +161,15 @@ if (
             array_unique($_SESSION['historico_eliminados'])
         );
 
+        // Entrevista do NPC é congelada na saída; o jogador não vê enquanto
+        // estiver confinado. Para o próprio jogador, perguntas ficam pendentes.
+        require_once __DIR__ . '/../logica/bate_papo_eliminado.php';
+        bpPreparar((string)$nomeSaida,
+            (array)($_SESSION['participantes_eliminados_dados'][$nomeSaida] ?? []),
+            (int)$rodada, nomeIgual((string)$nomeSaida, (string)$meuNome),
+            nomeIgual((string)$nomeSaida, (string)$meuNome)
+                ? bpVTConfessionarioVerificado((string)$meuNome, $jogadores) : null);
+
         if (function_exists('registrarHistoricoTemporada')) {
             registrarHistoricoTemporada(
                 'eliminacao',
@@ -211,11 +220,11 @@ if (isset($_POST['continuar'])) {
         $_SESSION['jogador_eliminado'] = true;
         $_SESSION['fase_semana'] = 'jogador_eliminado';
 
-        header("Location: jogo.php");
+        header("Location: bate_papo.php");
         exit;
     }
 
-    // A semifinal também pode ser acompanhada pelo modo espectador.
+    // A semifinal também pode ser acompanh pelo modo espectador.
     if (!empty($_SESSION['modo_espectador']) && count($_SESSION['jogadores'] ?? []) <= 3) {
         $_SESSION['fase_semana'] = 'finalistas';
         header('Location: final.php');

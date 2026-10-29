@@ -1,0 +1,26 @@
+/* Feed BBB 3.0 — preserva a identidade roxo/rosa/ciano do simulador. */
+.feed3-filtros{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap;background:rgba(10,9,23,.92)}
+.feed3-filtro{border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.05);color:#e6dffc;font-size:12px;font-weight:800;padding:10px 14px;min-height:42px;cursor:pointer;transition:background .18s,border-color .18s}
+.feed3-filtro:hover,.feed3-filtro:focus-visible{border-color:#d92fc0;outline:2px solid transparent}
+.feed3-filtro.ativo{background:linear-gradient(115deg,rgba(226,0,139,.3),rgba(65,40,189,.35));border-color:rgba(237,39,180,.7);color:white}
+.feed3-sem-resultados{padding:22px 17px;color:#c2bad9;font-size:13px;line-height:1.65}
+.feed3-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.feed3-tags span{color:#77dffa;font-size:11px;font-weight:750;border-radius:6px;background:rgba(14,143,193,.12);padding:4px 7px;overflow-wrap:anywhere}
+.feed3-painel{background:linear-gradient(135deg,rgba(84,18,92,.30),rgba(8,28,61,.35));border:1px solid rgba(222,102,255,.16);border-radius:16px;padding:16px;margin-bottom:14px;color:#eae8ff}
+.feed3-painel-titulo{display:flex;align-items:center;justify-content:space-between;gap:6px;color:#f7ecff;font-size:14px;font-weight:850;margin-bottom:10px}
+.feed3-painel-titulo span{font-size:10px;color:#90c8ec;letter-spacing:.6px;white-space:nowrap}
+.feed3-painel>p{font-size:12px;line-height:1.55;color:#b4accf;margin:0 0 12px}
+.feed3-torcidas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.feed3-torcida{padding:10px;border-radius:11px;background:rgba(0,0,0,.19);border:1px solid rgba(255,255,255,.06);min-width:0}
+.feed3-torcida strong{display:block;color:white;font-size:12px;word-break:normal;overflow-wrap:break-word}
+.feed3-torcida small{display:block;margin-top:4px;color:#60dcf7;font-size:11px;overflow-wrap:anywhere}
+.feed3-mutirao{padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}
+.feed3-mutirao strong{font-size:12px;color:#f6ecff}
+.feed3-dupla-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}
+.feed3-dupla-tags span{border-radius:8px;background:rgba(229,11,124,.16);color:#ffbddb;font-size:11px;padding:6px 8px;font-weight:750}
+.feed3-dupla-tags span:first-child{background:rgba(0,159,208,.13);color:#8deaff}
+.feed3-painel .feed3-espera{margin:0;color:#b9b0d0}
+@media(max-width:768px){.feed3-filtros{position:sticky;top:0;z-index:7;padding:10px 12px}.feed3-filtro{flex:1;min-width:85px;padding:10px 6px;font-size:11px}.feed3-painel{margin:12px 12px 14px}.feed3-torcidas{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Respeitar o atributo hidden mesmo com a regra .feed-post { display:flex }. */
+.feed-post[hidden], #feed3SemResultados[hidden]{display:none!important}

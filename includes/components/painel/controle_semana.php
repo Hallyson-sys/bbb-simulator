@@ -189,15 +189,23 @@
 ?>
 
 <?php if ($fase==='paredao' && !empty($_SESSION['pd_pendente'])
-    && empty($_SESSION['pd_escolhido']) && nomeIgual((string)($_SESSION['lider']??''),$meuNome)): ?>
+    && empty($_SESSION['pd_escolhidos']) && empty($_SESSION['pd_escolhido']) && nomeIgual((string)($_SESSION['lider']??''),$meuNome)): ?>
     <div class="box" id="desempate-lider">
         <h3>👑 Desempate do Líder</h3>
-        <p>A votação da casa empatou. Você é Líder e deve escolher qual participante empatado ocupará a vaga no Paredão.</p>
+        <?php $vagasEmpate = max(1, (int)($_SESSION['pd_pendente']['vagas_empate'] ?? 1));
+        $vagasCasa = (int)($_SESSION['pd_pendente']['vagas_casa'] ?? 1);
+        $fixosPendentes = (array)($_SESSION['pd_pendente']['indicados_fixos'] ?? []); ?>
+        <p>Você é Líder e precisa escolher <strong><?= $vagasEmpate ?> participante(s)</strong>
+        entre os empatados para preencher as vagas disputadas pelo voto da casa.</p>
+        <p>Esta formação possui <?= $vagasCasa ?> vaga(s) da casa.
+        <?= $fixosPendentes ? 'Já indicado(s) por outras regras: '.htmlspecialchars(implode(', ', $fixosPendentes),ENT_QUOTES,'UTF-8').'.' : '' ?>
+        O desempate não remove as outras indicações.</p>
         <form method="POST">
             <div class="participantes-escolha">
                 <?php foreach (($_SESSION['pd_pendente']['empatados']??[]) as $empatado): ?>
                     <label class="participante-btn">
-                        <input type="radio" name="pd_candidato" value="<?=htmlspecialchars($empatado,ENT_QUOTES,'UTF-8')?>" required>
+                        <input type="<?= $vagasEmpate === 1 ? 'radio' : 'checkbox' ?>" name="pd_candidatos[]"
+                            value="<?=htmlspecialchars($empatado,ENT_QUOTES,'UTF-8')?>" <?= $vagasEmpate === 1 ? 'required' : '' ?>>
                         <?=htmlspecialchars($empatado,ENT_QUOTES,'UTF-8')?>
                     </label>
                 <?php endforeach; ?>

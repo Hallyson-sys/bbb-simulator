@@ -54,14 +54,14 @@ function generoNomeConhecidoBBB($nome)
         'vanessa','beatriz','nicole','debora','rayssa','giulia','samira','mariana',
         'luiza','paula','eduarda','vitoria','amanda','talita','raissa','brenda',
         'maria','yasmin','malu','francisca','isabelly','carolina','zoe','clara',
-        'taina','helena','priscila','rauanny'
+        'taina','helena','priscila','rauanny','lara','isabella','jessica','leticia','manu','laisla','flavia','laura','sabrina','carol','raquel','elisa','isadora'
     ];
 
     $masculinos = [
         'carlos','lucas','pedro','rafael','gustavo','bruno','diego','igor','renan',
         'felipe','alberto','yago','nathan','allan','theo','henrique','vinicius',
         'leandro','matheus','caio','murilo','thiago','joao','matteo','gabriel',
-        'otto','zeca','patrick','camilo','heitor','henry'
+        'otto','zeca','patrick','camilo','heitor','henry','samuel','eduardo','ryan','breno','enzo','guilherme','anderson','rodrigo'
     ];
 
     if (in_array($primeiro, $femininos, true)) return 'f';
@@ -221,5 +221,41 @@ function ajustarGeneroTextoComElencoBBB($texto, $jogadores = null)
         $texto = ajustarGeneroTextoParticipanteBBB($texto, $nome, $jogadores, $unico);
     }
 
+    return $texto;
+}
+
+
+/** Corrige concordâncias que dependem de um sujeito explícito no Ao Vivo.
+ * Não troca pronomes vagos num texto com vários participantes. */
+function ajustarNarracaoAoVivoBBB($texto, $jogadores = null)
+{
+    if ($jogadores === null) $jogadores = $_SESSION['jogadores'] ?? [];
+    if (!is_array($jogadores) || !is_string($texto) || $texto === '') return $texto;
+    $texto = ajustarGeneroTextoComElencoBBB($texto, $jogadores);
+    $adjetivos = [
+        'quieto'=>'quieta','sozinho'=>'sozinha','isolado'=>'isolada',
+        'preocupado'=>'preocupada','cansado'=>'cansada','irritado'=>'irritada',
+        'nervoso'=>'nervosa','animado'=>'animada','empolgado'=>'empolgada',
+        'chateado'=>'chateada','abalado'=>'abalada','desconfiado'=>'desconfiada',
+        'inseguro'=>'insegura','confiante'=>'confiante','surpreso'=>'surpresa',
+        'magoado'=>'magoada','aliviado'=>'aliviada','determinado'=>'determinada',
+        'mal interpretado'=>'mal interpretada'
+    ];
+    foreach ($jogadores as $j) {
+        $nome = trim((string)($j['nome'] ?? ''));
+        if ($nome === '') continue;
+        $genero = generoParticipanteBBB($nome, $jogadores);
+        if ($genero === null) continue;
+        // A forma só é corrigida quando o adjetivo se refere explicitamente ao nome.
+        $nomeReg = preg_quote($nome, '/');
+        foreach ($adjetivos as $masculino => $feminino) {
+            $correta = $genero === 'f' ? $feminino : $masculino;
+            $incorreta = $genero === 'f' ? $masculino : $feminino;
+            $texto = preg_replace(
+                '/('.$nomeReg.'\s+(?:estava|está|ficou|anda|parecia|parece|se sentiu|se mostrou|foi)\s+)'.preg_quote($incorreta, '/').'\b/ui',
+                '$1'.$correta, $texto
+            );
+        }
+    }
     return $texto;
 }

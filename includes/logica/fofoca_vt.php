@@ -16,6 +16,32 @@ if (
 
 
 /* =========================================================
+   👥 PARTICIPANTES ATIVOS PARA FOFOCAS E VTs
+   A lista da casa já exclui os eliminados na maior parte do
+   fluxo, mas o filtro abaixo protege também saves antigos.
+   ========================================================= */
+function nomesJogadoresAtivos(array $jogadores): array
+{
+    $nomes = [];
+
+    foreach ($jogadores as $jogador) {
+        if (!is_array($jogador) || !empty($jogador['eliminado'])) {
+            continue;
+        }
+
+        $nome = trim((string) ($jogador['nome'] ?? ''));
+        if ($nome === '' || in_array($nome, $nomes, true)) {
+            continue;
+        }
+
+        $nomes[] = $nome;
+    }
+
+    return $nomes;
+}
+
+
+/* =========================================================
    📚 GARANTIR HISTÓRICOS
    ========================================================= */
 
@@ -115,7 +141,7 @@ function temaFofocaAleatorio(
 
         "comentou que $alvo só aparece quando tem câmera por perto",
 
-        "espalhou que $alvo está combinando votos escondido",
+        "espalhou que $alvo está combinando votos às escondidas",
 
         "falou que $alvo está se aproximando do líder por interesse",
 
@@ -759,7 +785,7 @@ function gerarFofocasEVTsAutomaticos(
                 $nome =
                     $j['nome'] ?? '';
 
-                if ($nome == '') {
+                if ($nome == '' || !in_array($nome, $nomes, true)) {
                     continue;
                 }
 
@@ -867,7 +893,7 @@ function gerarFofocasEVTsAutomaticos(
                 $nome =
                     $j['nome'] ?? '';
 
-                if ($nome == '') {
+                if ($nome == '' || !in_array($nome, $nomes, true)) {
                     continue;
                 }
 

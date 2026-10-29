@@ -200,6 +200,23 @@ function usarItemLojaPublico(&$jogadores, $item)
         return "⚠️ Jogador não encontrado.";
     }
 
+    if ($item === 'revelar_queridometro') {
+        $custo = 30;
+        $semana = (int)($_SESSION['rodada'] ?? 1);
+        $jaLiberado = (int)($_SESSION['loja_queridometro_revelado_semana'] ?? 0) === $semana;
+        if ($jaLiberado) return '💌 Você já desbloqueou os autores dos seus emojis nesta semana.';
+        if (empty($_SESSION['queridometro_feito'])) {
+            return '💌 Aguarde o resultado do Queridômetro desta semana antes de comprar a revelação.';
+        }
+        $envios = $_SESSION['queridometro_envios_privados'][$semana][$meuNome] ?? [];
+        if (!is_array($envios) || !$envios) {
+            return '💌 Este save ainda não tem registros privados dos envios desta semana. Nenhuma moeda foi cobrada.';
+        }
+        if (!gastarMoedasPublico($custo)) return '🪙 A revelação do Queridômetro custa 30 moedas.';
+        $_SESSION['loja_queridometro_revelado_semana'] = $semana;
+        return '💌 Revelação desbloqueada! Veja os nomes e emojis recebidos na Loja do Público.';
+    }
+
     if ($item == 'radar') {
         $custo = 50;
 

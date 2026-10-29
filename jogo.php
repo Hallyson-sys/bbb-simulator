@@ -61,6 +61,9 @@ require_once __DIR__ . '/includes/logica/dinamicas_surpresa.php';
 require_once __DIR__ . '/includes/logica/estrategia_social.php';
 
 require_once __DIR__ . '/includes/logica/inteligencia_npc.php';
+require_once __DIR__ . '/includes/logica/personalidades_evolutivas.php';
+require_once __DIR__ . '/includes/logica/rotina_casa.php';
+require_once __DIR__ . '/includes/logica/relacoes_4.php';
 
 // O Poder Curinga foi incorporado ao Big Fone.
 
@@ -93,8 +96,10 @@ require_once __DIR__ . '/includes/logica/queridometro.php';
 require_once __DIR__ . '/includes/logica/feed_publico.php';
 
 require_once __DIR__ . '/includes/logica/feed_inteligente.php';
+require_once __DIR__ . '/includes/logica/feed_bbb_3.php';
 
 require_once __DIR__ . '/includes/logica/espectador.php';
+require_once __DIR__ . '/includes/logica/bate_papo_eliminado.php';
 
 /* =========================================================
    🔄 FLUXO DO JOGO
@@ -157,6 +162,9 @@ garantirEstruturaParticipantes(
 );
 
 $_SESSION['jogadores'] = $jogadores;
+
+// Convivência 3.0: sincronização semanal idempotente.
+e3SincronizarSemana($jogadores);
 
 $rodada = $_SESSION['rodada'] ?? 1;
 
@@ -626,6 +634,25 @@ $jogadores = $_SESSION['jogadores'] ?? $jogadores;
 
 $fase = $_SESSION['fase_semana'] ?? $fase;
 
+// Bate-Papo: após uma eliminação real, a entrevista do jogador vem
+// antes do Modo Espectador. Saves antigos também passam por essa etapa.
+if ($fase === 'jogador_eliminado' && empty($_SESSION['modo_espectador']) &&
+    bpEliminadoReal((string)$meuNome) &&
+    empty($_SESSION['bp_entrevistas'][$meuNome]['concluida'])) {
+    header('Location: bate_papo.php');
+    exit;
+}
+
+/* Rotina da Casa 2.0: um acontecimento ambiental pode ocorrer ao entrar
+   numa fase social, uma única vez por fase/semana. Refresh não repete. */
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+    && empty($_SESSION['modo_espectador'])
+    && (str_starts_with((string)$fase, 'interacoes') || $fase === 'festa')) {
+    rc2ProcessarMomento($jogadores, $meuNome, (string)$fase, 'entrada_da_fase');
+    // Relações 4.0: evolução autônoma, uma tentativa por fase e semana.
+    r4ProcessarFase($jogadores, $meuNome, (string)$fase);
+}
+
 /* =========================================================
    📱 ATUALIZAR REAÇÃO DO PÚBLICO
    ========================================================= */
@@ -675,6 +702,11 @@ atualizarFeedPublicoInteligente(
 
 );
 
+// Feed BBB 3.0: torcidas e mutirões derivados de acontecimentos públicos.
+feed3Atualizar($_SESSION['jogadores'] ?? $jogadores, (string)$fase, (int)$rodada);
+$jogadores = $_SESSION['jogadores'] ?? $jogadores;
+
+
 
 
 ?>
@@ -711,6 +743,7 @@ atualizarFeedPublicoInteligente(
 
 
 <link rel="stylesheet" href="assets/css/feed_publico.css">
+<link rel="stylesheet" href="assets/css/feed_bbb_3.css?v=1">
 
 <link rel="stylesheet" href="assets/css/save_2.css">
 <link rel="stylesheet" href="assets/css/responsivo.css?v=34">
@@ -719,6 +752,7 @@ atualizarFeedPublicoInteligente(
 
 <link rel="stylesheet" href="assets/css/aliancas3_dinamicas.css?v=2">
 <link rel="stylesheet" href="assets/css/convites_npc.css?v=1">
+<link rel="stylesheet" href="assets/css/rotina_casa_2.css?v=1">
 </head>
 
 <body>
@@ -1043,6 +1077,7 @@ const acaoSelecionada = <?= json_encode($_SESSION['acao_selecionada'] ?? '') ?>;
 <script src="assets/js/mobile_2.js?v=32"></script>
 
 <script src="assets/js/feed_publico.js"></script>
+<script src="assets/js/feed_bbb_3.js?v=1"></script>
 
 <script src="assets/js/save_core.js"></script>
 

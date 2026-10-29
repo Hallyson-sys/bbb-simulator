@@ -1,0 +1,31 @@
+BBB SIMULATOR — FEED BBB 3.0
+
+Novidades:
+- Torcidas com comentários contextualizados em acontecimentos publicados no Feed.
+- Hashtags ligadas a participantes, provas, conflitos e Paredões.
+- Central de Mutirões (#Fica e #Fora) apenas após formação confirmada do Paredão.
+- Mutirões com consequência pequena e oculta na popularidade, aplicada uma única vez por semana e participante.
+- Interface do Feed com filtros: Para você / Torcidas / Mutirões.
+- Cards de torcidas e campanhas adaptados ao mobile.
+
+Regras:
+- Nunca exibe porcentagem, popularidade real, força de torcida ou previsão de eliminação.
+- As campanhas não garantem resultados; votos secretos continuam protegidos.
+- Recarregar a página não duplica posts nem consequências.
+- Saves antigos podem continuar e inicializam a nova estrutura automaticamente.
+
+Arquivos principais alterados/criados:
+- jogo.php
+- includes/logica/feed_bbb_3.php (novo)
+- includes/components/feed_publico.php
+- assets/css/feed_bbb_3.css (novo)
+- assets/js/feed_bbb_3.js (novo)
+
+Sugestão de teste:
+1. Abra uma temporada na Semana 2 ou posterior.
+2. Participe de uma prova/discussão para gerar posts no Feed.
+3. Abra Feed BBB > Torcidas.
+4. Forme um Paredão e abra Feed BBB > Mutirões.
+5. Atualize a página. Os posts e efeitos não devem duplicar.
+
+Validação realizada: sintaxe PHP e JS, testes de criação e persistência de torcidas e mutirões e renderização do componente Feed. Uma temporada completa no navegador não foi testada.

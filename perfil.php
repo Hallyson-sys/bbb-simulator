@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/logica/relacoes.php';
 require_once __DIR__ . '/includes/logica/romance.php';
 require_once __DIR__ . '/includes/logica/aliancas.php';
 require_once __DIR__ . '/includes/logica/perfil_participante.php';
+require_once __DIR__ . '/includes/logica/personalidades_evolutivas.php';
 
 if (empty($_SESSION['jogadores']) && empty($_SESSION['participantes_eliminados_dados'])) {
     header('Location: index.php');
@@ -55,6 +56,8 @@ $historicoAliancas = array_values(array_filter(
     }
 ));
 $elencoDisponivel = listarParticipantesDisponiveisPerfil($jogadores);
+// Apenas viradas observadas publicamente; sem expor traços internos.
+$viradaPublica = (string)($_SESSION['e3_personalidades'][$nome]['virada_texto'] ?? '');
 
 function ePerfil($texto)
 {
@@ -140,6 +143,17 @@ function ePerfil($texto)
                 <?php endif; ?>
             </div>
         </section>
+
+        <?php if ($viradaPublica !== '' && !nomeIgual($nome, $meuNome)): ?>
+            <section class="perfil-card" style="margin-bottom:18px;padding:18px 20px;">
+                <div class="perfil-card-titulo"><div>
+                    <small>CONVIVÊNCIA • PERCEPÇÃO PÚBLICA</small>
+                    <h3>🔄 Mudança de postura</h3>
+                </div></div>
+                <p><?= ePerfil($nome) ?>: <?= ePerfil($viradaPublica) ?></p>
+                <small>Uma observação sobre o comportamento na casa, não um acesso à estratégia privada.</small>
+            </section>
+        <?php endif; ?>
 
         <section class="perfil-grid-principal">
 

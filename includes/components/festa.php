@@ -11,6 +11,7 @@
 <?php render('components/eventos_convivencia'); ?>
 <?php $ecBloqueia = !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado']); ?>
 <?php if (!$ecBloqueia): ?>
+<?php render('components/rotina_casa'); ?>
 
 <div class="box">
     <h3>🎉 Festa da Semana</h3>

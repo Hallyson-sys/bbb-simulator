@@ -147,6 +147,9 @@ if (isset($_POST['avancar_fase'])) {
             unset($_SESSION['paredao']);
             unset($_SESSION['paredao_formado']);
             unset($_SESSION['votos_paredao']);
+            unset($_SESSION['pd_pendente'], $_SESSION['pd_escolhido'], $_SESSION['pd_escolhidos'],
+                $_SESSION['pd_limite_paredao'], $_SESSION['pd_limite_paredao_rodada'],
+                $_SESSION['pd_votados_selecionados']);
             unset($_SESSION['dedo_duro']);
             unset($_SESSION['indicacao_lider']);
             unset($_SESSION['indicacao_bigfone']);
@@ -408,6 +411,9 @@ if (isset($_POST['avancar_fase'])) {
     }
 
     if ($fase == 'festa') {
+        if (function_exists('rc2ProcessarMomento')) {
+            rc2ProcessarMomento($jogadores, $meuNome, 'festa', 'pular_festa', true);
+        }
         if (function_exists('dsConcluirFesta')) dsConcluirFesta($jogadores);
         $_SESSION['jogadores']=$jogadores;
 

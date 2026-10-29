@@ -65,6 +65,9 @@ function gerarConfessionarioInteligente(&$jogadores, $meuNome)
 
         $personalidade = $jogador['personalidade'] ?? 'Neutro';
         $perfil = perfilPersonalidadeCompleto($personalidade);
+        if (function_exists('e3AjustarPerfilInteracoes') && $nome !== $meuNome) {
+            $perfil = e3AjustarPerfilInteracoes($perfil, (string)$nome);
+        }
 
         $historicoConfessionario = $jogador['confessionarios'] ?? [];
 
@@ -436,6 +439,17 @@ function gerarConfessionarioInteligente(&$jogadores, $meuNome)
             ];
         }
 
+        // Uma mudança pessoal significativa pode substituir o assunto genérico,
+        // mas não a cada semana nem para todos os NPCs.
+        if ($nome !== $meuNome && function_exists('e3PosturaConfessionario')
+            && (int)($_SESSION['rodada'] ?? 1) >= 3
+            && mt_rand(1, 100) <= 28) {
+            $postura = e3PosturaConfessionario((string)$nome);
+            if ($postura !== null) {
+                $opcoes[] = '🔄 <b>' . htmlspecialchars($nome, ENT_QUOTES, 'UTF-8') . '</b>: "' . htmlspecialchars($postura, ENT_QUOTES, 'UTF-8') . '"';
+                $opcoes[] = '💭 <b>' . htmlspecialchars($nome, ENT_QUOTES, 'UTF-8') . '</b>: "Sinto que essa experiência está mudando o meu jeito de lidar com as pessoas."';
+            }
+        }
         $fala = escolherFalaNaoRepetida($opcoes, $historicoConfessionario, $falas);
 
         if ($fala == '') {

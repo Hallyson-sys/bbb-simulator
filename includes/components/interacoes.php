@@ -12,6 +12,7 @@
 <?php render('components/eventos_convivencia'); ?>
 <?php $ecBloqueia = !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado']); ?>
 <?php if (!$ecBloqueia): ?>
+<?php render('components/rotina_casa'); ?>
 
     <?php if (!empty($_SESSION['es2_resultado_interacao'])): ?>
         <div class="box" role="status" style="border:1px solid rgba(0,210,165,.6);">

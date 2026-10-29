@@ -396,6 +396,11 @@ if (
 
         $_SESSION['acoes_restantes']--;
 
+        // Rotina da Casa: um momento espontâneo após uma ação válida,
+        // com limite de aparições por fase e nenhum efeito ao recarregar.
+        rc2ProcessarMomento($jogadores, $meuNome, $fase,
+            'jogador_' . (3 - (int)$_SESSION['acoes_restantes']),
+            (int)$_SESSION['acoes_restantes'] <= 0);
 
         /* NPCs jogam quando acabam suas ações */
 

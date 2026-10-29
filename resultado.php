@@ -403,7 +403,7 @@ if (
 
                 <form method="POST">
     <button class="btn" name="continuar">
-        👁️ Continuar Assistindo à Temporada
+        🎤 Ir para o Bate-Papo com o Eliminado
     </button>
 </form>
 

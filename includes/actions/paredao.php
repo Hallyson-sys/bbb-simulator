@@ -227,17 +227,24 @@ if (isset($_POST['indicar_bigfone'])) {
 
 
 
-/* 👑 Desempate público da votação da casa: decisão do Líder, nunca sorteio. */
+/* 👑 Desempate da casa: o Líder preenche todas as vagas disputadas. */
 if (isset($_POST['pd_desempatar']) && !empty($_SESSION['pd_pendente'])
     && ($_SESSION['fase_semana'] ?? '') === 'paredao') {
-    $pendente=$_SESSION['pd_pendente'];
-    $escolha=(string)($_POST['pd_candidato']??'');
-    if ((int)($pendente['rodada']??0)===(int)($_SESSION['rodada']??1)
-        && nomeIgual((string)($_SESSION['lider']??''),(string)$meuNome)
-        && in_array($escolha,$pendente['empatados']??[],true)) {
-        $_SESSION['pd_escolhido']=$escolha;
+    $pendente = $_SESSION['pd_pendente'];
+    $empatados = array_values((array)($pendente['empatados'] ?? []));
+    $vagasEmpate = max(1, (int)($pendente['vagas_empate'] ?? 1));
+    $escolhidos = $_POST['pd_candidatos'] ?? [];
+    if (!is_array($escolhidos)) $escolhidos = [];
+    // Compatibilidade com saves/formulários da versão anterior.
+    if (!$escolhidos && !empty($_POST['pd_candidato'])) $escolhidos = [(string)$_POST['pd_candidato']];
+    $escolhidos = array_values(array_unique(array_map('strval', $escolhidos)));
+    $validos = count($escolhidos) === $vagasEmpate && !array_diff($escolhidos, $empatados);
+    if ((int)($pendente['rodada'] ?? 0) === (int)($_SESSION['rodada'] ?? 1)
+        && nomeIgual((string)($_SESSION['lider'] ?? ''), (string)$meuNome) && $validos) {
+        $_SESSION['pd_escolhidos'] = $escolhidos;
+        $_SESSION['pd_escolhido'] = $escolhidos[0];
     } else {
-        $_SESSION['evento_extra'][]='⚠️ Escolha inválida. Selecione um dos participantes empatados.';
+        $_SESSION['evento_extra'][] = '⚠️ Selecione exatamente '.$vagasEmpate.' participante(s) entre os empatados.';
     }
     header('Location: jogo.php'); exit;
 }
@@ -871,7 +878,7 @@ if (
     // Não recalcular votos secretos enquanto o Líder desempata.
     $pdCache=$_SESSION['pd_pendente']??null;
     $pdRetomando=is_array($pdCache) && (int)($pdCache['rodada']??0)===(int)($_SESSION['rodada']??1);
-    if($pdRetomando && empty($_SESSION['pd_escolhido'])) goto fim_paredao;
+    if($pdRetomando && empty($_SESSION['pd_escolhidos']) && empty($_SESSION['pd_escolhido'])) goto fim_paredao;
     $votos=$pdRetomando ? $pdCache['votos'] : [];
     $votosDetalhados=$pdRetomando ? $pdCache['detalhes'] : [];
     if(!$pdRetomando) {
@@ -1414,56 +1421,87 @@ if (
     if(function_exists('dsRegistrarApuracao')) dsRegistrarApuracao($votosDetalhados,$votos);
     $_SESSION['jogadores']=$jogadores;
 
-    // Tamanho do paredão é sorteado uma só vez, não muda com reload ou desempate.
-    $limiteParaDesempate=(int)($_SESSION['pd_limite_paredao']??0);
-    if($limiteParaDesempate<1){
-        $limiteParaDesempate=definirTamanhoParedao($jogadores);
-        $_SESSION['pd_limite_paredao']=$limiteParaDesempate;
+    // As indicações fixas não são desfeitas pelo desempate da casa.
+    // O Líder decide exatamente as vagas disputadas, inclusive no Paredão Especial.
+    $limiteParaDesempate = (int)($_SESSION['pd_limite_paredao'] ?? 0);
+    // Um limite antigo não pode contaminar uma nova semana.
+    // Se a apuração estava aguardando desempate, manter o limite já definido.
+    $semanaLimite = (int)($_SESSION['pd_limite_paredao_rodada'] ?? 0);
+    if ($limiteParaDesempate < 1 || (!$pdRetomando && $semanaLimite !== (int)($_SESSION['rodada'] ?? 1))) {
+        $limiteParaDesempate = definirTamanhoParedao($jogadores);
+        $_SESSION['pd_limite_paredao'] = $limiteParaDesempate;
     }
-    $fixos=[];
-    foreach(['indicacao_lider','indicacao_bigfone'] as $chave){
-        $nomeFixo=(string)($_SESSION[$chave]??'');
-        if($nomeFixo!=='' && !in_array($nomeFixo,$fixos,true) && !estaImune($jogadores,$nomeFixo)) $fixos[]=$nomeFixo;
+    $_SESSION['pd_limite_paredao_rodada'] = (int)($_SESSION['rodada'] ?? 1);
+    $fixos = [];
+    foreach (['indicacao_lider', 'indicacao_bigfone'] as $chave) {
+        $nomeFixo = (string)($_SESSION[$chave] ?? '');
+        if ($nomeFixo !== '' && !in_array($nomeFixo, $fixos, true)
+            && !estaImune($jogadores, $nomeFixo)) $fixos[] = $nomeFixo;
     }
-    $votaveis=[];
-    foreach($votos as $nome=>$peso){
-        if(!in_array($nome,$fixos,true) && !estaImune($jogadores,$nome)) $votaveis[$nome]=$peso;
-    }
-    $vagas=max(0,$limiteParaDesempate-count($fixos));
-    $selecionados=array_slice(array_keys($votaveis),0,$vagas);
-    $corte=$selecionados ? (int)($votaveis[end($selecionados)]??-1) : -1;
-    $empatados=[];
-    if($vagas>0 && $corte>=0){
-        foreach($votaveis as $nome=>$peso){if((int)$peso===$corte) $empatados[]=$nome;}
-    }
-    $nAcima=count(array_filter($votaveis,fn($v)=>(int)$v>$corte));
-    $haEmpate=count($empatados)>max(0,$vagas-$nAcima);
-    if($haEmpate && !$pdRetomando){
-        if(nomeIgual((string)$lider,(string)$meuNome)) {
-            $_SESSION['pd_pendente']=['rodada'=>(int)($_SESSION['rodada']??1),'empatados'=>$empatados,
-                'votos'=>$votos,'detalhes'=>$votosDetalhados];
-            $_SESSION['evento_extra'][]='👑 A votação da casa empatou. O Líder precisa decidir quem ocupará a vaga disputada no Paredão.';
-            header('Location: jogo.php');exit;
-        }
-        $bloqueados=array_values(array_diff(array_map(fn($j)=>(string)($j['nome']??''),$jogadores),$empatados));
-        $escolha=escolherAlvoInteligente($jogadores,$lider,$bloqueados,'voto');
-        if(!in_array($escolha,$empatados,true))$escolha=$empatados[0];
-        $_SESSION['pd_escolhido']=$escolha;
-    }
-    if($haEmpate && !empty($_SESSION['pd_escolhido'])) {
-        $escolha=(string)$_SESSION['pd_escolhido'];
-        if(in_array($escolha,$empatados,true)){
-            // Ordenar primeiro o voto escolhido pelo Líder dentro do grupo empatado.
-            $ordem=array_keys($votos);
-            $ordem=array_values(array_filter($ordem,fn($n)=>$n!==$escolha));
-            $pos=0;
-            while($pos<count($ordem) && (int)($votos[$ordem[$pos]]??0)>$corte)$pos++;
-            array_splice($ordem,$pos,0,[$escolha]);
-            $ordenados=[];foreach($ordem as $n)$ordenados[$n]=$votos[$n];$votos=$ordenados;
-            $_SESSION['evento_extra'][]="👑 Desempate do Líder: $lider escolheu $escolha entre os participantes empatados.";
+    $votaveis = [];
+    foreach ($votos as $nome => $peso) {
+        if (!in_array($nome, $fixos, true) && !estaImune($jogadores, $nome)) {
+            $votaveis[$nome] = (int)$peso;
         }
     }
-    unset($_SESSION['pd_pendente'],$_SESSION['pd_escolhido']);
+    arsort($votaveis, SORT_NUMERIC);
+    $vagasCasa = max(0, $limiteParaDesempate - count($fixos));
+    $vagasCasa = min($vagasCasa, count($votaveis));
+    $selecionadosCasa = array_slice(array_keys($votaveis), 0, $vagasCasa);
+    $corte = $selecionadosCasa ? (int)$votaveis[end($selecionadosCasa)] : -1;
+    $acima = []; $empatados = [];
+    foreach ($votaveis as $nome => $peso) {
+        if ($peso > $corte) $acima[] = $nome;
+        elseif ($peso === $corte) $empatados[] = $nome;
+    }
+    $vagasEmpate = $vagasCasa > 0 ? $vagasCasa - count($acima) : 0;
+    $haEmpate = $vagasEmpate > 0 && count($empatados) > $vagasEmpate;
+
+    if ($haEmpate) {
+        if (!$pdRetomando && nomeIgual((string)$lider, (string)$meuNome)) {
+            $_SESSION['pd_pendente'] = [
+                'rodada' => (int)($_SESSION['rodada'] ?? 1),
+                'empatados' => $empatados, 'vagas_empate' => $vagasEmpate,
+                'vagas_casa' => $vagasCasa, 'indicados_fixos' => $fixos,
+                'votos' => $votos, 'detalhes' => $votosDetalhados
+            ];
+            $_SESSION['evento_extra'][] = '👑 A casa empatou na última faixa de votos. O Líder deve escolher '.
+                $vagasEmpate.' participante(s) para preencher a(s) vaga(s) empatada(s).';
+            header('Location: jogo.php'); exit;
+        }
+        if (nomeIgual((string)$lider, (string)$meuNome)) {
+            $escolhas = (array)($_SESSION['pd_escolhidos'] ?? []);
+            if (!$escolhas && !empty($_SESSION['pd_escolhido'])) $escolhas = [(string)$_SESSION['pd_escolhido']];
+        } else {
+            $escolhas = [];
+            $restantes = $empatados;
+            // IA decide cada uma das vagas; não usa ordem aleatória de empate.
+            for ($i = 0; $i < $vagasEmpate && $restantes; $i++) {
+                $bloqueados = array_values(array_diff(array_map(
+                    static fn($j) => (string)($j['nome'] ?? ''), $jogadores), $restantes));
+                $escolha = function_exists('escolherAlvoInteligente')
+                    ? escolherAlvoInteligente($jogadores, $lider, $bloqueados, 'voto') : '';
+                if (!in_array($escolha, $restantes, true)) $escolha = $restantes[0];
+                $escolhas[] = $escolha;
+                $restantes = array_values(array_diff($restantes, [$escolha]));
+            }
+        }
+        $escolhas = array_values(array_unique(array_filter(array_map('strval', $escolhas))));
+        if (count($escolhas) !== $vagasEmpate || array_diff($escolhas, $empatados)) {
+            if ($pdRetomando) {
+                $_SESSION['evento_extra'][] = '⚠️ Selecione os participantes empatados para continuar.';
+                goto fim_paredao;
+            }
+            $escolhas = array_slice($empatados, 0, $vagasEmpate);
+        }
+        $selecionadosCasa = array_merge($acima, $escolhas);
+        $_SESSION['evento_extra'][] = '👑 Desempate do Líder: '.$lider.' escolheu '.
+            implode(' e ', $escolhas).' para '.($vagasEmpate === 1 ? 'a vaga empatada' : 'as vagas empatadas').
+            ' do Paredão. As outras indicações da semana permanecem válidas.';
+    }
+    // A escolha do Líder decide somente as vagas empatadas, sem recalcular os votos.
+    $_SESSION['pd_votados_selecionados'] = $selecionadosCasa;
+    unset($_SESSION['pd_pendente'], $_SESSION['pd_escolhido'], $_SESSION['pd_escolhidos']);
 
     if (function_exists('a3RegistrarVotosPrivados')) a3RegistrarVotosPrivados($jogadores, $votosDetalhados);
 
@@ -1534,13 +1572,9 @@ if (
 
 
 
-    $maisVotados =
-
-        array_keys(
-
-            $votos
-
-        );
+    // Exatamente os mais votados para as vagas da casa, após eventual decisão do Líder.
+    $maisVotados = array_values((array)($_SESSION['pd_votados_selecionados'] ?? []));
+    unset($_SESSION['pd_votados_selecionados']);
 
 
 

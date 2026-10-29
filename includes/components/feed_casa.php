@@ -15,7 +15,10 @@
             $totalEventosAoVivo = count($_SESSION['evento_extra']);
             foreach ($_SESSION['evento_extra'] as $indiceEvento => $ev) {
                 $classeUltimo = ($indiceEvento === $totalEventosAoVivo - 1) ? ' class="ao-vivo-ultimo" data-ao-vivo-ultimo="1"' : '';
-                echo "<p{$classeUltimo}>$ev</p>";
+                $evExibido = function_exists('ajustarNarracaoAoVivoBBB')
+                    ? ajustarNarracaoAoVivoBBB((string)$ev, $jogadores ?? ($_SESSION['jogadores'] ?? []))
+                    : (string)$ev;
+                echo "<p{$classeUltimo}>$evExibido</p>";
                 // Exibir tabela pública somente quando a produção anunciou Votação Aberta.
                 // Nunca expor detalhes de votos em uma votação sigilosa.
                 $publicos = $_SESSION['ds3_votos_publicos'] ?? [];

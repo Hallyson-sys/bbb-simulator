@@ -61,6 +61,9 @@ if ($fase === 'festa' && isset($_POST['es2_festa_acao'])) {
     }
     if($consumir){
         $_SESSION['acoes_festa']--;
+        rc2ProcessarMomento($jogadores, $meuNome, 'festa',
+            'estrategia_' . (3 - (int)$_SESSION['acoes_festa']),
+            (int)$_SESSION['acoes_festa'] <= 0);
         $_SESSION['jogadores']=$jogadores;
         unset($_SESSION['acao_festa_selecionada']);
         if($_SESSION['acoes_festa']<=0){
@@ -451,6 +454,9 @@ if ($alvo != '') {
 $_SESSION['evento_extra'][] = $evento;
 $_SESSION['jogadores'] = $jogadores;
 $_SESSION['acoes_festa']--;
+rc2ProcessarMomento($jogadores, $meuNome, 'festa',
+    'acao_' . (3 - (int)$_SESSION['acoes_festa']),
+    (int)$_SESSION['acoes_festa'] <= 0);
 
 unset($_SESSION['acao_festa_selecionada']);
 

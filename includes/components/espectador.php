@@ -36,6 +36,25 @@ $ultimoEliminado =
         </p>
     </div>
 
+    <div class="box" style="border:1px solid rgba(222,104,235,.4);background:linear-gradient(125deg,rgba(140,55,170,.16),rgba(44,29,91,.18));">
+        <h3>🎤 Bate-Papo com os Eliminados</h3>
+        <p>Reveja as entrevistas de quem já saiu. Veja primeiro os depoimentos de amigos, aliados e interesses amorosos — e confira novas respostas conforme a temporada avança.</p>
+        <a class="btn" href="bate_papo.php?arquivo=1#arquivo" style="display:block;text-align:center;text-decoration:none;">📼 Abrir arquivo de entrevistas</a>
+        <?php
+        require_once __DIR__ . '/../logica/bate_papo_eliminado.php';
+        bpPrepararArquivo();
+        $recentes = array_reverse((array)($_SESSION['historico_eliminados'] ?? []));
+        $recentes = array_slice($recentes, 0, 3);
+        ?>
+        <?php foreach ($recentes as $ex):
+            $ent = $_SESSION['bp_entrevistas'][$ex] ?? null;
+            if (!is_array($ent) || empty($ent['concluida'])) continue;
+            [$tag] = bpDestaqueParaMim((string)$ex);
+        ?>
+        <p><a href="bate_papo.php?nome=<?= rawurlencode((string)$ex) ?>"><b><?= bpEsc($ex) ?></b> — <?= bpEsc($tag) ?> · Semana <?= (int)$ent['semana'] ?></a></p>
+        <?php endforeach; ?>
+    </div>
+
     <?php if (!empty($resumo)): ?>
         <div class="box">
             <h3>📺 Resumo da última semana</h3>

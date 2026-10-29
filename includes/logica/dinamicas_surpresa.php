@@ -56,7 +56,7 @@ function dsResumoPublico(): string {
         $c=$_SESSION['ds3_carta']??[];
         return (int)($c['rodada']??0)===$rodada && !empty($c['nome'])
             ? '✅ Carta entregue a '.(string)$c['nome'].'. O voto terá peso dois quando for computado.'
-            : '⏳ Pendente: a carta será entregue depois da Festa.';
+            : '⏳ Pendente: a carta será entregue depois da Festa. O poder continua em segredo.';
     }
     if($tipo==='votacao_aberta') return !empty($_SESSION['ds3_votos_publicos']) && (int)($_SESSION['ds3_votos_publicos']['rodada']??0)===$rodada
         ? '✅ Votos da casa declarados: confira a tabela no Ao Vivo.'
@@ -119,7 +119,7 @@ function dsReacoesCasa(array $jogadores,string $tipo): array {
         };
         if(in_array($perfil,['Estrategista','Manipulador','Falso','Líder Nato'],true))$fala="Vou ter que refazer meus cálculos. $tema.";
         elseif(in_array($perfil,['Barraqueiro','Explosivo','Impulsivo'],true))$fala="Quero ver o povo segurar o que fala agora, porque $tema!";
-        elseif(in_array($perfil,['Emocional','Sensível','Tímido'],true))$fala="Eu tô nervoso com isso. $tema.";
+        elseif(in_array($perfil,['Emocional','Sensível','Tímido'],true))$fala="Isso me deixou com um frio na barriga. $tema.";
         else $fala="Caramba, não esperava por essa. $tema.";
         $falas[]="💬 $nome comentou a novidade: $fala";
     }
@@ -132,7 +132,7 @@ function dsDescricoes(): array {
         'imunidade_surpresa'=>['titulo'=>'🛡️ Imunidade Surpresa','descricao'=>'Ao final da Festa, a produção concederá uma imunidade extra a um participante elegível.'],
         'paredao_especial'=>['titulo'=>'💥 Paredão Especial','descricao'=>'Se houver candidatos suficientes, a formação terá quatro emparedados, respeitando as imunidades e o Bate-Volta.'],
         'voto_em_dobro'=>['titulo'=>'⚡ Votação Turbinada','descricao'=>'Cada voto válido da casa terá peso dois nesta semana. Poderes de voto duplo não acumulam peso adicional.'],
-        'carta_misteriosa'=>['titulo'=>'✉️ Carta Misteriosa','descricao'=>'Ao final da Festa, um participante elegível receberá da produção um voto de peso dois para a votação da casa.'],
+        'carta_misteriosa'=>['titulo'=>'✉️ Carta Misteriosa','descricao'=>'Uma carta lacrada será entregue após a Festa a um participante elegível. Seu conteúdo e poder só serão anunciados no momento da entrega.'],
         'contragolpe_especial'=>['titulo'=>'🔥 Contragolpe Especial','descricao'=>'O indicado pelo Líder poderá puxar uma pessoa elegível ao Paredão, após a formação da votação da casa.'],
     ];
 }

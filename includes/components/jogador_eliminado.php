@@ -95,11 +95,9 @@ $rodadasSobrevividas =
 
         </div>
 
-        <form method="POST">
-            <button class="btn" name="continuar_espectador">
-                👁️ Continuar assistindo à temporada
-            </button>
-        </form>
+        <a class="btn" href="bate_papo.php" style="display:block;text-decoration:none;text-align:center;">
+            🎤 Participar do Bate-Papo com o Eliminado
+        </a>
 
         <form
             method="POST"
