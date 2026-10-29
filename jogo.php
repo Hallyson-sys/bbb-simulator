@@ -88,6 +88,7 @@ require_once __DIR__ . '/includes/logica/festa.php';
 require_once __DIR__ . '/includes/logica/confessionario.php';
 require_once __DIR__ . '/includes/logica/raio_x_estrategico.php';
 require_once __DIR__ . '/includes/logica/provas_novas.php';
+require_once __DIR__ . '/includes/logica/lideranca_dupla.php';
 
 require_once __DIR__ . '/includes/logica/fofoca_vt.php';
 
@@ -163,6 +164,22 @@ garantirEstruturaParticipantes(
 
 $_SESSION['jogadores'] = $jogadores;
 
+// Compatibilidade: saves antigos de liderança em dupla podiam deixar o colíder
+// na Xepa após a decisão. Os dois vencedores já possuem direito ao VIP.
+if (!empty($_SESSION['vip_definido']) && count(ldLideresAtuais($jogadores)) === 2) {
+    foreach ($jogadores as &$integranteVIP) {
+        if (!in_array((string)($integranteVIP['nome'] ?? ''), ldLideresAtuais($jogadores), true)
+            || !empty($integranteVIP['status']['vip'])) continue;
+        $estavaXepa = !empty($integranteVIP['status']['xepa']);
+        $integranteVIP['status']['vip'] = true;
+        $integranteVIP['status']['xepa'] = false;
+        $integranteVIP['estatisticas']['vip'] = ($integranteVIP['estatisticas']['vip'] ?? 0) + 1;
+        if ($estavaXepa) $integranteVIP['estatisticas']['xepa'] = max(0, ($integranteVIP['estatisticas']['xepa'] ?? 0) - 1);
+    }
+    unset($integranteVIP);
+    $_SESSION['jogadores'] = $jogadores;
+}
+
 // Convivência 3.0: sincronização semanal idempotente.
 e3SincronizarSemana($jogadores);
 
@@ -190,6 +207,11 @@ garantirRelacoesIniciaisJogador(
 
 garantirEstadoSemana();
 
+// Saves antigos e equipes onde o NPC é titular: o jogador colíder também decide.
+if (($_SESSION['fase_semana'] ?? '') === 'vip_xepa_revelar' && !isset($_SESSION['vip_definido'])
+    && ldParticipa($jogadores, $meuNome)) {
+    $_SESSION['fase_semana'] = 'vip_xepa';
+}
 $fase = $_SESSION['fase_semana'];
 
 garantirInicioRodadaQueridometro(
@@ -1066,7 +1088,7 @@ render('components/feed_publico', [
 
 <script>
 
-const qtdVIP = <?= $qtdVIP ?? 0 ?>;
+const qtdVIP = <?= ldParticipa($jogadores, $meuNome) ? ldVagasExtrasVIP($jogadores, (int)$qtdVIP) : ($qtdVIP ?? 0) ?>;
 
 const acaoSelecionada = <?= json_encode($_SESSION['acao_selecionada'] ?? '') ?>;
 

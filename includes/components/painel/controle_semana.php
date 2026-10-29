@@ -62,39 +62,51 @@
    ========================================================= */
 ?>
 
-<?php if (
-    $fase == 'vip_xepa' &&
-    ($_SESSION['lider'] ?? '') == $meuNome &&
-    !isset($_SESSION['vip_definido'])
-): ?>
-
+<?php if ($fase === 'vip_xepa' && !isset($_SESSION['vip_definido'])
+    && (nomeIgual((string)($_SESSION['lider'] ?? ''), $meuNome) || ldParticipa($jogadores, $meuNome))):
+    $lideresVIP = ldLideresAtuais($jogadores);
+    $ehDupla = count($lideresVIP) === 2;
+    $parceiroVIP = $ehDupla ? ldOutroLider($jogadores, $meuNome) : '';
+    $qtdEscolhasVIP = $ehDupla ? ldVagasExtrasVIP($jogadores, (int)$qtdVIP) : (int)$qtdVIP;
+    $ldPendente = (array)($_SESSION['ld_vip_pendente'] ?? []);
+    $ldAguardando = $ehDupla && (int)($ldPendente['semana'] ?? 0) === (int)$rodada;
+?>
     <div class="box">
-        <h3>👑 Você é o Líder! Escolha <?php echo $qtdVIP; ?> para o VIP</h3>
+        <h3>👑 <?= $ehDupla ? 'Liderança em Dupla — VIP em conjunto' : 'Você é o Líder!' ?></h3>
+        <?php if ($ehDupla): ?>
+            <p>🤝 Você e <strong><?=htmlspecialchars($parceiroVIP,ENT_QUOTES,'UTF-8')?></strong> já estão no VIP automaticamente.
+            Escolham <strong><?= $qtdEscolhasVIP ?></strong> outro(s) participante(s). O parceiro poderá propor mudanças.</p>
+        <?php else: ?>
+            <p>Escolha <?= $qtdEscolhasVIP ?> participantes para o VIP.</p>
+        <?php endif; ?>
     </div>
 
-    <form method="POST">
-        <div class="participantes-escolha">
-            <?php foreach ($jogadores as $j): ?>
-                <?php if (($j['nome'] ?? '') == $meuNome) continue; ?>
-
-                <label class="participante-btn">
-                    <input
-                        type="checkbox"
-                        name="vip[]"
-                        value="<?php echo $j['nome']; ?>"
-                        onclick="limitarVIP(this)">
-                    <?php echo $j['nome']; ?>
-                </label>
-            <?php endforeach; ?>
+    <?php if ($ldAguardando): ?>
+        <div class="box" style="border:1px solid #ad73e9;background:linear-gradient(115deg,#241334,#101b32);">
+            <h3>🤝 Seu parceiro quer negociar o VIP</h3>
+            <p>Você escolheu: <b><?=htmlspecialchars(implode(', ', (array)$ldPendente['proposta']),ENT_QUOTES,'UTF-8')?></b></p>
+            <p><b><?=htmlspecialchars($parceiroVIP,ENT_QUOTES,'UTF-8')?></b> prefere: <b><?=htmlspecialchars(implode(', ', (array)$ldPendente['preferencia']),ENT_QUOTES,'UTF-8')?></b></p>
+            <form method="POST" style="display:grid;gap:10px;">
+                <input type="hidden" name="ld_resolver_vip" value="1">
+                <button class="btn" type="submit" name="ld_decisao" value="concordar">🤝 Concordar com a proposta</button>
+                <button class="btn" type="submit" name="ld_decisao" value="negociar">💬 Negociar uma lista equilibrada</button>
+            </form>
         </div>
-
-        <button class="btn" name="definir_vip">
-            Confirmar VIP
-        </button>
-    </form>
-
+    <?php else: ?>
+        <form method="POST">
+            <div class="participantes-escolha">
+                <?php foreach ($jogadores as $j): ?>
+                    <?php if (in_array($j['nome'] ?? '', $ehDupla ? $lideresVIP : [$_SESSION['lider'] ?? ''], true)) continue; ?>
+                    <label class="participante-btn">
+                        <input type="checkbox" name="vip[]" value="<?=htmlspecialchars($j['nome'],ENT_QUOTES,'UTF-8')?>" onclick="limitarVIP(this)" <?= $qtdEscolhasVIP === 0 ? 'disabled' : '' ?>>
+                        <?=htmlspecialchars($j['nome'],ENT_QUOTES,'UTF-8')?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <button class="btn" name="definir_vip" value="1">🤝 <?= $ehDupla ? 'Propor VIP ao parceiro' : 'Confirmar VIP' ?></button>
+        </form>
+    <?php endif; ?>
 <?php endif; ?>
-
 
 <?php
 /* =========================================================
@@ -189,9 +201,9 @@
 ?>
 
 <?php if ($fase==='paredao' && !empty($_SESSION['pd_pendente'])
-    && empty($_SESSION['pd_escolhidos']) && empty($_SESSION['pd_escolhido']) && nomeIgual((string)($_SESSION['lider']??''),$meuNome)): ?>
+    && empty($_SESSION['pd_escolhidos']) && empty($_SESSION['pd_escolhido']) && (nomeIgual((string)($_SESSION['lider']??''),$meuNome) || ldParticipa($jogadores, $meuNome))): ?>
     <div class="box" id="desempate-lider">
-        <h3>👑 Desempate do Líder</h3>
+        <h3>👑 <?= ldParticipa($jogadores, $meuNome) ? "Desempate da Liderança em Dupla" : "Desempate do Líder" ?></h3>
         <?php $vagasEmpate = max(1, (int)($_SESSION['pd_pendente']['vagas_empate'] ?? 1));
         $vagasCasa = (int)($_SESSION['pd_pendente']['vagas_casa'] ?? 1);
         $fixosPendentes = (array)($_SESSION['pd_pendente']['indicados_fixos'] ?? []); ?>
@@ -200,6 +212,21 @@
         <p>Esta formação possui <?= $vagasCasa ?> vaga(s) da casa.
         <?= $fixosPendentes ? 'Já indicado(s) por outras regras: '.htmlspecialchars(implode(', ', $fixosPendentes),ENT_QUOTES,'UTF-8').'.' : '' ?>
         O desempate não remove as outras indicações.</p>
+        <?php $ldEmpate=(array)($_SESSION['ld_pd_pendente']??[]);
+              $ldEmpateAberto=ldParticipa($jogadores,$meuNome) && (int)($ldEmpate['semana']??0)===(int)$rodada; ?>
+        <?php if ($ldEmpateAberto): ?>
+            <div class="box">
+                <h3>🤝 Os Líderes divergem sobre o desempate</h3>
+                <p>Você propôs <?= htmlspecialchars(implode(', ', (array)$ldEmpate['proposta']),ENT_QUOTES,'UTF-8') ?>.
+                <?= htmlspecialchars((string)$ldEmpate['parceiro'],ENT_QUOTES,'UTF-8') ?> prefere
+                <?= htmlspecialchars(implode(', ', (array)$ldEmpate['preferencia']),ENT_QUOTES,'UTF-8') ?>.</p>
+                <form method="POST" style="display:grid;gap:10px;">
+                    <input type="hidden" name="ld_resolver_desempate" value="1">
+                    <button class="btn" name="ld_decisao_desempate" value="concordar">🤝 Aceitar sugestão do parceiro</button>
+                    <button class="btn" name="ld_decisao_desempate" value="negociar">💬 Chegar a um acordo</button>
+                </form>
+            </div>
+        <?php else: ?>
         <form method="POST">
             <div class="participantes-escolha">
                 <?php foreach (($_SESSION['pd_pendente']['empatados']??[]) as $empatado): ?>
@@ -212,6 +239,7 @@
             </div>
             <button class="btn" name="pd_desempatar" value="1">👑 Confirmar Desempate</button>
         </form>
+        <?php endif; ?>
     </div>
 <?php endif; ?>
 
@@ -219,19 +247,35 @@
     $fase == 'paredao' &&
     empty($_SESSION['pd_pendente']) &&
     !isset($_SESSION['indicacao_lider']) &&
-    ($_SESSION['lider'] ?? '') == $meuNome
+    (nomeIgual((string)($_SESSION['lider'] ?? ''), $meuNome) || ldParticipa($jogadores, $meuNome))
 ): ?>
 
     <div class="box">
-        <h3>👑 Você é o Líder! Indique alguém ao Paredão</h3>
-        <?php if((int)($_SESSION['lider_dupla_semana']??0)===(int)($_SESSION['rodada']??1) && !empty($_SESSION['lideres_dupla'][1])):
-             $pnParceiro=(string)$_SESSION['lideres_dupla'][1];$pnSugestao=pnPreferenciaParceiro($jogadores,$pnParceiro,'lider'); ?>
-            <p class="pn-aviso">🤝 Liderança em Dupla: <b><?=htmlspecialchars($pnParceiro)?></b> sugere indicar
-            <b><?=htmlspecialchars($pnSugestao)?></b>. Vocês podem discordar; sua decisão será registrada.</p>
+        <h3>👑 <?= ldParticipa($jogadores, $meuNome) ? 'Liderança em Dupla — indicar em conjunto' : 'Você é o Líder! Indique alguém ao Paredão' ?></h3>
+        <?php if (ldParticipa($jogadores, $meuNome)):
+            $pnParceiro=ldOutroLider($jogadores,$meuNome); ?>
+            <p class="pn-aviso">🤝 Você decide com <b><?=htmlspecialchars($pnParceiro,ENT_QUOTES,'UTF-8')?></b>.
+            O parceiro poderá sugerir outro nome antes que a indicação seja concluída.</p>
         <?php endif; ?>
 
     </div>
 
+    <?php $ldIndicacao=(array)($_SESSION['ld_indicacao_pendente']??[]);
+          $ldNegociando=ldParticipa($jogadores,$meuNome) && (int)($ldIndicacao['semana']??0)===(int)$rodada; ?>
+    <?php if ($ldNegociando): ?>
+        <div class="box" style="border:1px solid #ae77ed;background:linear-gradient(115deg,#261335,#0b1b31);">
+            <h3>🤝 Vocês têm opiniões diferentes</h3>
+            <p>Você sugeriu <strong><?=htmlspecialchars((string)$ldIndicacao['proposta'],ENT_QUOTES,'UTF-8')?></strong>, mas
+               <strong><?=htmlspecialchars((string)$ldIndicacao['parceiro'],ENT_QUOTES,'UTF-8')?></strong> prefere
+               <strong><?=htmlspecialchars((string)$ldIndicacao['sugestao'],ENT_QUOTES,'UTF-8')?></strong>.</p>
+            <p>Conversem antes de decidir a indicação do grupo.</p>
+            <form method="POST" style="display:grid;gap:10px;">
+                <input type="hidden" name="ld_resolver_indicacao" value="1">
+                <button class="btn" type="submit" name="ld_decisao_indicacao" value="concordar">🤝 Aceitar a indicação do parceiro</button>
+                <button class="btn" type="submit" name="ld_decisao_indicacao" value="negociar">💬 Buscar um alvo em comum</button>
+            </form>
+        </div>
+    <?php else: ?>
     <form method="POST">
         <div class="participantes-escolha">
             <?php foreach ($jogadores as $j): ?>
@@ -252,9 +296,10 @@
         </div>
 
         <button class="btn" name="indicar_lider">
-            🚨 Confirmar Indicação
+            🤝 <?= ldParticipa($jogadores, $meuNome) ? "Propor indicação ao parceiro" : "Confirmar Indicação" ?>
         </button>
     </form>
+    <?php endif; ?>
 
 <?php endif; ?>
 
@@ -758,6 +803,7 @@
 <?php if (
     $fase == 'vip_xepa' &&
     ($_SESSION['lider'] ?? '') != $meuNome &&
+    !ldParticipa($jogadores, $meuNome) &&
     !isset($_SESSION['vip_definido'])
 ): ?>
     <!-- Compatibilidade com saves antigos: o fluxo novo converte esta fase antes de renderizar. -->

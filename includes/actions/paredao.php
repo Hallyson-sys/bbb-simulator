@@ -46,85 +46,72 @@ function origensVotoDuploEspecial($votante)
 
 
 
-if (isset($_POST['indicar_lider'])) {
-
-
-
-    $indicadoLider = $_POST['indicado_lider'] ?? '';
-
-
-
-    if (estaImune($jogadores, $indicadoLider)) {
-
-
-
-        $_SESSION['evento_extra'][] =
-
-            "🛡️ Indicação inválida: $indicadoLider está imune e não pode ir ao paredão.";
-
-
-
-        header("Location: jogo.php");
-
-        exit;
-
+if (isset($_POST['indicar_lider']) || isset($_POST['ld_resolver_indicacao'])) {
+    $liderDaVez = (string)($_SESSION['lider'] ?? '');
+    $dupla = ldLideresAtuais($jogadores);
+    $ehDupla = count($dupla) === 2;
+    $podeDecidir = $ehDupla ? ldParticipa($jogadores, $meuNome) : nomeIgual($liderDaVez, $meuNome);
+    if (($_SESSION['fase_semana'] ?? '') !== 'paredao' || isset($_SESSION['indicacao_lider']) || !$podeDecidir) {
+        header('Location: jogo.php'); exit;
     }
-
-
-
-    if((int)($_SESSION['lider_dupla_semana']??0)===(int)($_SESSION['rodada']??1) && !empty($_SESSION['lideres_dupla'][1])){
-        $pnParceiro=(string)$_SESSION['lideres_dupla'][1];
-        $pnPreferido=pnPreferenciaParceiro($jogadores,$pnParceiro,'lider');
-        if($pnPreferido!=='' && $indicadoLider!==$pnPreferido){
-            alterarAfinidade($jogadores,$pnParceiro,$meuNome,-2,2,-3);
-            $_SESSION['evento_extra'][]="🤝 $pnParceiro preferia indicar $pnPreferido, mas o Líder titular escolheu $indicadoLider.";
-        } elseif($pnPreferido!=='' ) {
-            alterarAfinidade($jogadores,$pnParceiro,$meuNome,2,-1,3);
-            $_SESSION['evento_extra'][]="🤝 $pnParceiro concordou com a indicação de $indicadoLider.";
+    $resolvendo = isset($_POST['ld_resolver_indicacao']);
+    $pendente = (array)($_SESSION['ld_indicacao_pendente'] ?? []);
+    if ($pendente && (int)($pendente['semana'] ?? 0) !== (int)($_SESSION['rodada'] ?? 1)) {
+        unset($_SESSION['ld_indicacao_pendente']); $pendente = [];
+    }
+    $parceiro = $ehDupla ? ldOutroLider($jogadores, $meuNome) : '';
+    if ($resolvendo) {
+        if (!$ehDupla || (int)($pendente['semana'] ?? 0) !== (int)($_SESSION['rodada'] ?? 1)) {
+            header('Location: jogo.php'); exit;
+        }
+        $modo = (string)($_POST['ld_decisao_indicacao'] ?? '');
+        if ($modo === 'concordar') {
+            $indicadoLider = (string)($pendente['sugestao'] ?? '');
+        } elseif ($modo === 'negociar') {
+            $indicadoLider = ldCompromissoParedao($jogadores, $meuNome, $parceiro,
+                (string)($pendente['proposta'] ?? ''), (string)($pendente['sugestao'] ?? ''));
+        } else {
+            header('Location: jogo.php'); exit;
+        }
+    } else {
+        if ($pendente) { header('Location: jogo.php'); exit; }
+        $indicadoLider = (string)($_POST['indicado_lider'] ?? '');
+    }
+    $elegiveis = $ehDupla ? ldElegiveisParedao($jogadores) : array_values(array_filter(
+        array_column($jogadores, 'nome'), static fn($n) => $n !== $liderDaVez && !estaImune($jogadores, $n)
+    ));
+    if ($indicadoLider === '' || !in_array($indicadoLider, $elegiveis, true)) {
+        $_SESSION['evento_extra'][] = '⚠️ A indicação é inválida ou o participante está imune.';
+        header('Location: jogo.php'); exit;
+    }
+    if ($ehDupla && !$resolvendo) {
+        $preferido = ldPreferenciaParedao($jogadores, $parceiro);
+        if ($preferido !== '' && $indicadoLider !== $preferido) {
+            $_SESSION['ld_indicacao_pendente'] = [
+                'semana'=>(int)($_SESSION['rodada']??1), 'proposta'=>$indicadoLider,
+                'sugestao'=>$preferido, 'parceiro'=>$parceiro
+            ];
+            header('Location: jogo.php'); exit;
         }
     }
+    unset($_SESSION['ld_indicacao_pendente']);
     $_SESSION['indicacao_lider'] = $indicadoLider;
-
-
-
-    $liderDaVez = $_SESSION['lider'] ?? '';
-
     aplicarConsequenciaSocial(
-        $jogadores,
-        $liderDaVez,
-        $indicadoLider,
-        'indicacao_paredao',
-        'indicacao_lider|' .
-        ($_SESSION['rodada'] ?? 1) .
-        '|' . $liderDaVez .
-        '|' . $indicadoLider,
+        $jogadores, $liderDaVez, $indicadoLider, 'indicacao_paredao',
+        'indicacao_lider|' . ($_SESSION['rodada'] ?? 1) . '|' . $liderDaVez . '|' . $indicadoLider,
         "$liderDaVez indicou $indicadoLider ao paredão."
     );
-
-
-
-    $_SESSION['evento_extra'][] =
-
-        "👑 O líder " .
-
-        $_SESSION['lider'] .
-
-        " indicou " .
-
-        $_SESSION['indicacao_lider'] .
-
-        " ao paredão.";
-
-
-
-    header("Location: jogo.php");
-
-    exit;
-
+    $_SESSION['jogadores'] = $jogadores;
+    if ($ehDupla) {
+        $_SESSION['evento_extra'][] = '🤝 '.implode(' e ', $dupla).' definiram em conjunto a indicação de '.$indicadoLider.' ao Paredão.';
+        if ($resolvendo) {
+            $_SESSION['evento_extra'][] = '🗣️ A dupla conversou sobre as opções antes de chegar a um nome.';
+        }
+    } else {
+        $_SESSION['evento_extra'][] = "👑 O líder $liderDaVez indicou $indicadoLider ao paredão.";
+    }
+    header('Location: jogo.php'); exit;
 }
-
-
-
 
 
 /* =========================
@@ -227,20 +214,44 @@ if (isset($_POST['indicar_bigfone'])) {
 
 
 
-/* 👑 Desempate da casa: o Líder preenche todas as vagas disputadas. */
-if (isset($_POST['pd_desempatar']) && !empty($_SESSION['pd_pendente'])
-    && ($_SESSION['fase_semana'] ?? '') === 'paredao') {
-    $pendente = $_SESSION['pd_pendente'];
+/* 👑 Desempate conjunto preserva a apuração sem recalcular os votos. */
+if ((isset($_POST['pd_desempatar']) || isset($_POST['ld_resolver_desempate']))
+    && !empty($_SESSION['pd_pendente']) && ($_SESSION['fase_semana'] ?? '') === 'paredao') {
+    $pendente = (array)$_SESSION['pd_pendente'];
     $empatados = array_values((array)($pendente['empatados'] ?? []));
     $vagasEmpate = max(1, (int)($pendente['vagas_empate'] ?? 1));
-    $escolhidos = $_POST['pd_candidatos'] ?? [];
-    if (!is_array($escolhidos)) $escolhidos = [];
-    // Compatibilidade com saves/formulários da versão anterior.
-    if (!$escolhidos && !empty($_POST['pd_candidato'])) $escolhidos = [(string)$_POST['pd_candidato']];
+    $dupla = ldLideresAtuais($jogadores);
+    $podeDecidir = nomeIgual((string)($_SESSION['lider'] ?? ''), $meuNome) || ldParticipa($jogadores, $meuNome);
+    $resolvendo = isset($_POST['ld_resolver_desempate']);
+    if ($resolvendo) {
+        $negociacao = (array)($_SESSION['ld_pd_pendente'] ?? []);
+        if (count($dupla) !== 2 || (int)($negociacao['semana'] ?? 0) !== (int)($_SESSION['rodada'] ?? 1)) {
+            header('Location: jogo.php'); exit;
+        }
+        $modo = (string)($_POST['ld_decisao_desempate'] ?? '');
+        $escolhidos = $modo === 'concordar' ? (array)($negociacao['preferencia'] ?? [])
+            : ($modo === 'negociar' ? ldAcordoVIP((array)($negociacao['proposta'] ?? []), (array)($negociacao['preferencia'] ?? []), $vagasEmpate) : []);
+    } else {
+        $escolhidos = $_POST['pd_candidatos'] ?? [];
+        if (!is_array($escolhidos)) $escolhidos = [];
+        if (!$escolhidos && !empty($_POST['pd_candidato'])) $escolhidos = [(string)$_POST['pd_candidato']];
+    }
     $escolhidos = array_values(array_unique(array_map('strval', $escolhidos)));
     $validos = count($escolhidos) === $vagasEmpate && !array_diff($escolhidos, $empatados);
     if ((int)($pendente['rodada'] ?? 0) === (int)($_SESSION['rodada'] ?? 1)
-        && nomeIgual((string)($_SESSION['lider'] ?? ''), (string)$meuNome) && $validos) {
+        && $podeDecidir && $validos) {
+        if (count($dupla) === 2 && !$resolvendo) {
+            $parceiro = ldOutroLider($jogadores, $meuNome);
+            $pref = ldPreferenciaDesempate($jogadores, $parceiro, $empatados, $vagasEmpate);
+            if (array_diff($pref, $escolhidos)) {
+                $_SESSION['ld_pd_pendente'] = [
+                    'semana'=>(int)($_SESSION['rodada']??1), 'parceiro'=>$parceiro,
+                    'proposta'=>$escolhidos, 'preferencia'=>$pref
+                ];
+                header('Location: jogo.php'); exit;
+            }
+        }
+        unset($_SESSION['ld_pd_pendente']);
         $_SESSION['pd_escolhidos'] = $escolhidos;
         $_SESSION['pd_escolhido'] = $escolhidos[0];
     } else {
@@ -551,7 +562,7 @@ if (
 
 
 
-        if ($lider == $meuNome) {
+        if ($lider == $meuNome || ldParticipa($jogadores, $meuNome)) {
 
 
 
@@ -577,19 +588,10 @@ if (
 
 
 
-        $alvo =
-
-            escolherAlvoInteligente(
-
-                $jogadores,
-
-                $lider,
-
-                [],
-
-                'indicacao_lider'
-
-            );
+        $lideresNPC = ldLideresAtuais($jogadores);
+        $alvo = count($lideresNPC) === 2
+            ? ldCompromissoParedao($jogadores, $lideresNPC[0], $lideresNPC[1], '', '')
+            : escolherAlvoInteligente($jogadores, $lider, [], 'indicacao_lider');
 
 
 
@@ -1458,7 +1460,7 @@ if (
     $haEmpate = $vagasEmpate > 0 && count($empatados) > $vagasEmpate;
 
     if ($haEmpate) {
-        if (!$pdRetomando && nomeIgual((string)$lider, (string)$meuNome)) {
+        if (!$pdRetomando && (nomeIgual((string)$lider, (string)$meuNome) || ldParticipa($jogadores, $meuNome))) {
             $_SESSION['pd_pendente'] = [
                 'rodada' => (int)($_SESSION['rodada'] ?? 1),
                 'empatados' => $empatados, 'vagas_empate' => $vagasEmpate,
@@ -1469,7 +1471,7 @@ if (
                 $vagasEmpate.' participante(s) para preencher a(s) vaga(s) empatada(s).';
             header('Location: jogo.php'); exit;
         }
-        if (nomeIgual((string)$lider, (string)$meuNome)) {
+        if (nomeIgual((string)$lider, (string)$meuNome) || ldParticipa($jogadores, $meuNome)) {
             $escolhas = (array)($_SESSION['pd_escolhidos'] ?? []);
             if (!$escolhas && !empty($_SESSION['pd_escolhido'])) $escolhas = [(string)$_SESSION['pd_escolhido']];
         } else {

@@ -11,130 +11,97 @@ require_once __DIR__ . '/../logica/consequencias_sociais.php';
    👑 DEFINIR VIP / XEPA
 ========================= */
 
-if (isset($_POST['definir_vip'])) {
-
-    $lider = $_SESSION['lider'] ?? '';
-    $selecionados = $_POST['vip'] ?? [];
-
-    garantirMeuJogadorNaLista($jogadores);
-
-    $selecionados = array_values(
-        array_unique(
-            array_filter(
-                $selecionados,
-                function ($nome) use ($lider) {
-                    return
-                        trim((string)$nome) != '' &&
-                        !nomeIgual($nome, $lider);
-                }
-            )
-        )
-    );
-
-    if (count($selecionados) != $qtdVIP) {
-
-        $_SESSION['evento_extra'][] =
-            "⚠️ Você precisa escolher exatamente $qtdVIP participantes para o VIP.";
-
-        header("Location: jogo.php");
-        exit;
+if (isset($_POST['definir_vip']) || isset($_POST['ld_resolver_vip'])) {
+    $lider = (string)($_SESSION['lider'] ?? '');
+    $dupla = ldLideresAtuais($jogadores);
+    $ehDupla = count($dupla) === 2;
+    $podeDecidir = $ehDupla ? ldParticipa($jogadores, $meuNome) : nomeIgual($lider, $meuNome);
+    if (($_SESSION['fase_semana'] ?? '') !== 'vip_xepa' || isset($_SESSION['vip_definido']) || !$podeDecidir) {
+        header('Location: jogo.php'); exit;
     }
-
+    garantirMeuJogadorNaLista($jogadores);
+    $elegiveis = $ehDupla ? ldElegiveisVIP($jogadores) : array_values(array_diff(array_column($jogadores, 'nome'), [$lider]));
+    $vagas = $ehDupla ? ldVagasExtrasVIP($jogadores, (int)$qtdVIP) : (int)$qtdVIP;
+    $pendente = (array)($_SESSION['ld_vip_pendente'] ?? []);
+    if ($pendente && (int)($pendente['semana'] ?? 0) !== (int)($_SESSION['rodada'] ?? 1)) {
+        unset($_SESSION['ld_vip_pendente']); $pendente = [];
+    }
+    $resolvendo = isset($_POST['ld_resolver_vip']);
+    if ($resolvendo) {
+        if (!$ehDupla || (int)($pendente['semana'] ?? 0) !== (int)($_SESSION['rodada'] ?? 1)) {
+            header('Location: jogo.php'); exit;
+        }
+        $modo = (string)($_POST['ld_decisao'] ?? '');
+        if ($modo === 'concordar') $selecionados = (array)($pendente['preferencia'] ?? []);
+        elseif ($modo === 'negociar') $selecionados = ldAcordoVIP((array)($pendente['proposta'] ?? []), (array)($pendente['preferencia'] ?? []), $vagas);
+        else { header('Location: jogo.php'); exit; }
+    } else {
+        if ($pendente) { header('Location: jogo.php'); exit; }
+        $selecionados = $_POST['vip'] ?? [];
+    }
+    if (!is_array($selecionados)) $selecionados = [];
+    $selecionados = array_values(array_unique(array_map('strval', $selecionados)));
+    if (count($selecionados) !== $vagas || array_diff($selecionados, $elegiveis)) {
+        $_SESSION['evento_extra'][] = "⚠️ Escolha exatamente $vagas pessoa(s) elegíveis para o VIP.";
+        header('Location: jogo.php'); exit;
+    }
+    if ($ehDupla && !$resolvendo) {
+        $outro = ldOutroLider($jogadores, $meuNome);
+        $preferencia = ldPreferenciasVIP($jogadores, $outro, $vagas);
+        $intersecao = count(array_intersect($selecionados, $preferencia));
+        if ($intersecao < max(1, $vagas - 1) && $vagas > 0) {
+            $_SESSION['ld_vip_pendente'] = [
+                'semana'=>(int)($_SESSION['rodada']??1), 'proposta'=>$selecionados,
+                'preferencia'=>$preferencia, 'parceiro'=>$outro
+            ];
+            header('Location: jogo.php'); exit;
+        }
+    }
+    unset($_SESSION['ld_vip_pendente']);
+    $lideresVIP = $ehDupla ? $dupla : [$lider];
     foreach ($jogadores as &$j) {
-
-        $j['status']['vip'] = false;
-        $j['status']['xepa'] = false;
-
-        if (!isset($j['estatisticas'])) {
-            $j['estatisticas'] = [];
-        }
-
-        if ($j['nome'] == $lider) {
-
-            $j['status']['vip'] = true;
-
-            $j['estatisticas']['vip'] =
-                ($j['estatisticas']['vip'] ?? 0) + 1;
-
-            continue;
-        }
-
-        if (in_array($j['nome'], $selecionados)) {
-
-            $j['status']['vip'] = true;
-
-            $j['estatisticas']['vip'] =
-                ($j['estatisticas']['vip'] ?? 0) + 1;
-
-        } else {
-
-            $j['status']['xepa'] = true;
-
-            $j['estatisticas']['xepa'] =
-                ($j['estatisticas']['xepa'] ?? 0) + 1;
-        }
+        if (!isset($j['status']) || !is_array($j['status'])) $j['status'] = [];
+        if (!isset($j['estatisticas']) || !is_array($j['estatisticas'])) $j['estatisticas'] = [];
+        $nome = (string)($j['nome'] ?? '');
+        $vip = in_array($nome, $lideresVIP, true) || in_array($nome, $selecionados, true);
+        $j['status']['vip'] = $vip;
+        $j['status']['xepa'] = !$vip;
+        $chave = $vip ? 'vip' : 'xepa';
+        $j['estatisticas'][$chave] = ($j['estatisticas'][$chave] ?? 0) + 1;
     }
-
     unset($j);
-
-    /* Escolher alguém para o VIP gera gratidão. */
     foreach ($selecionados as $nomeVIP) {
-        aplicarConsequenciaSocial(
-            $jogadores,
-            $lider,
-            $nomeVIP,
-            'vip',
-            'vip|' .
-            ($_SESSION['rodada'] ?? 1) .
-            '|' . $lider .
-            '|' . $nomeVIP,
-            "$lider colocou $nomeVIP no VIP."
-        );
+        foreach ($lideresVIP as $responsavel) {
+            aplicarConsequenciaSocial(
+                $jogadores, $responsavel, $nomeVIP, 'vip',
+                'vip|' . ($_SESSION['rodada'] ?? 1) . '|' . $responsavel . '|' . $nomeVIP,
+                "$responsavel colocou $nomeVIP no VIP."
+            );
+        }
     }
-
     garantirMeuJogadorNaLista($jogadores);
-
     $_SESSION['jogadores'] = $jogadores;
     $_SESSION['vip_definido'] = true;
     $_SESSION['fase_semana'] = bbbFaseAposVip($jogadores);
-
-    $vipLista = [];
-    $xepaLista = [];
-
+    $vipLista = []; $xepaLista = [];
     foreach ($jogadores as $j) {
-
-        if (!empty($j['status']['vip'])) {
-            $vipLista[] = $j['nome'];
-        }
-
-        if (!empty($j['status']['xepa'])) {
-            $xepaLista[] = $j['nome'];
-        }
+        if (!empty($j['status']['vip'])) $vipLista[] = $j['nome'];
+        if (!empty($j['status']['xepa'])) $xepaLista[] = $j['nome'];
     }
-
-    $_SESSION['evento_extra'][] =
-        "👑 O líder $lider definiu o VIP.";
-
-    $_SESSION['evento_extra'][] =
-        "🟡 VIP: " . implode(", ", $vipLista) . ".";
-
-    $_SESSION['evento_extra'][] =
-        "🍞 Xepa: " . implode(", ", $xepaLista) . ".";
-
+    $_SESSION['evento_extra'][] = $ehDupla
+        ? '👑 ' . implode(' e ', $dupla) . ' decidiram juntos o VIP.'
+        : "👑 O líder $lider definiu o VIP.";
+    $_SESSION['evento_extra'][] = '🟡 VIP: ' . implode(', ', $vipLista) . '.';
+    $_SESSION['evento_extra'][] = '🍞 Xepa: ' . implode(', ', $xepaLista) . '.';
+    if ($ehDupla && $resolvendo) {
+        $_SESSION['evento_extra'][] = '🤝 Os dois Líderes conversaram e chegaram a um acordo sobre o VIP.';
+    }
     if (function_exists('registrarHistoricoTemporada')) {
-        registrarHistoricoTemporada(
-            'vip_xepa',
-            'VIP e Xepa',
+        registrarHistoricoTemporada('vip_xepa', 'VIP e Xepa',
             'VIP: ' . implode(', ', $vipLista) . '. Xepa: ' . implode(', ', $xepaLista) . '.',
-            array_merge($vipLista, $xepaLista),
-            '🍽️',
-            null,
-            'vip_xepa'
-        );
+            array_merge($vipLista, $xepaLista), '🍽️', null, 'vip_xepa');
     }
-
-    header("Location: jogo.php");
-    exit;
+    header('Location: jogo.php'); exit;
 }
 
 

@@ -28,7 +28,7 @@ if (
 }
 
 /* Se você é o Líder, a escolha continua sendo manual. */
-if (nomeIgual($lider, $meuNome)) {
+if (nomeIgual($lider, $meuNome) || ldParticipa($jogadores, $meuNome)) {
     $_SESSION['fase_semana'] = 'vip_xepa';
     header('Location: jogo.php');
     exit;
@@ -70,13 +70,18 @@ foreach ($jogadores as $j) {
     $afinidades[$nome] = $afinidade;
 }
 
-arsort($afinidades);
-
-$vipEscolhidos = array_slice(
-    array_keys($afinidades),
-    0,
-    max(0, (int)$qtdVIP)
-);
+$lideresVIP = ldLideresAtuais($jogadores);
+if (count($lideresVIP) === 2) {
+    // Dois NPCs Líderes negociam implicitamente sua lista compartilhada.
+    $afinidades = [];
+    foreach (ldElegiveisVIP($jogadores) as $nome) {
+        $afinidades[$nome] = (float)calcularRelacaoIA($jogadores, $lideresVIP[0], $nome, $meuNome)
+                          + (float)calcularRelacaoIA($jogadores, $lideresVIP[1], $nome, $meuNome);
+    }
+}
+arsort($afinidades, SORT_NUMERIC);
+$vipEscolhidos = array_slice(array_keys($afinidades), 0,
+    count($lideresVIP) === 2 ? ldVagasExtrasVIP($jogadores, (int)$qtdVIP) : max(0, (int)$qtdVIP));
 
 
 /* =========================================================
@@ -99,7 +104,7 @@ foreach ($jogadores as &$j) {
     $nome = $j['nome'] ?? '';
 
     /* O próprio Líder sempre está no VIP. */
-    if (nomeIgual($nome, $lider)) {
+    if (in_array($nome, $lideresVIP ?: [$lider], true)) {
         $j['status']['vip'] = true;
         $j['estatisticas']['vip'] = ($j['estatisticas']['vip'] ?? 0) + 1;
         continue;
@@ -142,8 +147,9 @@ foreach ($jogadores as $j) {
     }
 }
 
-$_SESSION['evento_extra'][] =
-    "👑 O líder $lider definiu o VIP.";
+$_SESSION['evento_extra'][] = count($lideresVIP) === 2
+    ? '👑 '.implode(' e ', $lideresVIP).' decidiram o VIP em conjunto.'
+    : "👑 O líder $lider definiu o VIP.";
 
 $_SESSION['evento_extra'][] =
     "🟡 VIP: " . implode(', ', $vipLista) . ".";

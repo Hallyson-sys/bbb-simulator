@@ -138,7 +138,7 @@ if (isset($_POST['avancar_fase'])) {
             unset($_SESSION['anjo']);
             unset($_SESSION['imune']);
             unset($_SESSION['monstro']);
-            unset($_SESSION['vip_definido']);
+            unset($_SESSION['vip_definido'], $_SESSION['ld_vip_pendente'], $_SESSION['ld_indicacao_pendente'], $_SESSION['ld_pd_pendente'], $_SESSION['ld_sugestao_paredao']);
             unset($_SESSION['monstro_definido']);
             unset($_SESSION['prova_anjo_finalizada']);
             unset($_SESSION['imunizacao_anjo_feita']);
@@ -260,7 +260,7 @@ if (isset($_POST['avancar_fase'])) {
 
         if (
             $liderAtual != '' &&
-            !nomeIgual($liderAtual, $meuNome)
+            !nomeIgual($liderAtual, $meuNome) && !ldParticipa($jogadores, $meuNome)
         ) {
             $_SESSION['fase_semana'] =
                 isset($_SESSION['vip_definido'])

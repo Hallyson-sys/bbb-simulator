@@ -65,7 +65,7 @@ if (isset($_POST['pn_jogar'])) {
     registrarLiderDaRodada($jogadores,$campeao,$meuNome);
     if($dupla) pnRegistrarDuplaLider($jogadores,$campeao,$parceiroVencedor);
     // Trava a conclusão imediatamente, antes do redirect: duplo clique não premia de novo.
-    $_SESSION['fase_semana']=nomeIgual($campeao,$meuNome)?'vip_xepa':'vip_xepa_revelar';
+    $_SESSION['fase_semana']=(nomeIgual($campeao,$meuNome) || ldParticipa($jogadores,$meuNome)) ? 'vip_xepa' : 'vip_xepa_revelar';
     $_SESSION['evento_extra'][]='🎮 '.($prova['titulo']??'Prova do Líder').": $meuNome marcou $score pontos; $campeao conquistou a liderança".($parceiroVencedor!==''?" ao lado de $parceiroVencedor.":'.');
     premiarMoedasPorProva('lider',$campeao,$meuNome,15);
     unset($_SESSION['pn_estado_lider']);
