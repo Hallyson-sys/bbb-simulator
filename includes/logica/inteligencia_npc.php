@@ -379,6 +379,9 @@ function registrarMemoriaSocialNPC(
     if (function_exists('e3RegistrarMemoria')) {
         e3RegistrarMemoria($observador, $tipo, $forca);
     }
+    if (function_exists('on1RegistrarMemoria')) {
+        on1RegistrarMemoria((string)$observador, (string)$alvo, (string)$tipo);
+    }
 
     return true;
 }
@@ -1151,6 +1154,14 @@ function pontuarAlvoNPCInteligente(
         if (is_array($pactoSocial) && (int)($pactoSocial['ate']??0)>=(int)($_SESSION['rodada']??1)
             && $alvo===($_SESSION['meu_nome']??'')) $score+=25;
 
+        if (function_exists('i4BonusAlvo')) {
+            $score += i4BonusAlvo($jogadores, (string)$npc, (string)$alvo, (string)$contexto);
+        }
+        // Objetivo privado influencia proteção sem garantir a escolha.
+        if (function_exists('on1BonusAlvo')) {
+            $score += on1BonusAlvo($jogadores, (string)$npc, (string)$alvo, (string)$contexto);
+        }
+
         $score +=
             rand(
                 0,
@@ -1416,9 +1427,18 @@ function pontuarAlvoNPCInteligente(
         $score += $positivo ? 23 : -47;
     }
 
+    /* Interações 4.0: compromissos pessoais aceitos, expiração curta e liberdade do NPC. */
+    if (function_exists('i4BonusAlvo')) {
+        $score += i4BonusAlvo($jogadores, (string)$npc, (string)$alvo, (string)$contexto);
+    }
+
     /* Alianças 3.0: lealdade real e planos coletivos, sem voto obrigatório. */
     if (function_exists('a3BonusVoto')) {
         $score += a3BonusVoto($jogadores, (string)$npc, (string)$alvo, (string)$contexto);
+    }
+    /* Dilemas 2.0: compromissos assumidos e aceitos alteram tendências, sem garantir votos. */
+    if (function_exists('djBonusAlvo')) {
+        $score += djBonusAlvo($jogadores, (string)$npc, (string)$alvo, (string)$contexto);
     }
     // Relações 4.0: subgrupos e casais afetam a decisão, sem voto obrigatório.
     if (function_exists('r4BonusVoto')) {
@@ -1501,6 +1521,11 @@ function pontuarAlvoNPCInteligente(
         $score +=
             $negMemoria
             * 0.20;
+    }
+
+    // A motivação individual pesa também em votos e indicações.
+    if (function_exists('on1BonusAlvo')) {
+        $score += on1BonusAlvo($jogadores, (string)$npc, (string)$alvo, (string)$contexto);
     }
 
     $score +=
@@ -1861,6 +1886,10 @@ function escolherAcaoInteracaoNPC($jogadores, $npc, $alvo, $meuNome, $perfil, $e
         $alvo,
         $perfil
     );
+
+    if (function_exists('on1PesosInteracoes')) {
+        $pesos = on1PesosInteracoes($pesos, (string)$npc, (string)$alvo);
+    }
 
     /* Fase 1: evita repetição imediata. */
     foreach ([1,2,3,4] as $acao) {

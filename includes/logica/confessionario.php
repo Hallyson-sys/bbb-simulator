@@ -450,7 +450,22 @@ function gerarConfessionarioInteligente(&$jogadores, $meuNome)
                 $opcoes[] = '💭 <b>' . htmlspecialchars($nome, ENT_QUOTES, 'UTF-8') . '</b>: "Sinto que essa experiência está mudando o meu jeito de lidar com as pessoas."';
             }
         }
-        $fala = escolherFalaNaoRepetida($opcoes, $historicoConfessionario, $falas);
+        // Um objetivo pode orientar o depoimento, mas não expõe o alvo privado.
+        // A prioridade é ocasional e respeita as falas já ditas nesta sessão.
+        $falaObjetivo = '';
+        if ($nome !== $meuNome && function_exists('on1FalaConfessionario')
+            && mt_rand(1,100) <= 35) {
+            $motivacao = on1FalaConfessionario((string)$nome);
+            if ($motivacao) {
+                $candidata = '🎯 <b>' . htmlspecialchars((string)$nome, ENT_QUOTES, 'UTF-8') . '</b>: "' . htmlspecialchars($motivacao, ENT_QUOTES, 'UTF-8') . '"';
+                $normal = falaNormalizadaConf($candidata);
+                $repetiuAgora = in_array($normal, array_map('falaNormalizadaConf', $falas), true);
+                $repetiuHistorico = in_array($normal, array_map('falaNormalizadaConf', (array)$historicoConfessionario), true);
+                if (!$repetiuAgora && !$repetiuHistorico) $falaObjetivo = $candidata;
+            }
+        }
+        $fala = $falaObjetivo !== '' ? $falaObjetivo :
+            escolherFalaNaoRepetida($opcoes, $historicoConfessionario, $falas);
 
         if ($fala == '') {
             continue;

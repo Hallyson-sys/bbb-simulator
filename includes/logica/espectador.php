@@ -233,6 +233,8 @@ function limparSemanaEspectador(&$jogadores)
         'confessionario_falas',
         'confessionario_feito',
         'discordia_feito',
+        'd3_pendente',
+        'd3_ultimo_embate',
         'tema_discordia',
         'bate_volta',
         'bate_volta_decidido',

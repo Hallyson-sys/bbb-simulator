@@ -110,7 +110,7 @@ function chanceMemoriaNPC($jogador)
     $base=68;
     $p=$jogador['personalidade']??'Neutro';
     $bonus=['Estrategista'=>10,'Líder Nato'=>8,'Manipulador'=>5,'Influencer'=>2,'Neutro'=>0,'Fofo'=>0,'Emocional'=>-2,'Falso'=>-2,'Planta'=>-4,'Barraqueiro'=>-6,'Explosivo'=>-7];
-    return max(45,min(88,$base+($bonus[$p]??0)));
+    return max(45,min(93,$base+($bonus[$p]??0)+(function_exists('on1BonusProva') ? on1BonusProva((string)($jogador['nome']??'')) : 0)));
 }
 
 function pontuacaoMemoriaNPC($jogador,$total)
@@ -232,7 +232,7 @@ function chanceLogicaNPC($jogador)
     $p=$jogador['personalidade']??'Neutro';
     $base=64;
     $bonus=['Estrategista'=>17,'Manipulador'=>10,'Líder Nato'=>9,'Falso'=>5,'Influencer'=>2,'Neutro'=>0,'Fofo'=>-1,'Emocional'=>-3,'Planta'=>-4,'Barraqueiro'=>-7,'Explosivo'=>-8];
-    return max(38,min(90,$base+($bonus[$p]??0)));
+    return max(38,min(95,$base+($bonus[$p]??0)+(function_exists('on1BonusProva') ? on1BonusProva((string)($jogador['nome']??'')) : 0)));
 }
 
 function pontuacaoLogicaNPC($jogador,$total)
@@ -555,7 +555,7 @@ function pontuacaoEstrategiaNPC($jogador)
     $ajuste=['Estrategista'=>22,'Manipulador'=>16,'Líder Nato'=>13,'Falso'=>8,'Influencer'=>4,'Neutro'=>0,'Fofo'=>-2,'Emocional'=>-4,'Planta'=>-7,'Barraqueiro'=>-6,'Explosivo'=>-10];
     $variacao=rand(-24,32);
     if($p==='Explosivo' || $p==='Barraqueiro') $variacao=rand(-38,48);
-    return max(35,$base+($ajuste[$p]??0)+$variacao);
+    return max(35,$base+($ajuste[$p]??0)+$variacao+(function_exists('on1BonusProva') ? on1BonusProva((string)($jogador['nome']??'')) : 0));
 }
 
 function finalizarCaminhoEstrategicoLider($jogadores,$meuNome,$pontosJogador)

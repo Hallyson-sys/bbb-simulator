@@ -41,7 +41,7 @@ function bbbFaseAposParedao(array $jogadores): string
 {
     if (bbbRetaFinalSemDiscordia($jogadores)) {
         $_SESSION['acoes_restantes'] = 3;
-        unset($_SESSION['discordia_feito'], $_SESSION['tema_discordia']);
+        unset($_SESSION['discordia_feito'], $_SESSION['tema_discordia'], $_SESSION['d3_pendente']);
         return 'interacoes_3';
     }
     return 'discordia';
@@ -75,7 +75,7 @@ function bbbSincronizarRetaFinal(array &$jogadores): void
     } elseif ($fase === 'discordia') {
         $_SESSION['fase_semana'] = 'interacoes_3';
         $_SESSION['acoes_restantes'] = 3;
-        unset($_SESSION['discordia_feito'], $_SESSION['tema_discordia']);
+        unset($_SESSION['discordia_feito'], $_SESSION['tema_discordia'], $_SESSION['d3_pendente']);
         // Não há etapas de Discórdia após o Top 8, mesmo em saves antigos.
         return;
     } else {

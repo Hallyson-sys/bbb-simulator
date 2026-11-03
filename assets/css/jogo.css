@@ -3017,3 +3017,16 @@ overflow-y: auto !important;
  .ec-contar-form{display:grid;grid-template-columns:minmax(0,1fr) auto}
  .ec-contar-form select{min-width:0;width:100%;font-size:16px!important}
 }
+
+
+/* Jogo da Discórdia 3.0 — debate responsivo. */
+.d3-etapas-aviso{padding:13px 16px;margin:12px 0 15px;border:1px solid #703e9d;border-radius:15px;background:linear-gradient(115deg,#30113e,#101a35);color:#f8ecff;line-height:1.5}
+.d3-palco{border:1px solid #9851c0!important;background:linear-gradient(145deg,#341443,#0d182a 85%)!important;color:#f8f0ff;border-radius:20px;padding:22px!important;box-shadow:0 12px 28px #0004}
+.d3-palco h3{font-size:1.45rem;margin:9px 0}.d3-palco h4{font-size:1.1rem;margin:16px 0 8px}.d3-palco p{line-height:1.55}.d3-kicker{font-size:.75rem;font-weight:900;letter-spacing:.07em;color:#d8b2fa}
+.d3-descricao{color:#f0dffc}.d3-passos{display:flex;flex-wrap:wrap;gap:8px;margin:17px 0;padding-bottom:13px;border-bottom:1px solid #ffffff25}
+.d3-passos span{padding:8px 10px;background:#ffffff10;border:1px solid #ffffff1b;border-radius:9px;font-size:.82rem;font-weight:700}.d3-passos .d3-ok{color:#b9f7d6;border-color:#478e71}.d3-passos .d3-atual{color:#fff;background:#7831a2;border-color:#c77af6}
+.d3-formulario{display:grid;gap:11px}.d3-opcao{display:flex;align-items:flex-start;gap:12px;border:1px solid #71508f;background:#ffffff13;border-radius:13px;padding:14px;cursor:pointer;transition:background .15s,border-color .15s}
+.d3-opcao:hover,.d3-opcao:has(input:checked){background:#7243ab55;border-color:#db9bff}.d3-opcao input{margin-top:4px;accent-color:#c177ff;flex-shrink:0}.d3-opcao strong,.d3-opcao small{display:block}.d3-opcao small{margin-top:5px;opacity:.9;line-height:1.5;font-size:.88em}
+.d3-dialogo{padding:15px 17px;border-radius:14px;background:#1b1133;border-left:4px solid #b67df6;margin:12px 0}.d3-dialogo span{font-weight:800;color:#e2bfff}.d3-dialogo p{margin:8px 0 0}.d3-resposta{background:#0c2432;border-left-color:#38d4f5}.d3-resposta span{color:#86e7fc}.d3-rodape{opacity:.75;font-size:.82rem;margin:16px 0 0}
+.d3-desfecho{border:1px solid #874dbb;border-radius:16px;background:linear-gradient(120deg,#261236,#101c31);padding:15px 18px;margin:12px 0 20px}.d3-desfecho h3{margin:0 0 8px}.d3-desfecho p{margin:8px 0;line-height:1.5}
+@media(max-width:620px){.d3-palco{padding:16px!important}.d3-palco h3{font-size:1.2rem}.d3-opcao{padding:12px}.d3-passos{gap:5px}.d3-passos span{font-size:.73rem;padding:7px}}

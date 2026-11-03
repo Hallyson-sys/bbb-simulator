@@ -1,0 +1,25 @@
+/* ⚖️ Dilemas de Jogo 2.0 — layout adaptável ao desktop e ao mobile. */
+.dj-cena{position:relative;overflow:hidden;padding:clamp(18px,3.5vw,30px);margin:18px 0 24px;color:#f7f4ff;background:linear-gradient(145deg,#160e24 0%,#0b1527 55%,#21102c 100%);border:1px solid rgba(178,107,255,.33);border-radius:26px;box-shadow:0 18px 55px rgba(5,4,16,.28)}
+.dj-cena:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#ff008c,#8b22f6,#03d9ee);pointer-events:none}
+.dj-camera{letter-spacing:2px;font-size:11px;font-weight:800;text-transform:uppercase;color:#76ddec;margin-bottom:20px}
+.dj-cabecalho{display:flex;align-items:center;gap:15px;margin-bottom:16px}
+.dj-simbolo{display:grid;place-items:center;background:linear-gradient(135deg,#9b008e,#3d1b8e);height:59px;width:59px;flex:none;border-radius:16px;font-size:28px}
+.dj-cabecalho small{font-size:10px;font-weight:800;letter-spacing:1px;color:#d998ff;display:block;margin-bottom:4px}
+.dj-cena h2{color:#fff;font-size:clamp(21px,3vw,29px);line-height:1.25;margin:0}
+.dj-cena h3{font-size:16px;margin:20px 0 12px;color:#d7caff}
+.dj-texto,.dj-final p{font-size:clamp(15px,1.6vw,18px);line-height:1.65;color:#e6e3f0;padding:18px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.dj-opcoes{display:grid;gap:10px}
+.dj-opcoes form,.dj-final form{margin:0}
+.dj-botao{display:block;width:100%;min-height:52px;padding:14px 18px;border-radius:14px;color:#fff;border:1px solid rgba(255,255,255,.19);background:rgba(255,255,255,.055);font:inherit;font-weight:750;line-height:1.4;text-align:left;white-space:normal;cursor:pointer;transition:background .16s,border-color .16s,transform .16s}
+.dj-botao:hover,.dj-botao:focus-visible{background:rgba(151,42,229,.28);border-color:#cf74ff;transform:translateY(-1px)}
+.dj-principal{background:linear-gradient(110deg,#e9008d,#7820e9);text-align:center;border:0;margin-top:16px}
+.dj-observacao,.dj-cena .dj-observacao{color:#b1adbf;font-size:12px;padding:0;background:transparent;border:0;margin:16px 0 0}
+.dj-historico{margin:12px 0 20px;padding:14px 18px;background:linear-gradient(130deg,rgba(41,19,51,.8),rgba(14,27,44,.9));border:1px solid rgba(175,125,234,.23);border-radius:16px}
+.dj-historico summary{cursor:pointer;font-weight:800;color:#f4efff;list-style-position:inside}
+.dj-historico summary span{float:right;color:#8ee8ff}
+.dj-historico article{border-top:1px solid rgba(255,255,255,.1);padding-top:10px;margin-top:12px}
+.dj-historico article strong{display:block;color:#f6e6ff}
+.dj-historico article small{display:block;margin:3px 0;color:#9cbad3}
+.dj-historico article p{margin:5px 0;color:#e2d8eb;font-size:14px}
+@media(max-width:768px){.dj-cena{border-radius:20px;margin:12px 0 16px;padding:17px 14px}.dj-botao{font-size:15px;min-height:50px}.dj-camera{font-size:10px;letter-spacing:1px}.dj-texto{padding:13px}.dj-simbolo{width:47px;height:47px;font-size:24px}.dj-cena{scroll-margin-top:75px}}
+@media(prefers-reduced-motion:reduce){.dj-botao{transition:none}.dj-botao:hover{transform:none}}

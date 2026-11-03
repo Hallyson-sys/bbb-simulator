@@ -10,10 +10,15 @@ require_once __DIR__ . '/includes/logica/modo_teste.php';
 require_once __DIR__ . '/includes/logica/relacoes.php';
 require_once __DIR__ . '/includes/logica/aliancas.php';
 require_once __DIR__ . '/includes/logica/aliancas_3.php';
+require_once __DIR__ . '/includes/logica/objetivos_npc.php';
+require_once __DIR__ . '/includes/logica/dilemas_jogo.php';
 require_once __DIR__ . '/includes/logica/dinamicas_surpresa.php';
 require_once __DIR__ . '/includes/logica/paredao.php';
 require_once __DIR__ . '/includes/logica/provas_novas.php';
 require_once __DIR__ . '/includes/logica/reta_final.php';
+require_once __DIR__ . '/includes/logica/top4.php';
+require_once __DIR__ . '/includes/logica/fofoca_vt.php';
+require_once __DIR__ . '/includes/logica/dev_diagnosticos.php';
 
 
 /* =========================================================
@@ -90,6 +95,7 @@ $dsAtiva = (string)($dsInfo['tipo'] ?? '');
 $devGrupo = (string)(obterAliancaJogador($jogadores, $meuNome) ?? '');
 $devMembros = $devGrupo !== '' ? membrosDaAlianca($jogadores, $devGrupo) : [];
 $devCandidatosCrise = array_values(array_filter($devMembros, fn($n) => !nomeIgual($n, $meuNome)));
+$dev3Relatorio = $_SESSION['dev3_relatorio'] ?? null;
 $devAviso = (string)($_SESSION['dev_aviso'] ?? '');
 unset($_SESSION['dev_aviso']);
 
@@ -122,7 +128,7 @@ function eDev($texto)
 
     <link
         rel="stylesheet"
-        href="assets/css/modo_teste.css"
+        href="assets/css/modo_teste.css?v=3.0"
     >
 
 </head>
@@ -140,7 +146,7 @@ function eDev($texto)
             </span>
 
             <h1>
-                Central de Testes
+                Central de Testes 3.0
             </h1>
 
             <p>
@@ -196,6 +202,117 @@ function eDev($texto)
     <?php if ($devAviso !== ''): ?><div class="dev-flash" role="status"><?= eDev($devAviso) ?></div><?php endif; ?>
 
     <main class="dev-grid">
+
+      <!-- MODO DEV 3.0 — Diagnósticos automáticos, somente leitura -->
+      <section class="dev-card dev-card-wide dev3-panel" id="dev3-testes">
+        <div class="dev3-title-row"><div>
+          <span class="dev3-eyebrow">VERIFICAÇÃO AUTOMÁTICA • LOCALHOST</span>
+          <h2>🧪 Modo DEV 3.0 — Diagnósticos</h2>
+          <p>Analise seu save e execute cenários simulados sem avançar semanas, alterar votos ou gastar moedas. Os testes não alteram os dados da partida.</p>
+        </div><span class="dev3-pill">SEGURO PARA SAVES</span></div>
+        <div class="dev3-actions">
+          <?php foreach (['completo'=>'🔍 Executar bateria completa','save'=>'🩺 Verificar save atual','simulacoes'=>'🎲 Simular 27 regras'] as $tipo=>$texto): ?>
+          <form method="POST" action="modo_teste.php#dev3-testes">
+            <input type="hidden" name="dev_token" value="<?= eDev($devToken) ?>">
+            <input type="hidden" name="dev3_escopo" value="<?= eDev($tipo) ?>">
+            <button type="submit" name="dev3_executar" value="1"><?= eDev($texto) ?></button>
+          </form>
+          <?php endforeach; ?>
+        </div>
+        <?php if (is_array($dev3Relatorio) && isset($dev3Relatorio['linhas'], $dev3Relatorio['resumo'])): ?>
+          <div class="dev3-report" role="region" aria-label="Relatório de testes">
+            <div class="dev3-report-header">
+              <h3>Resultado da execução</h3>
+              <small><?= eDev($dev3Relatorio['executado_em'] ?? '') ?> • Semana <?= (int)($dev3Relatorio['semana'] ?? 0) ?></small>
+            </div>
+            <div class="dev3-kpis">
+              <div class="dev3-ok"><strong><?= (int)($dev3Relatorio['resumo']['ok'] ?? 0) ?></strong><span>Passaram</span></div>
+              <div class="dev3-warn"><strong><?= (int)($dev3Relatorio['resumo']['aviso'] ?? 0) ?></strong><span>Avisos</span></div>
+              <div class="dev3-fail"><strong><?= (int)($dev3Relatorio['resumo']['falha'] ?? 0) ?></strong><span>Problemas</span></div>
+            </div>
+            <p class="dev3-explainer">Avisos podem indicar um estado incompleto criado manualmente no DEV. Problemas precisam de conferência antes do deploy. Uma bateria verde não substitui uma partida completa no navegador.</p>
+            <div class="dev3-check-list">
+              <?php foreach ($dev3Relatorio['linhas'] as $linha): ?>
+                <div class="dev3-check dev3-<?= eDev($linha['status']) ?>">
+                  <span class="dev3-symbol" aria-hidden="true"><?= $linha['status']==='ok'?'✓':($linha['status']==='aviso'?'!':'×') ?></span>
+                  <div><strong><?= eDev($linha['titulo']) ?></strong><small><?= eDev($linha['codigo'].' — '.$linha['detalhe']) ?></small></div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        <?php else: ?>
+          <div class="dev3-tip">Comece por <strong>Executar bateria completa</strong>. Os testes sintéticos usam cópias isoladas de cenários Top 8, Paredão Falso, Carta Misteriosa, imunidades e pesos de voto.</div>
+        <?php endif; ?>
+        <details class="dev3-help"><summary>🧾 Também quero verificar a sintaxe de todos os arquivos PHP</summary>
+          <p>No terminal do VS Code, na raiz do projeto, execute:</p>
+          <code>php testes/dev3_regressao.php</code>
+          <p>O script roda os mesmos testes isolados e a verificação <code>php -l</code> em todos os PHPs. Não modifica nenhum save.</p>
+        </details>
+      </section>
+
+      <section class="dev-card dev-card-wide" id="dev-dilemas">
+        <h2>⚖️ Dilemas de Jogo 2.0 — laboratório</h2>
+        <p class="dev-help">Força um dilema em uma fase social para conferir as escolhas e os efeitos. <strong>Modifica a temporada atual</strong>; faça isso num save de teste. A bateria de diagnósticos acima continua não destrutiva.</p>
+        <div class="dev3-actions">
+          <form method="POST" action="modo_teste.php">
+            <input type="hidden" name="dev_token" value="<?= eDev($devToken) ?>">
+            <select name="dev_dilema_fase" aria-label="Fase para testar dilema"><option value="interacoes_1">Interações</option><option value="festa">Festa</option></select>
+            <button type="submit" name="dev_dilema_forcar" value="1">⚖️ Forçar dilema de jogo</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="dev-card dev-card-wide" id="dev-iniciativa-npc">
+        <h2>💬 Iniciativa dos NPCs 2.0 — laboratório</h2>
+        <p class="dev-help">Na fase atual de Interações, escolha quem vai procurar seu personagem. Teste o convite, o adiamento e as respostas. <strong>Altera a temporada atual</strong>: use um save de teste.</p>
+        <div class="dev3-actions">
+          <form method="POST" action="modo_teste.php">
+            <input type="hidden" name="dev_token" value="<?= eDev($devToken) ?>">
+            <select name="dev_in2_npc" aria-label="NPC que iniciará a conversa" required>
+              <option value="">Escolha um participante</option>
+              <?php foreach($jogadores as $npcDev): $nomeNpcDev=(string)($npcDev['nome']??'');
+                if($nomeNpcDev==='' || $nomeNpcDev===$meuNome || !empty($npcDev['eliminado']) || !empty($npcDev['fora_da_casa'])) continue; ?>
+                <option value="<?= eDev($nomeNpcDev) ?>"><?= eDev($nomeNpcDev) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button type="submit" name="dev_in2_forcar" value="1">💬 Forçar convite de NPC</button>
+          </form>
+        </div>
+        <p class="dev-help">Teste sem alterar o save: <code>php testes/iniciativa_npc_2.php</code></p>
+      </section>
+
+      <section class="dev-card dev-card-wide" id="dev-objetivos-npc">
+        <h2>🎯 Objetivos Pessoais dos NPCs — diagnóstico</h2>
+        <p class="dev-help">Somente localhost: mostra motivações internas para verificar a IA. Elas não ficam disponíveis para jogadores confinados.</p>
+        <div class="dev-aliados">
+          <?php
+          $tiposObjetivosDev = [
+            'proteger_aliado'=>'Proteger aliado', 'superar_rival'=>'Superar rival',
+            'reconciliar'=>'Buscar reconciliação', 'construir_alianca'=>'Construir aliança',
+            'fortalecer_alianca'=>'Fortalecer aliança', 'vencer_prova'=>'Vencer prova',
+            'evitar_paredao'=>'Evitar Paredão', 'chegar_final'=>'Chegar à final'
+          ];
+          $totalMetasDev = 0;
+          foreach ($jogadores as $npcObjetivoDev):
+            $nomeObjetivoDev = (string)($npcObjetivoDev['nome'] ?? '');
+            if ($nomeObjetivoDev === '' || $nomeObjetivoDev === $meuNome || !empty($npcObjetivoDev['eliminado'])) continue;
+            $metaObjetivoDev = on1Objetivo($nomeObjetivoDev);
+            if (!$metaObjetivoDev) continue;
+            $totalMetasDev++;
+          ?>
+          <div class="dev-aliado">
+            <span><?= eDev($nomeObjetivoDev) ?></span>
+            <strong><?= eDev(($tiposObjetivosDev[$metaObjetivoDev['tipo']] ?? 'Objetivo desconhecido') .
+              (!empty($metaObjetivoDev['alvo']) ? ' • '.$metaObjetivoDev['alvo'] : '')) ?></strong>
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <?php if ($totalMetasDev===0): ?>
+          <p class="dev-help">Nenhuma meta inicializada. Entre em uma semana de jogo para que os NPCs definam seus objetivos.</p>
+        <?php endif; ?>
+        <div class="dev-tip">Objetivos alteram pesos da IA; não obrigam votos nem garantem provas. A bateria automática também verifica estabilidade das metas e exclusão de eliminados.</div>
+      </section>
+
       <section class="dev-card">
         <h2>🎮 Laboratório de Provas 4.0</h2>
         <p>Forçar uma prova individual ou cooperativa. Modifica o save de testes (somente localhost).</p>

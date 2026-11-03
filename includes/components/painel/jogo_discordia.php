@@ -9,6 +9,44 @@ $configDiscordia = function_exists('configuracaoTemaDiscordia')
 
 $tipoDiscordia = $configDiscordia['tipo'] ?? 'simples_negativo';
 $categoriasDiscordia = $configDiscordia['categorias'] ?? [];
+$debate3 = $_SESSION['d3_pendente'] ?? null;
+if (is_array($debate3) && (int)($debate3['semana'] ?? 0) === (int)($_SESSION['rodada'] ?? 1)):
+    $alvo3 = htmlspecialchars((string)($debate3['alvo'] ?? ''), ENT_QUOTES, 'UTF-8');
+    $token3 = htmlspecialchars((string)($debate3['token'] ?? ''), ENT_QUOTES, 'UTF-8');
+    $argumentando3 = ($debate3['etapa'] ?? '') === 'argumento';
+    $opcoes3 = $argumentando3 ? d3OpcoesArgumento($debate3) : d3OpcoesTreplica(!empty($debate3['positivo']));
+?>
+<section class="d3-palco box" aria-label="Jogo da Discórdia 3.0">
+    <div class="d3-kicker">● AO VIVO • JOGO DA DISCÓRDIA • SEMANA <?= (int)$debate3['semana'] ?></div>
+    <h3>🔥 Debate com <?= $alvo3 ?></h3>
+    <p class="d3-descricao">Você já fez sua escolha no tema <strong><?= htmlspecialchars((string)($configDiscordia['titulo'] ?? $temaAtualDiscordia),ENT_QUOTES,'UTF-8') ?></strong>. Agora é hora de sustentar seu posicionamento.</p>
+    <div class="d3-passos" aria-label="Etapas da dinâmica"><span class="d3-ok">✓ Apontamento</span><span class="<?= $argumentando3 ? 'd3-atual' : 'd3-ok' ?>">2. Argumento</span><span class="<?= !$argumentando3 ? 'd3-atual' : '' ?>">3. Tréplica</span></div>
+    <?php if ($argumentando3): ?>
+        <h4>🎙️ Como você quer justificar sua escolha?</h4>
+        <p>Escolha o argumento que você apresentará diante da casa. A resposta do participante dependerá das relações e da personalidade dele.</p>
+        <form method="POST" class="d3-formulario">
+            <input type="hidden" name="d3_token" value="<?= $token3 ?>">
+            <?php foreach ($opcoes3 as $id3 => $op3): ?>
+                <label class="d3-opcao"><input type="radio" name="d3_argumento" value="<?= htmlspecialchars($id3,ENT_QUOTES,'UTF-8') ?>" required><span><strong><?= htmlspecialchars($op3['nome'],ENT_QUOTES,'UTF-8') ?></strong><small><?= htmlspecialchars($op3['texto'],ENT_QUOTES,'UTF-8') ?></small></span></label>
+            <?php endforeach; ?>
+            <button class="btn discordia-confirmar" name="d3_argumentar" value="1">🎤 Apresentar argumento</button>
+        </form>
+    <?php else: ?>
+        <div class="d3-dialogo"><span>🎤 <?= htmlspecialchars((string)$meuNome,ENT_QUOTES,'UTF-8') ?></span><p>“<?= htmlspecialchars((string)($debate3['fala'] ?? ''),ENT_QUOTES,'UTF-8') ?>”</p></div>
+        <div class="d3-dialogo d3-resposta"><span>🎙️ <?= $alvo3 ?> responde</span><p>“<?= htmlspecialchars((string)($debate3['resposta']['fala'] ?? ''),ENT_QUOTES,'UTF-8') ?>”</p></div>
+        <h4>🔥 Agora é sua vez de dar a última resposta</h4>
+        <p>Você pode manter a posição, reconhecer o ponto do outro participante ou encerrar sem aumentar o conflito.</p>
+        <form method="POST" class="d3-formulario">
+            <input type="hidden" name="d3_token" value="<?= $token3 ?>">
+            <?php foreach ($opcoes3 as $id3 => $op3): ?>
+                <label class="d3-opcao"><input type="radio" name="d3_replica" value="<?= htmlspecialchars($id3,ENT_QUOTES,'UTF-8') ?>" required><span><strong><?= htmlspecialchars($op3['nome'],ENT_QUOTES,'UTF-8') ?></strong><small><?= htmlspecialchars($op3['fala'],ENT_QUOTES,'UTF-8') ?></small></span></label>
+            <?php endforeach; ?>
+            <button class="btn discordia-confirmar" name="d3_treplicar" value="1">🔥 Encerrar debate e ver repercussões</button>
+        </form>
+    <?php endif; ?>
+    <p class="d3-rodape">As falas são públicas. O efeito do tema, as reações dos demais NPCs e o histórico da temporada serão registrados ao encerrar.</p>
+</section>
+<?php return; endif; ?>
 ?>
 
 <div class="box discordia-cabecalho <?php echo !empty($configDiscordia['destaque']) ? 'discordia-cabecalho-filme' : ''; ?>">
@@ -19,6 +57,7 @@ $categoriasDiscordia = $configDiscordia['categorias'] ?? [];
     <?php endif; ?>
 </div>
 
+<div class="d3-etapas-aviso">🔥 <strong>Discórdia 3.0:</strong> depois de apontar seus escolhidos, você apresentará um argumento, ouvirá a resposta e escolherá a tréplica.</div>
 <form method="POST" class="discordia-form">
 
     <?php if ($tipoDiscordia === 'categorias'): ?>
@@ -175,7 +214,7 @@ $categoriasDiscordia = $configDiscordia['categorias'] ?? [];
     <?php endif; ?>
 
     <button class="btn discordia-confirmar" name="fazer_discordia">
-        🔥 Confirmar Jogo da Discórdia
+        🎤 Continuar para o debate
     </button>
 </form>
 

@@ -62,6 +62,7 @@ require_once __DIR__ . '/includes/logica/estrategia_social.php';
 
 require_once __DIR__ . '/includes/logica/inteligencia_npc.php';
 require_once __DIR__ . '/includes/logica/personalidades_evolutivas.php';
+require_once __DIR__ . '/includes/logica/objetivos_npc.php';
 require_once __DIR__ . '/includes/logica/rotina_casa.php';
 require_once __DIR__ . '/includes/logica/relacoes_4.php';
 
@@ -76,12 +77,16 @@ require_once __DIR__ . '/includes/logica/paredao.php';
 require_once __DIR__ . '/includes/logica/loja_publico.php';
 
 require_once __DIR__ . '/includes/logica/interacoes.php';
+require_once __DIR__ . '/includes/logica/interacoes_4.php';
+require_once __DIR__ . '/includes/logica/iniciativa_npc_2.php';
 
 require_once __DIR__ . '/includes/logica/eventos_convivencia_extra.php';
 require_once __DIR__ . '/includes/logica/eventos_convivencia_novos.php';
 require_once __DIR__ . '/includes/logica/eventos_convivencia.php';
+require_once __DIR__ . '/includes/logica/dilemas_jogo.php';
 
 require_once __DIR__ . '/includes/logica/discordia.php';
+require_once __DIR__ . '/includes/logica/discordia_3.php';
 
 require_once __DIR__ . '/includes/logica/festa.php';
 
@@ -182,6 +187,8 @@ if (!empty($_SESSION['vip_definido']) && count(ldLideresAtuais($jogadores)) === 
 
 // Convivência 3.0: sincronização semanal idempotente.
 e3SincronizarSemana($jogadores);
+// Objetivos NPC: atribuição/renovação somente em mudanças legítimas do estado.
+on1Sincronizar($jogadores);
 
 $rodada = $_SESSION['rodada'] ?? 1;
 
@@ -588,19 +595,35 @@ if(function_exists('dsTipo') && dsTipo('votacao_aberta') && !empty($_SESSION['pd
 a3Preparar($jogadores, $meuNome);
 $_SESSION['jogadores']=$jogadores;
 
+/* Evita que saves de outra semana reabram conversas antigas. */
+i4SincronizarCena((string)($_SESSION['fase_semana']??$fase));
+in2Sincronizar($jogadores, $meuNome, (string)($_SESSION['fase_semana']??$fase));
+/* Durante uma conversa interativa, nenhum outro POST altera o jogo. */
+if (($_SERVER['REQUEST_METHOD']??'GET')==='POST' && (!empty($_SESSION['i4_pendente']) || !empty($_SESSION['i4_resultado']))
+    && !isset($_POST['i4_responder']) && !isset($_POST['i4_continuar'])) {
+    header('Location: jogo.php'); exit;
+}
+
 /* =========================================================
    🎮 ACTIONS
    ========================================================= */
 
 
 
+require_once __DIR__ . '/includes/actions/iniciativa_npc_2.php';
 require_once __DIR__ . '/includes/actions/convite_npc.php';
 require_once __DIR__ . '/includes/actions/espectador.php';
 
+require_once __DIR__ . '/includes/actions/dilemas_jogo.php';
 require_once __DIR__ . '/includes/actions/eventos_convivencia.php';
 
+// Dilemas são escolhas separadas dos eventos especiais, no máximo uma por semana.
+if (empty($_SESSION['in2_convite']) && empty($_SESSION['in2_conversa']) && empty($_SESSION['in2_resultado']))
+    djTentarGerar($jogadores, $meuNome, $fase);
+
 // Uma cena especial pode surgir ao entrar em Interações ou Festa.
-ecTalvezGerar($jogadores, $meuNome, $fase);
+if (empty($_SESSION['in2_convite']) && empty($_SESSION['in2_conversa']) && empty($_SESSION['in2_resultado']))
+    ecTalvezGerar($jogadores, $meuNome, $fase);
 
 require_once __DIR__ . '/includes/actions/festa.php';
 
@@ -613,6 +636,8 @@ require_once __DIR__ . '/includes/actions/paredao.php';
 
 require_once __DIR__ . '/includes/actions/bate_volta.php';
 
+d3Sincronizar($jogadores);
+require_once __DIR__ . '/includes/actions/discordia_3.php';
 require_once __DIR__ . '/includes/actions/discordia.php';
 
 /*
@@ -673,6 +698,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
     rc2ProcessarMomento($jogadores, $meuNome, (string)$fase, 'entrada_da_fase');
     // Relações 4.0: evolução autônoma, uma tentativa por fase e semana.
     r4ProcessarFase($jogadores, $meuNome, (string)$fase);
+    // Iniciativa NPC: uma tentativa idempotente por fase, convites opcionais.
+    in2Sincronizar($jogadores, $meuNome, (string)$fase);
+    in2TalvezGerar($jogadores, $meuNome, (string)$fase);
 }
 
 /* =========================================================
@@ -775,6 +803,9 @@ $jogadores = $_SESSION['jogadores'] ?? $jogadores;
 <link rel="stylesheet" href="assets/css/aliancas3_dinamicas.css?v=2">
 <link rel="stylesheet" href="assets/css/convites_npc.css?v=1">
 <link rel="stylesheet" href="assets/css/rotina_casa_2.css?v=1">
+<link rel="stylesheet" href="assets/css/dilemas_jogo_2.css?v=1">
+<link rel="stylesheet" href="assets/css/interacoes_4.css?v=1">
+<link rel="stylesheet" href="assets/css/iniciativa_npc_2.css?v=1">
 </head>
 
 <body>

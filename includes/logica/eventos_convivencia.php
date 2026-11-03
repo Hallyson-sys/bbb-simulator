@@ -147,9 +147,11 @@ function ecBiblioteca() { return [
 ['madrugada','🌙','Conversa de madrugada','VARANDA','A festa já desacelerou quando {npc} senta ao seu lado: “Aqui dentro é difícil saber o que é jogo e o que é de verdade.”',[['❤️ Falar com sinceridade',10,5,0,null],['🤝 Falar sobre confiança',6,4,0,'fofoca'],['😶 Apenas ouvir',3,2,0,null]]]],
 ]; }
 function ecTalvezGerar(&$jogadores,$meuNome,$fase){
+  if(!empty($_SESSION['i4_pendente']) || !empty($_SESSION['i4_resultado'])) return;
   ecLimparMemoriaExpirada();
   if(!preg_match('/^interacoes_/',$fase)&&$fase!=='festa') return;
   ecTalvezCircularFofocas($jogadores,$meuNome,$fase);
+  if(!empty($_SESSION['dj_ativo']) || !empty($_SESSION['dj_resultado'])) return;
   if(!empty($_SESSION['evento_convivencia_ativo'])) return;
 
   $forcadoDev = !empty($_SESSION['dev_ec_forcar']);

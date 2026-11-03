@@ -107,7 +107,7 @@ function pnRankingLider($jogadores,$eu,$score,$dupla=false,$parceiro='') {
     if($dupla)shuffle($outros);
     foreach($outros as $i=>$j){
         if($dupla && ($i%2===1 || !isset($outros[$i+1]))) continue;
-        $candidatos[]=['nome'=>$j['nome'],'pontos'=>random_int(45,91),'parceiro'=>$dupla?(string)($outros[$i+1]['nome']??''):'','sorte'=>random_int(1,100000)];
+        $candidatos[]=['nome'=>$j['nome'],'pontos'=>min(100,random_int(45,91)+(function_exists('on1BonusProva') ? on1BonusProva((string)$j['nome']) : 0)),'parceiro'=>$dupla?(string)($outros[$i+1]['nome']??''):'','sorte'=>random_int(1,100000)];
     }
     usort($candidatos,fn($a,$b)=>($b['pontos']<=>$a['pontos'])?:($b['sorte']<=>$a['sorte']));
     return $candidatos;
@@ -116,7 +116,7 @@ function pnRankingAnjo($participantes,$eu,$score,$dupla=false,$parceiro='') {
     $candidatos=[['nome'=>$eu,'pontos'=>$score,'parceiro'=>$dupla?$parceiro:'','desempate'=>random_int(1,100000)]];
     $outros=[];foreach($participantes as $j)if(($j['nome']??'')!==$eu&&(!$dupla||($j['nome']??'')!==$parceiro))$outros[]=$j;
     if($dupla)shuffle($outros);
-    foreach($outros as $i=>$j){if($dupla&&($i%2===1 || !isset($outros[$i+1])))continue;$candidatos[]=['nome'=>$j['nome'],'pontos'=>random_int(42,94),'parceiro'=>$dupla?(string)($outros[$i+1]['nome']??''):'','desempate'=>random_int(1,100000)];}
+    foreach($outros as $i=>$j){if($dupla&&($i%2===1 || !isset($outros[$i+1])))continue;$candidatos[]=['nome'=>$j['nome'],'pontos'=>min(100,random_int(42,94)+(function_exists('on1BonusProva') ? on1BonusProva((string)$j['nome']) : 0)),'parceiro'=>$dupla?(string)($outros[$i+1]['nome']??''):'','desempate'=>random_int(1,100000)];}
     usort($candidatos,fn($a,$b)=>($b['pontos']<=>$a['pontos'])?:($b['desempate']<=>$a['desempate']));
     foreach($candidatos as $i=>&$c){$c['posicao']=$i+1;$c['eh_jogador']=$c['nome']===$eu;unset($c['desempate']);}unset($c);
     return $candidatos;
@@ -150,7 +150,7 @@ function pnRankingNPCsAnjo($participantes) {
     foreach($lista as $i=>$j){
         if($i%2!==0||!isset($lista[$i+1]))continue;
         $ranking[]=['nome'=>(string)($j['nome']??''),'parceiro'=>(string)($lista[$i+1]['nome']??''),
-            'pontos'=>random_int(48,96),'eh_jogador'=>false,'desempate'=>random_int(1,100000)];
+            'pontos'=>min(100,random_int(48,96)+(function_exists('on1BonusProva') ? on1BonusProva((string)($j['nome']??'')) : 0)),'eh_jogador'=>false,'desempate'=>random_int(1,100000)];
     }
     usort($ranking,fn($a,$b)=>($b['pontos']<=>$a['pontos'])?:($b['desempate']<=>$a['desempate']));
     foreach($ranking as $i=>&$j){$j['posicao']=$i+1;unset($j['desempate']);}unset($j);

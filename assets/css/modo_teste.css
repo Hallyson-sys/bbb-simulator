@@ -442,3 +442,28 @@ button.especial {
 .dev-inline-form { max-width:460px; }
 @media(max-width:900px) {.dev-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.dev-tool-columns{grid-template-columns:1fr}.dev-status-grid{grid-template-columns:1fr}}
+
+/* MODO DEV 3.0 — painel de diagnósticos */
+.dev3-panel { background: linear-gradient(125deg,rgba(39,11,62,.94),rgba(10,23,43,.97)); border-color:rgba(132,96,255,.32); }
+.dev3-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;flex-wrap:wrap}
+.dev3-title-row h2{margin:8px 0}.dev3-title-row p{max-width:740px;line-height:1.5}
+.dev3-eyebrow{font-size:11px;letter-spacing:1.7px;font-weight:800;color:#77d4ff}
+.dev3-pill{font-size:10px;letter-spacing:.8px;font-weight:800;color:#a7f3d0;background:rgba(7,118,81,.2);border:1px solid rgba(80,220,159,.3);border-radius:40px;padding:9px 12px}
+.dev3-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:20px 0}
+.dev3-actions form{margin:0}.dev3-actions button{height:100%;min-height:58px;width:100%;white-space:normal}
+.dev3-report{background:rgba(4,6,20,.56);border:1px solid rgba(255,255,255,.11);border-radius:17px;padding:18px}
+.dev3-report-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.dev3-report-header h3{margin:0}.dev3-report-header small,.dev3-explainer{color:#c6c4d8}
+.dev3-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:15px 0}
+.dev3-kpis>div{padding:13px;border:1px solid rgba(255,255,255,.10);border-radius:13px;display:flex;flex-direction:column;gap:5px;background:rgba(255,255,255,.035)}
+.dev3-kpis strong{font-size:29px;line-height:1}.dev3-kpis span{font-size:12px;color:#c6c4d8}.dev3-ok strong{color:#45e1a3}.dev3-warn strong{color:#ffcc79}.dev3-fail strong{color:#ff658d}
+.dev3-check-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:15px}
+.dev3-check{display:flex;gap:12px;align-items:flex-start;padding:13px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(10,10,26,.74);overflow-wrap:anywhere}
+.dev3-check strong{display:block;font-size:13px}.dev3-check small{display:block;color:#a7a9be;font-size:11px;margin-top:5px;line-height:1.5}
+.dev3-symbol{flex:none;border-radius:50%;display:grid;place-items:center;width:23px;height:23px;font-weight:bold}
+.dev3-ok .dev3-symbol{color:#45e1a3;background:rgba(42,209,138,.12)}
+.dev3-aviso .dev3-symbol{color:#ffd080;background:rgba(255,184,70,.12)}
+.dev3-falha .dev3-symbol{color:#ff638a;background:rgba(255,88,125,.13)}
+.dev3-help{margin-top:16px;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;line-height:1.5}
+.dev3-help summary{cursor:pointer;font-weight:700}.dev3-help code{color:#a5e1ff;overflow-wrap:anywhere}
+@media(max-width:800px){.dev3-actions{grid-template-columns:1fr}.dev3-check-list{grid-template-columns:1fr}.dev3-report{padding:11px}.dev3-panel{overflow-wrap:anywhere}}

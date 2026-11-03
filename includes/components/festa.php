@@ -8,8 +8,9 @@
 
 <?php if ($fase == 'festa'): ?>
 
-<?php render('components/eventos_convivencia'); ?>
-<?php $ecBloqueia = !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado']); ?>
+<?php render('components/dilemas_jogo'); ?>
+<?php if (empty($_SESSION['dj_ativo']) && empty($_SESSION['dj_resultado'])) render('components/eventos_convivencia'); ?>
+<?php $ecBloqueia = !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado']) || !empty($_SESSION['dj_ativo']) || !empty($_SESSION['dj_resultado']); ?>
 <?php if (!$ecBloqueia): ?>
 <?php render('components/rotina_casa'); ?>
 

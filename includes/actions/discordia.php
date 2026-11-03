@@ -305,6 +305,14 @@ if (isset($_POST['fazer_discordia'])
         $_SESSION['evento_extra'][] = $ev;
     }
 
+    // Discórdia 3.0: uma reação observável de alguém que assistiu ao debate,
+    // sem expor estratégias privadas ou alterar os efeitos clássicos dos NPCs.
+    if (function_exists('d3ReacaoTestemunha') && is_array($_SESSION['d3_ultimo_embate'] ?? null)
+        && (int)($_SESSION['d3_ultimo_embate']['semana'] ?? 0) === (int)($_SESSION['rodada'] ?? 1)) {
+        $testemunha = d3ReacaoTestemunha($jogadores, $meuNome, $_SESSION['d3_ultimo_embate']);
+        if ($testemunha !== '') $_SESSION['evento_extra'][] = $testemunha;
+    }
+
     $_SESSION['jogadores'] = $jogadores;
     $_SESSION['discordia_feito'] = true;
 

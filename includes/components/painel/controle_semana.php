@@ -34,6 +34,18 @@
     ?>
 <?php endif; ?>
 
+<?php if ($fase === 'interacoes_3' && is_array($_SESSION['d3_ultimo_embate'] ?? null)
+    && (int)($_SESSION['d3_ultimo_embate']['semana'] ?? 0) === (int)($rodada ?? 0)):
+    $resumoD3 = $_SESSION['d3_ultimo_embate']; ?>
+    <details class="d3-desfecho" open>
+      <summary><strong>🔥 Jogo da Discórdia 3.0 — Seu último debate</strong></summary>
+      <p><strong>🎤 Você:</strong> <?= htmlspecialchars((string)$resumoD3['argumento'],ENT_QUOTES,'UTF-8') ?></p>
+      <p><strong>🎙️ <?= htmlspecialchars((string)$resumoD3['alvo'],ENT_QUOTES,'UTF-8') ?>:</strong> <?= htmlspecialchars((string)$resumoD3['resposta'],ENT_QUOTES,'UTF-8') ?></p>
+      <p><strong>🔥 Sua tréplica:</strong> <?= htmlspecialchars((string)$resumoD3['treplica'],ENT_QUOTES,'UTF-8') ?></p>
+      <small>O debate foi registrado no Ao Vivo e no histórico da temporada.</small>
+    </details>
+<?php endif; ?>
+
 <?php if (in_array($fase, ['interacoes_1', 'interacoes_2', 'interacoes_3'], true)): ?>
     <?php
     render('components/interacoes', [

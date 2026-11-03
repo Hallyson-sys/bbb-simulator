@@ -1,0 +1,30 @@
+/* Conversas Vivas — visual integrado aos painéis escuros do BBB Simulator. */
+.i4-menu,.i4-dialogo,.i4-historico,.i4-selecao{color:#f9f6ff;border:1px solid rgba(184,132,255,.38);background:linear-gradient(140deg,rgba(77,28,118,.90),rgba(20,21,52,.96));border-radius:18px;padding:16px;margin:14px 0;box-shadow:0 10px 26px rgba(0,0,0,.15)}
+.i4-menu>h3,.i4-dialogo>h2,.i4-selecao>h3{margin:0 0 9px;color:#fff}
+.i4-menu p,.i4-selecao p,.i4-dialogo p{line-height:1.55;color:#eee6f8}
+.i4-categorias{margin:12px 0 16px;color:#f9f6ff}
+.i4-grupos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px;align-items:start}
+.i4-grupos>.i4-grupo{align-self:start;min-height:0}
+.i4-grupo{background:rgba(16,15,46,.48);border:1px solid rgba(187,165,236,.28);border-radius:14px;padding:11px}
+.i4-grupo summary{font-size:1.03rem;cursor:pointer;font-weight:700;list-style-position:inside;padding:7px 2px}
+.i4-botoes{display:grid;grid-template-columns:1fr;gap:8px;margin-top:11px}
+.i4-botoes form{margin:0}
+.i4-botoes button,.i4-respostas button{width:100%;border:1px solid rgba(212,180,255,.34);border-radius:12px;background:rgba(98,60,158,.55);color:#fff;padding:12px;text-align:left;cursor:pointer;white-space:normal;line-height:1.3;font-size:.95rem}
+.i4-botoes button:hover,.i4-respostas button:hover{background:rgba(139,88,203,.8)}
+.i4-botoes button:disabled{opacity:.45;cursor:not-allowed}
+.i4-botoes small,.i4-dialogo small,.i4-selecao small{font-size:.78rem;color:#d8caef}
+.i4-selecao label{display:block;font-weight:700;margin:16px 0 6px}
+.i4-selecao select{display:block;width:100%;max-width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(211,190,242,.5);color:#fff;background:#292140;font-size:1rem}
+.i4-selecao select option{background:#292140;color:#fff}
+.i4-selecao .btn{margin-top:18px;width:100%}
+.i4-kicker{letter-spacing:.08em;font-size:.74rem;color:#d5b4ff;font-weight:800;margin-bottom:12px}
+.i4-fala{border-left:3px solid #c18aff;border-radius:7px;background:rgba(10,13,35,.5);padding:14px;margin:13px 0}
+.i4-fala p{margin:8px 0 0}
+.i4-respostas{display:grid;gap:10px;margin:16px 0}
+.i4-contexto,.i4-dica{font-size:.89rem;opacity:.9}
+.i4-historico summary{cursor:pointer;font-weight:700}
+.i4-hist-item{border-top:1px solid rgba(196,178,236,.25);padding:12px 0;margin-top:10px}
+.i4-hist-item span{display:block;font-size:.88rem;margin-top:5px;color:#d8baff}
+.i4-hist-item p{margin:5px 0;color:#eee6f8}
+.i4-alerta{border:1px solid #ffca78;border-radius:12px;padding:12px;margin:10px 0;background:rgba(118,72,17,.3);color:#fff}
+@media(max-width:540px){.i4-menu,.i4-dialogo,.i4-historico,.i4-selecao{padding:12px;border-radius:14px}.i4-grupos{grid-template-columns:1fr}.i4-botoes button,.i4-respostas button{min-height:44px}}

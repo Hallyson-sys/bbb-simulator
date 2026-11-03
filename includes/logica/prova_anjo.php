@@ -184,7 +184,7 @@ function simularPontuacaoNPCAnjo($jogador, $slug)
         $base -= rand(6, 14); // erro inesperado
     }
 
-    return max(18, min(100, $base + $bonus));
+    return max(18, min(100, $base + $bonus + (function_exists('on1BonusProva') ? on1BonusProva((string)($jogador['nome'] ?? '')) : 0)));
 }
 
 function normalizarPontuacaoJogadorAnjo($post)

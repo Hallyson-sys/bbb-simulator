@@ -24,6 +24,61 @@ function devVoltar(): never {
     exit;
 }
 
+// Bateria DEV 3.0: opera sobre um snapshot e não altera o andamento do jogo.
+if (isset($_POST['dev3_executar'])) {
+    $escopo = (string)($_POST['dev3_escopo'] ?? 'completo');
+    if (!in_array($escopo, ['completo','save','simulacoes'], true)) $escopo='completo';
+    $antes = $_SESSION;
+    try {
+        $relatorio = dev3Bateria($antes, $escopo);
+        // O único dado persistido é o relatório resumido, nunca estados simulados.
+        $_SESSION['dev3_relatorio'] = $relatorio;
+        devAvisar('Diagnóstico finalizado. Nenhuma fase, voto ou recompensa foi modificada.');
+    } catch (Throwable $e) {
+        $_SESSION = $antes;
+        devAvisar('Não foi possível concluir os diagnósticos: '.get_class($e).' — '.$e->getMessage());
+    }
+    header('Location: modo_teste.php#dev3-testes'); exit;
+}
+
+// Iniciativa NPC 2.0: convite forçado na fase social atual, sem iniciar diálogo pelo jogador.
+if (isset($_POST['dev_in2_forcar'])) {
+    $faseI=(string)($_SESSION['fase_semana']??'');
+    $semI=(int)($_SESSION['rodada']??1);
+    if (!in_array($faseI,['interacoes_1','interacoes_2','interacoes_3'],true)) {
+        devAvisar('Abra uma fase de Interações antes de testar a iniciativa de um NPC.'); devVoltar();
+    }
+    foreach (['in2_convite','in2_conversa','in2_resultado','i4_pendente','i4_resultado',
+        'dj_ativo','dj_resultado','evento_convivencia_ativo','evento_convivencia_resultado'] as $c) {
+        if (!empty($_SESSION[$c])) {
+            devAvisar('Conclua ou recuse a conversa ou o evento aberto antes de gerar outro convite.'); devVoltar();
+        }
+    }
+    $nomeD=(string)($_POST['dev_in2_npc']??'');
+    $validos=array_values(array_filter($jogadores,fn($j)=>($j['nome']??'')===$nomeD &&
+        $nomeD!==$meuNome && empty($j['eliminado']) && empty($j['fora_da_casa'])));
+    if (!$validos) {devAvisar('Escolha um NPC ativo e diferente do jogador.'); devVoltar();}
+    $_SESSION['dev_in2_forcar']=['fase'=>$faseI,'semana'=>$semI,'npc'=>$nomeD];
+    unset($_SESSION['in2_usados_npc'][$semI][$nomeD]);
+    devAvisar('Convite NPC preparado para esta fase. O próximo acesso ao jogo criará o convite.');
+    header('Location: jogo.php#iniciativa-npc'); exit;
+}
+
+// Teste destrutivo de Dilemas 2.0 — somente localhost e com token DEV.
+if (isset($_POST['dev_dilema_forcar'])) {
+    $faseD = (string)($_POST['dev_dilema_fase'] ?? 'interacoes_1');
+    if (!in_array($faseD, ['interacoes_1','festa'], true)) $faseD='interacoes_1';
+    if (!empty($_SESSION['dj_ativo']) || !empty($_SESSION['dj_resultado']) ||
+        !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado'])) {
+        devAvisar('Conclua o evento já aberto antes de forçar outro dilema.'); devVoltar();
+    }
+    $_SESSION['fase_semana'] = $faseD;
+    $_SESSION['dev_dj_forcar'] = true;
+    unset($_SESSION['dj_gerado_semana'], $_SESSION['dj_tentado_'.(int)($_SESSION['rodada']??1).'_'.$faseD]);
+    devAvisar('O próximo acesso às fases sociais irá gerar um dilema. Este teste altera o andamento do save.');
+    header('Location: jogo.php'); exit;
+}
+
 // Testes das novas provas. A seleção NÃO concede vitória automaticamente.
 if(isset($_POST['dev_prova_interativa'])){
     $valor=(string)($_POST['dev_tipo_prova']??'');

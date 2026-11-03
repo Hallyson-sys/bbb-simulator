@@ -17,6 +17,7 @@ function a3Lealdade(array $jogadores,string $nome): int {
         $total+=(float)($r['amizade']??35)*.35+(float)($r['confianca']??35)*.58-(float)($r['rivalidade']??0)*.48;
     }
     $bonus=(int)($_SESSION['a3_ajustes'][$nome]??0);
+    if (function_exists('on1BonusLealdade')) $bonus += on1BonusLealdade($nome);
     if (function_exists('e3Tracos')) {
         $tracos = e3Tracos($nome);
         $bonus += (int)round(($tracos['lealdade'] - 50) * 0.28);

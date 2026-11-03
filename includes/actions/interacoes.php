@@ -7,6 +7,108 @@ require_once __DIR__ . '/../logica/relatos_ao_vivo.php';
 /** @var string $meuNome */
 
 
+/** Finalização única para ações antigas e diálogos I4 (inclusive NPCs automáticos). */
+function i4ConcluirInteracao(array &$jogadores, string $meuNome, string $fase, string $evento): void {
+    if ($evento != "") {
+
+        $_SESSION['evento_extra'][] =
+            $evento;
+
+        $_SESSION['jogadores'] =
+            $jogadores;
+
+        $_SESSION['acoes_restantes']--;
+
+        // Rotina da Casa: um momento espontâneo após uma ação válida,
+        // com limite de aparições por fase e nenhum efeito ao recarregar.
+        rc2ProcessarMomento($jogadores, $meuNome, $fase,
+            'jogador_' . (3 - (int)$_SESSION['acoes_restantes']),
+            (int)$_SESSION['acoes_restantes'] <= 0);
+
+        /* NPCs jogam quando acabam suas ações */
+
+        if (
+            $_SESSION['acoes_restantes'] <= 0 &&
+            !isset(
+                $_SESSION[
+                    'npc_interacoes_feitas_' . $fase
+                ]
+            )
+        ) {
+
+            $eventosNPC = gerarAcoesNPC(
+                $jogadores,
+                $meuNome,
+                3
+            );
+
+            foreach ($eventosNPC as $ev) {
+                $_SESSION['evento_extra'][] = $ev;
+            }
+
+
+            $eventosAliancas =
+                atualizarAliancasAutomaticas(
+                    $jogadores,
+                    $meuNome
+                );
+
+            foreach ($eventosAliancas as $ev) {
+                $_SESSION['evento_extra'][] = $ev;
+            }
+
+
+            $eventosFofocasVTs =
+                gerarFofocasEVTsAutomaticos(
+                    $jogadores,
+                    $meuNome,
+                    rand(2, 4)
+                );
+
+            foreach ($eventosFofocasVTs as $ev) {
+                $_SESSION['evento_extra'][] = $ev;
+            }
+
+
+            $_SESSION['jogadores'] =
+                $jogadores;
+
+            $_SESSION[
+                'npc_interacoes_feitas_' . $fase
+            ] = true;
+        }
+
+
+        unset(
+            $_SESSION['acao_selecionada']
+        );
+    }
+
+}
+
+/** Interações 4.0: POST/Redirect/GET, anti-replay e bloqueio de ações paralelas. */
+if (isset($_POST['i4_continuar'])) {
+    unset($_SESSION['i4_resultado']);
+    header('Location: jogo.php'); exit;
+}
+if (isset($_POST['i4_responder'])) {
+    $indice = filter_var($_POST['i4_responder'], FILTER_VALIDATE_INT);
+    $eventoI4 = $indice === false ? '' : i4Responder(
+        $jogadores, $meuNome, $fase, (string)($_POST['i4_token']??''), (int)$indice
+    );
+    if ($eventoI4 !== '') i4ConcluirInteracao($jogadores, $meuNome, $fase, $eventoI4);
+    header('Location: jogo.php'); exit;
+}
+if (!empty($_SESSION['i4_pendente']) || !empty($_SESSION['i4_resultado'])) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {header('Location: jogo.php');exit;}
+}
+if (isset($_POST['acao']) && isset(i4Catalogo()[(string)$_POST['acao']])) {
+    if (!i4Iniciar($jogadores, $meuNome, $fase, $_POST)) {
+        $_SESSION['i4_erro'] = 'Não foi possível iniciar a conversa. Verifique se o participante está ativo e se as escolhas são válidas.';
+    }
+    header('Location: jogo.php');exit;
+}
+
 /* =========================
    🎯 SELECIONAR AÇÃO
 ========================= */
@@ -382,84 +484,7 @@ if (
     }
 
 
-    /* =========================
-       ✅ FINALIZAR AÇÃO
-    ========================= */
-
-    if ($evento != "") {
-
-        $_SESSION['evento_extra'][] =
-            $evento;
-
-        $_SESSION['jogadores'] =
-            $jogadores;
-
-        $_SESSION['acoes_restantes']--;
-
-        // Rotina da Casa: um momento espontâneo após uma ação válida,
-        // com limite de aparições por fase e nenhum efeito ao recarregar.
-        rc2ProcessarMomento($jogadores, $meuNome, $fase,
-            'jogador_' . (3 - (int)$_SESSION['acoes_restantes']),
-            (int)$_SESSION['acoes_restantes'] <= 0);
-
-        /* NPCs jogam quando acabam suas ações */
-
-        if (
-            $_SESSION['acoes_restantes'] <= 0 &&
-            !isset(
-                $_SESSION[
-                    'npc_interacoes_feitas_' . $fase
-                ]
-            )
-        ) {
-
-            $eventosNPC = gerarAcoesNPC(
-                $jogadores,
-                $meuNome,
-                3
-            );
-
-            foreach ($eventosNPC as $ev) {
-                $_SESSION['evento_extra'][] = $ev;
-            }
-
-
-            $eventosAliancas =
-                atualizarAliancasAutomaticas(
-                    $jogadores,
-                    $meuNome
-                );
-
-            foreach ($eventosAliancas as $ev) {
-                $_SESSION['evento_extra'][] = $ev;
-            }
-
-
-            $eventosFofocasVTs =
-                gerarFofocasEVTsAutomaticos(
-                    $jogadores,
-                    $meuNome,
-                    rand(2, 4)
-                );
-
-            foreach ($eventosFofocasVTs as $ev) {
-                $_SESSION['evento_extra'][] = $ev;
-            }
-
-
-            $_SESSION['jogadores'] =
-                $jogadores;
-
-            $_SESSION[
-                'npc_interacoes_feitas_' . $fase
-            ] = true;
-        }
-
-
-        unset(
-            $_SESSION['acao_selecionada']
-        );
-    }
+    i4ConcluirInteracao($jogadores, $meuNome, $fase, (string)$evento);
 
 
     header("Location: jogo.php");

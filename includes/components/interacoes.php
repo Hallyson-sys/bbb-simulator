@@ -9,10 +9,23 @@
 
 <?php if (strpos($fase, 'interacoes') !== false): ?>
 
-<?php render('components/eventos_convivencia'); ?>
-<?php $ecBloqueia = !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado']); ?>
+<?php render('components/dilemas_jogo'); ?>
+<?php if (empty($_SESSION['dj_ativo']) && empty($_SESSION['dj_resultado'])) render('components/eventos_convivencia'); ?>
+<?php $ecBloqueia = !empty($_SESSION['evento_convivencia_ativo']) || !empty($_SESSION['evento_convivencia_resultado']) || !empty($_SESSION['dj_ativo']) || !empty($_SESSION['dj_resultado']); ?>
 <?php if (!$ecBloqueia): ?>
+<?php if (empty($_SESSION['i4_pendente']) && empty($_SESSION['i4_resultado']))
+    render('components/iniciativa_npc_2', ['jogadores'=>$jogadores,'meuNome'=>$meuNome,'fase'=>$fase]); ?>
+<?php if (empty($_SESSION['in2_conversa']) && empty($_SESSION['in2_resultado'])): ?>
+<?php render('components/interacoes_4', [
+    'jogadores' => $jogadores,
+    'meuNome' => $meuNome
+]); ?>
+<?php if (empty($_SESSION['i4_pendente']) && empty($_SESSION['i4_resultado'])): ?>
 <?php render('components/rotina_casa'); ?>
+<?php if (!empty($_SESSION['i4_erro'])): ?>
+<div class="i4-alerta" role="alert"><?= i4Esc($_SESSION['i4_erro']) ?></div>
+<?php unset($_SESSION['i4_erro']); endif; ?>
+
 
     <?php if (!empty($_SESSION['es2_resultado_interacao'])): ?>
         <div class="box" role="status" style="border:1px solid rgba(0,210,165,.6);">
@@ -107,43 +120,55 @@
 
                             <!-- ETAPA 1: ESCOLHER AÇÃO -->
 
-                            <div class="interacoes-grid">
-
+                            <div class="i4-categorias" aria-label="Categorias de interações">
                                 <?php
-                                $acoes = [
-                                    ["conversar", "💬 Conversar"],
-                                    ["fofoca", "🗣️ Fazer Fofoca"],
-                                    ["intriga", "🔥 Criar Intriga"]
-                                ];
-
-                                $minhaAliancaAtual = obterAliancaJogador($jogadores, $meuNome);
-                                $aliancasExistentesInteracao = gerarResumoAliancas($jogadores);
-
-                                if (($rodada ?? 1) >= 2) {
-                                    if (empty($minhaAliancaAtual)) {
-                                        $acoes[] = ["alianca", "🤝 Criar Aliança"];
-
-                                        if (!empty($aliancasExistentesInteracao)) {
-                                            $acoes[] = ["entrar_alianca", "🚪 Entrar em Aliança"];
+                                    $i4Grupos=[
+                                        'social'=>['💜 Social','Convivência, sentimentos e romance'],
+                                        'estrategia'=>['🎯 Estratégia','Sondagem e acordos reservados'],
+                                        'conflitos'=>['🔥 Conflitos','Esclarecer, confrontar ou mediar'],
+                                    ];
+                                    $i4Extras=[
+                                        ['conversar','💬 Conversar (clássico)'],
+                                        ['fofoca','🗣️ Fazer fofoca'],['intriga','🔥 Criar intriga'],
+                                        ['aproximar_lider','👑 Aproximar do Líder'],['discutir','😡 Discutir'],['vt','🎬 Fazer VT']
+                                    ];
+                                    $i4GrupoAtual=obterAliancaJogador($jogadores,$meuNome);
+                                    $i4Aliancas=gerarResumoAliancas($jogadores);
+                                    if (($rodada??1)>=2) {
+                                        if(empty($i4GrupoAtual)){
+                                            $i4Extras[]=['alianca','🤝 Criar aliança'];
+                                            if($i4Aliancas)$i4Extras[]=['entrar_alianca','🚪 Entrar em aliança'];
+                                        }else{
+                                            if(tamanhoAlianca($jogadores,$i4GrupoAtual)<5)$i4Extras[]=['recrutar_alianca','📩 Convidar para aliança'];
+                                            $i4Extras[]=['sair_alianca','💥 Sair da aliança'];
                                         }
-                                    } else {
-                                        if (tamanhoAlianca($jogadores,$minhaAliancaAtual)<5) $acoes[]=["recrutar_alianca","📩 Convidar para minha aliança"];
-                                        $acoes[] = ["sair_alianca", "💥 Sair da Aliança"];
                                     }
-                                }
-
-                                $acoes[] = ["aproximar_lider", "👑 Aproximar do Líder"];
-                                $acoes[] = ["discutir", "😡 Discutir"];
-                                $acoes[] = ["vt", "🎬 Fazer VT"];
                                 ?>
-
-                                <?php foreach ($acoes as $a): ?>
-                                    <form method="POST">
-                                        <input type="hidden" name="selecionar_acao" value="<?php echo $a[0]; ?>">
-                                        <button class="btn"><?php echo $a[1]; ?></button>
-                                    </form>
-                                <?php endforeach; ?>
-
+                                <div class="i4-grupos">
+                                    <?php foreach($i4Grupos as $grupoId=>$grupoInfo): ?>
+                                        <details class="i4-grupo" name="i4-categorias" <?= $grupoId==='social'?'open':'' ?>>
+                                            <summary><?= i4Esc($grupoInfo[0]) ?></summary>
+                                            <p><?= i4Esc($grupoInfo[1]) ?></p>
+                                            <div class="i4-botoes">
+                                            <?php foreach(i4Catalogo() as $codigo=>$item): if($item[3]!==$grupoId)continue; ?>
+                                                <?php $semConhecimento=$codigo==='i4_informacao' && count(i4Conhecimentos())===0; ?>
+                                                <form method="post"><button type="submit" name="selecionar_acao" value="<?= i4Esc($codigo) ?>" <?= $semConhecimento?'disabled':'' ?>><?= i4Esc($item[0].' '.$item[1]) ?></button>
+                                                    <?php if($semConhecimento): ?><small>Descubra uma informação antes de compartilhá-la.</small><?php endif; ?>
+                                                </form>
+                                            <?php endforeach; ?>
+                                            </div>
+                                        </details>
+                                    <?php endforeach; ?>
+                                    <details class="i4-grupo" name="i4-categorias">
+                                        <summary>👥 Alianças e ações clássicas</summary>
+                                        <p>Conversar, fofocas, intrigas, VT e gerenciamento de alianças.</p>
+                                        <div class="i4-botoes">
+                                        <?php foreach($i4Extras as $item): ?>
+                                            <form method="post"><button type="submit" name="selecionar_acao" value="<?= i4Esc($item[0]) ?>"><?= i4Esc($item[1]) ?></button></form>
+                                        <?php endforeach; ?>
+                                        </div>
+                                    </details>
+                                </div>
                             </div>
 
                         <?php else: ?>
@@ -152,7 +177,10 @@
 
                             <form method="POST" id="formAcao">
 
-                                <input type="hidden" name="acao" value="<?php echo $acaoSelecionada; ?>">
+                                <input type="hidden" name="acao" value="<?php echo i4Esc($acaoSelecionada); ?>">
+                                <?php if(isset(i4Catalogo()[$acaoSelecionada])): ?>
+                                    <?php render('components/interacoes_4_form',['acaoSelecionada'=>$acaoSelecionada,'jogadores'=>$jogadores,'meuNome'=>$meuNome]); ?>
+                                <?php else: ?>
                                 <input type="hidden" name="alvo" id="alvo">
                                 <input type="hidden" name="alvo2" id="alvo2">
                                 <input type="hidden" name="alianca_escolhida" id="alianca_escolhida">
@@ -304,7 +332,7 @@
                                 <button type="button" class="btn" onclick="executarAcao()">
                                     Executar Ação
                                 </button>
-
+                                <?php endif; // ação 4.0 ou clássica ?>
                             </form>
 
                             <form method="POST">
@@ -328,6 +356,8 @@
                         </button>
                     </form>
 
-                <?php endif; // !ecBloqueia ?>
+                <?php endif; // !i4_pendente e !i4_resultado ?>
+<?php endif; // !in2_conversa e !in2_resultado ?>
+<?php endif; // !ecBloqueia ?>
 
 <?php endif; ?>
