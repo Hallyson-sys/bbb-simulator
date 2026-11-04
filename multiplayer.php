@@ -3,8 +3,8 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#09091f"><title>Multiplayer Online | BBB Simulator</title>
 <link rel="stylesheet" href="assets/css/jogo.css"><link rel="stylesheet" href="assets/css/header.css">
-<link rel="stylesheet" href="assets/css/responsivo.css?v=35"><link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=3">
-<script src="assets/js/multiplayer.js?v=3" defer></script>
+<link rel="stylesheet" href="assets/css/responsivo.css?v=35"><link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=4">
+<script src="assets/js/multiplayer.js?v=4" defer></script>
 </head><body class="mp-app">
 <header class="top-header"><div class="header-glow"></div><div class="header-content">
 <div class="logo-area"><div class="bbb-icon">🎥</div><div class="brand-text"><h1>BBB Simulator</h1><div class="sub-info"><span>🌐 Multiplayer Online</span><span class="dot"></span><span>Beta</span></div></div></div>

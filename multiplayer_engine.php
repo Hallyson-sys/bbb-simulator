@@ -7,12 +7,12 @@ function mp_error(string $message, int $status=400): never {
     exit;
 }
 function mp_dir(): string {
-    $candidates=[__DIR__.'/data/multiplayer_rooms', sys_get_temp_dir().'/bbb_simulator_multiplayer_b2'];
-    foreach($candidates as $dir){
-        if (is_dir($dir)) return $dir;
-        if (@mkdir($dir,0700,true) || is_dir($dir)) return $dir;
+    // Salas temporárias fora da pasta pública do Apache.
+    $dir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).'/bbb_simulator_multiplayer_b3';
+    if (!is_dir($dir) && !@mkdir($dir,0700,true) && !is_dir($dir)) {
+        mp_error('Armazenamento temporário indisponível.',503);
     }
-    mp_error('Armazenamento temporário indisponível.',503);
+    return $dir;
 }
 function mp_code(string $value): string {
     $value=strtoupper(trim($value));
