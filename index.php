@@ -36,6 +36,13 @@
 
         <div id="mensagemIndex" class="mensagem-index" hidden></div>
 
+        <!-- Modo online separado: não compartilha estado com a temporada solo. -->
+        <section class="multi-entry-index" aria-label="Multiplayer online">
+            <div class="multi-entry-label">🌐 JOGUE COM AMIGOS • BETA</div>
+            <a href="multiplayer.php" class="multi-entry-button">MULTIPLAYER ONLINE <span aria-hidden="true">→</span></a>
+            <p>Crie salas privadas de 10, 15 ou 20 pessoas. O modo solo continua intacto.</p>
+        </section>
+
         <!-- =================================================
              💾 SAVE 2.0 - 3 SLOTS
         ================================================== -->

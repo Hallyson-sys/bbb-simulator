@@ -1,0 +1,79 @@
+/* Multiplayer Beta 2: reaproveita a identidade de jogo.css, header.css,
+   responsivo.css e interacoes_4.css; estilos abaixo só adaptam o modo online. */
+.mp-app [hidden]{display:none!important}
+.mp-app button,.mp-app input,.mp-app select{font-family:inherit}
+.mp-app button{cursor:pointer}
+.mp-app .btn{cursor:pointer}
+.mp-app select,.mp-app input{color:#fff;background:#28223f;border:1px solid #74608d;padding:12px;border-radius:11px;font-size:16px;min-height:48px;width:100%}
+.mp-app label{display:block;margin:13px 0 6px;font-size:13px;font-weight:700}
+.mp-app a{color:#f2d6ff}
+.mp-header-link{margin-left:auto;display:block;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);padding:11px 14px;border-radius:12px;text-decoration:none;font:700 12px 'Poppins',sans-serif}
+.mp-lobby-wrap{position:relative;z-index:2;width:min(620px,100%);margin:35px auto;padding:0 12px 85px}
+.mp-lobby-wrap>.mp-hero{display:block;margin-bottom:14px}
+.mp-lobby-card{width:100%;max-width:none}
+.mp-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:rgba(11,6,29,.55);padding:6px;border-radius:13px;margin-bottom:20px}
+.mp-tab{border:0;border-radius:10px;background:none;color:#c9b7d9;padding:12px 7px;font-weight:800;font-size:13px;min-height:45px}
+.mp-tab.active{background:linear-gradient(100deg,#e11692,#6839d4);color:white}
+.mp-main-btn{width:100%;margin-top:15px;background:linear-gradient(100deg,#d40081,#702bd9)!important;color:#fff!important;border:0!important;text-align:center!important;padding:12px!important;min-height:48px}
+.mp-secondary{background:rgba(110,59,165,.24)!important;border:1px solid rgba(200,170,241,.45)!important;color:#faf6ff!important;text-align:center!important;padding:11px!important;min-height:45px}
+.mp-subtext,.mp-mini-hint,.mp-disclaimer{font-size:12px;line-height:1.6;color:#c7bbda;margin-top:12px}
+.mp-disclaimer{text-align:center}
+.mp-notice{z-index:5;position:relative;margin:11px auto;border:1px solid #72bba9;background:#173b3b;color:#e9fff5;border-radius:12px;padding:13px;font-size:13px;line-height:1.5}
+.mp-notice.error{background:#4b1937;border-color:#d56591}
+.mp-global-notice{max-width:900px;margin:10px auto}
+.mp-hero{border:1px solid rgba(241,159,242,.27);border-radius:17px;padding:18px;background:linear-gradient(105deg,rgba(255,0,122,.16),rgba(0,229,255,.06))}
+.mp-hero h2{font-size:24px;margin:4px 0 7px}.mp-hero p{color:#dfd2ec;font-size:13px;line-height:1.5}
+.mp-share-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:17px 0}.mp-share-row .btn{font-size:12px;max-width:none}
+.mp-lobby-person{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);font-size:12px}
+.mp-lobby-person span{font-size:11px;color:#adffe7}.mp-lobby-people{max-height:370px;overflow:auto}
+.mp-lobby-actions{margin:12px 0}.mp-text-link{border:none;background:none;color:#d9bfff;text-decoration:underline;margin-top:12px;font-size:12px}
+.mp-progress{background:rgba(255,255,255,.1);border-radius:10px;height:8px;overflow:hidden;margin-top:9px}
+.mp-progress>div{width:0;height:100%;background:linear-gradient(90deg,#f52cab,#9056fd,#43d8e8);transition:width .3s}
+.mp-game .container{grid-template-columns:minmax(250px,310px) minmax(0,1fr) minmax(250px,310px)}
+.mp-game .center,.mp-game .right,.mp-game .left{min-width:0}
+.mp-phase-stats,.mp-timer{display:flex;align-items:center;justify-content:space-between;gap:15px;font-size:13px}
+.mp-phase-stats{font-weight:700;margin-bottom:13px}
+.mp-timer{background:rgba(116,62,193,.21);border:1px solid rgba(190,152,244,.3);border-radius:14px;padding:12px;margin:10px 0}
+.mp-timer strong{font-family:'Orbitron',sans-serif;font-size:23px}.mp-timer strong.low{color:#ff7d9c}
+.mp-timeline-box{margin-top:14px}.mp-timeline-box h3{font-size:15px}
+.mp-timeline{display:flex;gap:7px;overflow:auto;padding:9px 0 5px;scrollbar-width:thin}
+.mp-step{flex:0 0 auto;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px;font-size:10px;white-space:nowrap}
+.mp-step.current{background:rgba(192,74,226,.27);border-color:#c18aff;color:#fff}.mp-step.done{color:#91dccd}
+.mp-game .players-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mp-game .card{padding:12px}.mp-game .card .avatar{margin:5px auto 7px;width:60px;height:60px}
+.mp-game .card h3{font-size:12px;line-height:1.35;overflow-wrap:anywhere}.mp-game .card p{font-size:11px;margin-top:6px}
+.mp-game .card .mp-state{font-size:10px;color:#eac9fd;margin-top:9px}.mp-game .card.eliminated{opacity:.5;filter:grayscale(.8)}
+.mp-live-title{font-size:18px}.mp-live-tag{font-size:10px;color:#fc9bdc;margin:12px 0;font-weight:800;letter-spacing:.7px}
+.mp-events{list-style:none;display:grid;gap:12px;padding:0}.mp-events li{border-radius:13px;border:1px solid rgba(255,255,255,.12);background:rgba(23,20,54,.7);padding:12px;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.mp-events small{display:block;margin-bottom:5px;color:#bbaddb;font-size:10px}
+.mp-game .box{margin-bottom:14px}.mp-game .box p{font-size:13px;line-height:1.55;margin-top:7px}
+.mp-finish-btn{display:block;width:100%;margin:16px 0}.mp-wait{border-color:rgba(83,215,186,.5)}
+.mp-controls .i4-selecao{margin-top:16px}.mp-controls .i4-selecao button{margin-top:14px}
+.mp-choice{margin:8px 0;padding:9px;border:1px solid rgba(255,255,255,.1);border-radius:12px;display:block}
+.mp-choice input{width:auto;min-height:0;margin-right:7px}
+.mp-card-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.mp-card-list li{padding:10px;background:rgba(8,8,24,.38);border-radius:10px;border:1px solid rgba(255,255,255,.1);font-size:13px}
+.mp-responses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0 18px}
+.mp-responses button{border:1px solid rgba(255,255,255,.24);background:rgba(104,69,155,.6);color:#fff;border-radius:10px;min-height:45px;font-size:12px;padding:7px}
+.mp-request{padding:12px;border-bottom:1px solid rgba(255,255,255,.16);font-size:13px;line-height:1.6}
+.mp-request:last-child{border:0}.mp-request strong{display:block}
+.mp-sent-item{padding:8px 0;border-top:1px solid rgba(255,255,255,.1);font-size:12px}
+.mp-sent-item span{color:#d4b9ec}.mp-hidden-desktop{display:none}
+@media(max-width:1200px){.mp-game .container{grid-template-columns:minmax(225px,270px) minmax(0,1fr) minmax(200px,260px)}}
+@media(max-width:768px){
+.mp-header-link{display:none}.mp-lobby-wrap{margin:14px auto;padding-bottom:110px}.mp-lobby-card{padding:15px!important}
+.mp-game .container{display:flex!important;flex-direction:column}.mp-game .mobile-current-hero{display:block}
+.mp-game .left-col,.mp-game .right{width:100%}.mp-game .center{order:1}.mp-game .left-col{order:2}.mp-game .right{order:3}
+.mp-game .mobile-panel-toggle{display:flex}.mp-game .mobile-header-menu{display:grid}
+.mp-game .players-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+.mp-game .card{padding:8px 5px!important}.mp-game .card .avatar{width:43px;height:43px}.mp-game .card h3{font-size:10px}.mp-game .card p{display:none}.mp-game .card .mp-state{font-size:9px}
+.mp-game .mobile-bottom-nav{display:grid;grid-template-columns:repeat(6,1fr)}
+.mp-game .right.mobile-collapsed>*:not(.mobile-panel-toggle){display:none!important}
+.mp-game .left-col.mobile-collapsed>*:not(.mobile-panel-toggle){display:none!important}
+.mp-game .mp-phase-stats{font-size:12px}.mp-game .mp-responses{grid-template-columns:1fr}
+}
+@media(max-width:360px){.mp-game .players-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.mp-tabs .mp-tab{font-size:11px}}
+/* A fase atual também precisa ser visível no desktop. */
+.mp-game .mobile-current-hero { display:block; margin-bottom:15px; }
+@media (min-width:769px) { .mp-game .desktop-panel-title { display:none; } }
+.mp-app .mp-choice input[type="checkbox"]{display:inline-block;width:18px!important;min-height:0!important;height:18px;margin-right:10px;vertical-align:middle;accent-color:#e34cbd}
