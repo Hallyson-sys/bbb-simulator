@@ -78,6 +78,7 @@ require_once __DIR__ . '/includes/logica/loja_publico.php';
 
 require_once __DIR__ . '/includes/logica/interacoes.php';
 require_once __DIR__ . '/includes/logica/interacoes_4.php';
+require_once __DIR__ . '/includes/logica/romance_3.php';
 require_once __DIR__ . '/includes/logica/iniciativa_npc_2.php';
 
 require_once __DIR__ . '/includes/logica/eventos_convivencia_extra.php';
@@ -598,6 +599,7 @@ $_SESSION['jogadores']=$jogadores;
 /* Evita que saves de outra semana reabram conversas antigas. */
 i4SincronizarCena((string)($_SESSION['fase_semana']??$fase));
 in2Sincronizar($jogadores, $meuNome, (string)($_SESSION['fase_semana']??$fase));
+rom3Sincronizar($jogadores, $meuNome, (string)($_SESSION['fase_semana']??$fase));
 /* Durante uma conversa interativa, nenhum outro POST altera o jogo. */
 if (($_SERVER['REQUEST_METHOD']??'GET')==='POST' && (!empty($_SESSION['i4_pendente']) || !empty($_SESSION['i4_resultado']))
     && !isset($_POST['i4_responder']) && !isset($_POST['i4_continuar'])) {
@@ -610,6 +612,7 @@ if (($_SERVER['REQUEST_METHOD']??'GET')==='POST' && (!empty($_SESSION['i4_penden
 
 
 
+require_once __DIR__ . '/includes/actions/romance_3.php';
 require_once __DIR__ . '/includes/actions/iniciativa_npc_2.php';
 require_once __DIR__ . '/includes/actions/convite_npc.php';
 require_once __DIR__ . '/includes/actions/espectador.php';
@@ -618,11 +621,13 @@ require_once __DIR__ . '/includes/actions/dilemas_jogo.php';
 require_once __DIR__ . '/includes/actions/eventos_convivencia.php';
 
 // Dilemas são escolhas separadas dos eventos especiais, no máximo uma por semana.
-if (empty($_SESSION['in2_convite']) && empty($_SESSION['in2_conversa']) && empty($_SESSION['in2_resultado']))
+if (empty($_SESSION['in2_convite']) && empty($_SESSION['in2_conversa']) && empty($_SESSION['in2_resultado'])
+    && empty($_SESSION['rom3_pendente']) && empty($_SESSION['rom3_confirmacao']) && empty($_SESSION['rom3_resultado']))
     djTentarGerar($jogadores, $meuNome, $fase);
 
 // Uma cena especial pode surgir ao entrar em Interações ou Festa.
-if (empty($_SESSION['in2_convite']) && empty($_SESSION['in2_conversa']) && empty($_SESSION['in2_resultado']))
+if (empty($_SESSION['in2_convite']) && empty($_SESSION['in2_conversa']) && empty($_SESSION['in2_resultado'])
+    && empty($_SESSION['rom3_pendente']) && empty($_SESSION['rom3_confirmacao']) && empty($_SESSION['rom3_resultado']))
     ecTalvezGerar($jogadores, $meuNome, $fase);
 
 require_once __DIR__ . '/includes/actions/festa.php';
@@ -698,6 +703,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
     rc2ProcessarMomento($jogadores, $meuNome, (string)$fase, 'entrada_da_fase');
     // Relações 4.0: evolução autônoma, uma tentativa por fase e semana.
     r4ProcessarFase($jogadores, $meuNome, (string)$fase);
+    rom3ProcessarNPCs($jogadores,$meuNome,(string)$fase);
     // Iniciativa NPC: uma tentativa idempotente por fase, convites opcionais.
     in2Sincronizar($jogadores, $meuNome, (string)$fase);
     in2TalvezGerar($jogadores, $meuNome, (string)$fase);
