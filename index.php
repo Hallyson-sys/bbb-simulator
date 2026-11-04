@@ -38,9 +38,21 @@
 
         <!-- Modo online separado: não compartilha estado com a temporada solo. -->
         <section class="multi-entry-index" aria-label="Multiplayer online">
-            <div class="multi-entry-label">🌐 JOGUE COM AMIGOS • BETA</div>
-            <a href="multiplayer.php" class="multi-entry-button">MULTIPLAYER ONLINE <span aria-hidden="true">→</span></a>
-            <p>Crie salas privadas de 10, 15 ou 20 pessoas. O modo solo continua intacto.</p>
+            <div class="multi-entry-kicker">🌐 NOVO MODO • JOGUE COM AMIGOS</div>
+            <div class="multi-entry-headline">
+                <div>
+                    <small>MULTIPLAYER ONLINE</small>
+                    <h2>O BBB Simulator com jogadores reais</h2>
+                </div>
+                <span class="multi-entry-beta">BETA</span>
+            </div>
+            <p class="multi-entry-description">Entre em salas privadas por código e viva a mesma estética do BBB Simulator com seus amigos decidindo o rumo da semana. O modo solo continua intacto.</p>
+            <div class="multi-entry-features">
+                <span>🔐 Salas privadas</span>
+                <span>👥 10, 15 ou 20 pessoas</span>
+                <span>📱 Feito para celular</span>
+            </div>
+            <a href="multiplayer.php" class="multi-entry-button">ABRIR MODO ONLINE <span aria-hidden="true">→</span></a>
         </section>
 
         <!-- =================================================
