@@ -31,6 +31,8 @@ if($action==='create'){
         'imune'=>null,'leaderPick'=>null,'nominees'=>[],'lastEliminated'=>null,
         'paused'=>false,'pauseRemaining'=>0,'privateLogs'=>[],'romanceMoments'=>[],'voteAgreements'=>[],'protectionPacts'=>[],
         'prova'=>null,'lastProof'=>null,'monstro'=>[],'monsterTasks'=>[],'debates'=>[],'lastQueridometro'=>null,
+        'paredaoPlano'=>null,'tieState'=>null,'voteSummary'=>null,'bateVolta'=>null,'lastBateVolta'=>null,
+        'eliminacaoSimulada'=>null,'lastEliminacao'=>null,
         'createdAt'=>time(),'updatedAt'=>time(),
     ];
     for($i=0;$i<12;$i++){
@@ -332,18 +334,41 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
     }
     if($phase==='paredao'){
         if($action==='indicar'){
-            if($myId!==$room['leader'])mp_error('Só o Líder pode indicar.',403);
+            if($myId!==($room['leader']??null))mp_error('Somente o Líder indica.',403);
+            if($room['leaderPick'])mp_error('A indicação já foi confirmada.',409);
             $id=mp_input_id($room,$data['id']??null);
-            if($id===$room['leader']||$id===$room['imune'])mp_error('Não é possível indicar este participante.');
-            $room['leaderPick']=$id;
-            mp_log($room,'👑 O Líder indicou '.mp_find_player($room,$id)['name'].' ao Paredão.');
+            if(in_array($id,[$room['leader'],$room['imune']],true))mp_error('Este participante não pode ser indicado.',400);
+            $room['leaderPick']=$id;$me['done']=true;
+            mp_log($room,'👑 O Líder indicou '.(mp_find_player($room,$id)['name']??'um participante').' ao Paredão. Agora é a vez do Confessionário.','paredao',['title'=>'👑 Indicação do Líder']);
             return true;
         }
         if($action==='vote'){
+            if($myId===($room['leader']??null))mp_error('O Líder já indicou e não vota no Confessionário.',403);
+            if(!$room['leaderPick'])mp_error('Aguarde o Líder anunciar sua indicação.',409);
             $id=mp_input_id($room,$data['id']??null);
-            if($id===$myId||$id===$room['imune'])mp_error('Este voto não é permitido.');
-            $me['choice']=['vote'=>$id];$me['done']=true;return true;
+            $eligible=array_column(mp8_candidatos_voto($room,$myId),'id');
+            if(!in_array($id,$eligible,true))mp_error('Você não pode votar em si, no Líder, no indicado do Líder ou no imune.',400);
+            $me['choice']=['vote'=>$id];$me['done']=true;
+            mp_log($room,'🗳️ '.$me['name'].' entrou no Confessionário e confirmou seu voto secreto.','paredao',['title'=>'🗳️ Voto registrado']);
+            return true;
         }
+    }
+    if($phase==='desempate'&&$action==='desempatar'){
+        if($myId!==($room['leader']??null))mp_error('Apenas o Líder resolve o empate.',403);
+        if($me['done'])mp_error('O Líder já decidiu.',409);
+        $id=$data['id']??null;
+        if(!is_string($id))mp_error('Escolha um participante empatado.',400);
+        mp8_desempatar($room,$id);
+        return true;
+    }
+    if($phase==='bate_volta'&&$action==='bate_volta'){
+        if(!in_array($myId,$room['bateVolta']['participants']??[],true))mp_error('Você não disputa o Bate e Volta.',403);
+        $choice=$data['choice']??null;
+        if(!is_int($choice)||$choice<1||$choice>6)mp_error('Escolha um número de 1 a 6.',400);
+        if(isset($room['bateVolta']['answers'][$myId]))mp_error('Sua escolha já foi registrada.',409);
+        $room['bateVolta']['answers'][$myId]=$choice;
+        $me['choice']=['bateVolta'=>$choice];$me['done']=true;
+        return true;
     }
     mp_error('Ação indisponível nesta fase.',409);
 });

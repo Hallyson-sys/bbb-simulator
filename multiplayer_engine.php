@@ -3,6 +3,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/multiplayer_provas.php';
 require_once __DIR__.'/multiplayer_convivencia.php';
+require_once __DIR__.'/multiplayer_paredao.php';
 function mp_error(string $message, int $status=400): never {
     http_response_code($status);
     echo json_encode(['ok'=>false,'erro'=>$message],JSON_UNESCAPED_UNICODE);
@@ -162,7 +163,9 @@ function mp_phases(): array {
         'festa'=>['🎉 Festa','Três ações especiais: romance, VT, provocar, dançar, sondar ou negociar votos.'],
         'discordia'=>['🔥 Jogo da Discórdia','Apontamento, argumento, resposta e tréplica entre jogadores reais.'],
         'paredao'=>['🔥 Formação do Paredão','O Líder indica e a casa vota em segredo.'],
-        'eliminacao'=>['🚪 Eliminação','Resultado experimental do Paredão; veja quem sai.'],
+        'desempate'=>['⚖️ Desempate do Líder','O Líder decide entre os participantes empatados na votação.'],
+        'bate_volta'=>['🚗 Prova Bate e Volta','Indicados elegíveis disputam uma chance de escapar.'],
+        'eliminacao'=>['🚪 Noite de Eliminação','Resultado da votação simulada do público com suspense e porcentagens.'],
         'final'=>['🏁 Final beta','Encerramento do protótipo multiplayer.'],
     ];
 }
@@ -243,6 +246,7 @@ function mp_self(array $room,string $token): int {
 function mp_phase_time(array $room,string $phase): int {
     if(in_array($phase,['interacoes_1','interacoes_2','festa'],true))return $room['duration'];
     if($phase==='eliminacao')return 60;
+    if(in_array($phase,['desempate','bate_volta'],true))return 90;
     if(in_array($phase,['lider','anjo'],true))return max(120,min(240,(int)$room['duration']));
     return max(60,min(150,$room['duration']));
 }
@@ -253,6 +257,9 @@ function mp_set_phase(array &$room,string $phase): void {
     foreach($room['players'] as &$p){$p['done']=false;$p['actions']=[];$p['choice']=null;}
     unset($p);
     if($phase==='monstro')$room['monsterTasks']=[];
+    if($phase==='paredao')mp8_iniciar_paredao($room);
+    if($phase==='bate_volta')mp8_criar_bate_volta($room);
+    if($phase==='eliminacao')mp8_preparar_eliminacao($room);
     if($phase==='queridometro'){
         foreach($room['players'] as &$p)$p['queridometro']=[];
         unset($p);
@@ -265,6 +272,15 @@ function mp_set_phase(array &$room,string $phase): void {
     }
     if($phase==='anjo'){
         foreach($room['players'] as &$p)if($p['id']===($room['leader']??null))$p['done']=true;
+        unset($p);
+    }
+    if($phase==='desempate'){
+        foreach($room['players'] as &$p)$p['done']=$p['id']!==($room['leader']??null);
+        unset($p);
+    }
+    if($phase==='bate_volta'){
+        $eligible=$room['bateVolta']['participants']??[];
+        foreach($room['players'] as &$p)$p['done']=!in_array($p['id'],$eligible,true);
         unset($p);
     }
     if($phase==='eliminacao'||$phase==='final'){
@@ -304,50 +320,15 @@ function mp_finish_phase(array &$room): void {
     if($phase==='imunidade'){
         if($room['imune'])mp_log($room,'🛡️ '.(mp_find_player($room,$room['imune'])['name']??'Alguém').' recebeu a imunidade.');
     }
-    if($phase==='paredao'){
-        $eligible=array_values(array_filter(mp_active($room),static fn($p)=>$p['id']!==$room['imune']));
-        $votes=[];
-        foreach($room['players'] as $p)if(!$p['eliminated']&&isset($p['choice']['vote'])){
-            $id=$p['choice']['vote'];$votes[$id]=($votes[$id]??0)+1;
-        }
-        arsort($votes);
-        $leaderPick=$room['leaderPick'];
-        $nominees=[];
-        if($leaderPick && mp_find_player($room,$leaderPick) && $leaderPick!==$room['imune'])$nominees[]=$leaderPick;
-        foreach(array_keys($votes) as $id)if(!in_array($id,$nominees,true) && mp_find_player($room,$id) && $id!==$room['imune']){$nominees[]=$id;break;}
-        foreach($eligible as $p)if(count($nominees)<2&&!in_array($p['id'],$nominees,true))$nominees[]=$p['id'];
-        foreach($room['voteAgreements']??[] as &$agree){
-            if($agree['week']!==$room['week']||$agree['status']!=='firmado')continue;
-            $votesOf=[];foreach($room['players'] as $p)if(in_array($p['id'],[$agree['a'],$agree['b']],true))$votesOf[$p['id']]=$p['choice']['vote']??null;
-            $allKept=count($votesOf)===2 && $votesOf[$agree['a']]===$agree['target'] && $votesOf[$agree['b']]===$agree['target'];
-            $agree['status']=$allKept?'cumprido':'descumprido';
-            mp_private_log($room,[$agree['a'],$agree['b']],$allKept?'🤝 O acordo de voto desta semana foi cumprido.':'⚠️ O acordo de voto não foi cumprido por todos. O confessionário continua secreto.');
-        }unset($agree);
-        $room['nominees']=$nominees;
-        $names=array_map(static fn($id)=>mp_find_player($room,$id)['name']??'?', $nominees);
-        mp_log($room,'🔥 Paredão formado: '.implode(' × ',$names).'. Votos do confessionário permaneceram secretos.');
-    }
-    if($phase==='eliminacao'){
-        // Resultado experimental: pontuação de convivência, não simula votação pública real.
-        $names=[];$scores=[];
-        foreach($room['nominees'] as $id){
-            $p=mp_find_player($room,$id);if(!$p)continue;
-            $score=50;
-            foreach($room['relations'] as $key=>$points) if(in_array($id,explode(':',$key),true))$score+=(int)$points;
-            $scores[$id]=$score;
-        }
-        if($scores){asort($scores,SORT_NUMERIC);$loser=array_key_first($scores);
-            foreach($room['players'] as &$p)if($p['id']===$loser)$p['eliminated']=true;
-            unset($p);
-            $room['lastEliminated']=$loser;
-            mp_log($room,'🚪 '.(mp_find_player($room,$loser,false)['name']??'Participante').' saiu da casa (resultado experimental por convivência).');
-        }
-    }
-    $sequence=['interacoes_1','lider','vip_xepa','anjo','monstro','imunidade','queridometro','interacoes_2','festa','discordia','paredao','eliminacao'];
+    if($phase==='paredao'){mp8_apurar_votos($room);return;}
+    if($phase==='desempate'){mp8_desempatar($room,null);return;}
+    if($phase==='bate_volta'){mp8_fechar_bate_volta($room);return;}
+    if($phase==='eliminacao')mp8_fechar_eliminacao($room);
+    $sequence=['interacoes_1','lider','vip_xepa','anjo','monstro','imunidade','queridometro','interacoes_2','festa','discordia','paredao','desempate','bate_volta','eliminacao'];
     $position=array_search($phase,$sequence,true);
     if($phase==='final')return;
     if($phase==='eliminacao'){
-        if(count(mp_active($room))<=3 || $room['week']>=8){mp_set_phase($room,'final');return;}
+        if(count(mp_active($room))<=3){mp_set_phase($room,'final');return;}
         $room['week']++;
         $room['leader']=null;$room['angel']=null;$room['vip']=[];$room['imune']=null;$room['monstro']=[];$room['monsterTasks']=[];
         $room['leaderPick']=null;$room['nominees']=[];$room['lastEliminated']=null;
@@ -430,6 +411,7 @@ function mp_public(array $room,int $self): array {
         'discordiaTema'=>$room['discordiaTema']??mp7_discordia_tema($room),
         'discordiaArgumentos'=>mp7_argumentos(),'discordiaRespostas'=>mp7_respostas(),'discordiaTreplicas'=>mp7_treplicas(),
         'debates'=>array_values($room['debates']??[]),
+        'paredao'=>mp8_publico($room,$me['id']),
     ];
     return $state;
 }
