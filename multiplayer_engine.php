@@ -70,6 +70,66 @@ function mp_catalog(): array {
         'alianca'=>['🤝 Propor aliança','aliancas',['conversa'=>'🤝 Convidar para aliança']],
     ];
 }
+/** Cada tipo de interação oferece respostas coerentes com a situação. */
+function mp_response_options(string $type): array {
+    $options=match($type) {
+        'alianca'=>[['aceitar','🤝 Aceitar a aliança'],['ponderar','💭 Pedir tempo'],['recusar','🚫 Recusar o convite']],
+        'i4_acordo'=>[['aceitar','🎯 Combinar o voto'],['contrapropor','🔄 Sugerir outro alvo'],['recusar','🚫 Não fazer acordo']],
+        'i4_protecao'=>[['aceitar','🛡️ Prometer proteção'],['ponderar','💭 Não prometer nada'],['recusar','🚫 Recusar']],
+        'i4_romance'=>[['retribuir','💗 Corresponder'],['amistoso','🌷 Manter na amizade'],['recusar','🧊 Não demonstrar interesse']],
+        'i4_satisfacao','discutir'=>[['dialogar','🕊️ Conversar e esclarecer'],['rebater','🔥 Rebater a crítica'],['recusar','🚶 Encerrar o assunto']],
+        'i4_reconciliar'=>[['aceitar','🤍 Fazer as pazes'],['ponderar','💭 Ainda tenho dúvidas'],['recusar','🧊 Não reconciliar']],
+        'i4_atividade'=>[['aceitar','✨ Participar'],['ponderar','⏳ Combinar depois'],['recusar','🚫 Não participar']],
+        'i4_sondar','i4_informacao'=>[['conversar','🗣️ Compartilhar impressões'],['ponderar','🤐 Falar com cautela'],['recusar','🔒 Não revelar']],
+        'i4_pessoal'=>[['conversar','💜 Se abrir também'],['ponderar','👂 Apenas ouvir'],['recusar','🧊 Não conversar agora']],
+        default=>[['aceitar','💬 Entrar na conversa'],['ponderar','🙂 Responder com cautela'],['recusar','🚫 Recusar']],
+    };
+    return array_map(static fn($x)=>['value'=>$x[0],'label'=>$x[1]],$options);
+}
+function mp_small_message(mixed $value,int $limit=160): string {
+    if ($value===null || $value==='') return '';
+    if(!is_string($value)||!preg_match('//u',$value))mp_error('Mensagem inválida.');
+    $value=trim((string)preg_replace('/\s+/u',' ',$value));
+    if(preg_match('/[\x00-\x1F\x7F]/u',$value) || preg_match_all('/./us',$value)>$limit)mp_error('A mensagem deve ter até '.$limit.' caracteres.');
+    return $value;
+}
+function mp_private_log(array &$room,array $recipients,string $text): void {
+    $room['privateLogs']??=[];
+    $room['privateLogs'][]=['to'=>array_values(array_unique($recipients)),'text'=>$text,'at'=>time(),'week'=>$room['week'],'id'=>bin2hex(random_bytes(6))];
+    if(count($room['privateLogs'])>100)$room['privateLogs']=array_slice($room['privateLogs'],-100);
+}
+function mp_apply_response(array &$room,array $req,string $answer,string $reply): void {
+    $from=mp_find_player($room,$req['from'],false)['name']??'Participante';
+    $to=mp_find_player($room,$req['to'],false)['name']??'Participante';
+    $key=mp_relation_key($req['from'],$req['to']);
+    $delta=match($answer){'aceitar','retribuir','dialogar','conversar'=>7,'amistoso','ponderar','contrapropor'=>2,'rebater'=>-6,'recusar'=>-4,default=>0};
+    if(in_array($req['type'],['i4_satisfacao','discutir'],true) && $answer==='rebater')$delta=-9;
+    $room['relations'][$key]=max(-100,min(100,(int)($room['relations'][$key]??0)+$delta));
+    if($req['type']==='alianca' && $answer==='aceitar'){
+        $room['alliances'][$key]=true;
+        mp_private_log($room,[$req['from'],$req['to']],"🤝 $from e $to formaram uma aliança.");
+    }
+    if($req['type']==='i4_romance' && $answer==='retribuir'){
+        $room['romanceMoments'][$key]=min(20,((int)($room['romanceMoments'][$key]??0))+1);
+        mp_private_log($room,[$req['from'],$req['to']],"💗 O interesse entre $from e $to foi correspondido. Isso não significa namoro oficial.");
+    }
+    if($req['type']==='i4_acordo'){
+        $target=$req['proposedTarget']??null;
+        $targetName=$target?(mp_find_player($room,$target,false)['name']??'um participante'):null;
+        if($answer==='contrapropor'){
+            mp_private_log($room,[$req['from'],$req['to']],"🔄 $to pediu para rever a proposta de voto de $from. Nenhum acordo foi fechado.");
+        }elseif($answer==='aceitar' && $targetName){
+            $room['voteAgreements']??=[];
+            $room['voteAgreements'][]=['week'=>$room['week'],'a'=>$req['from'],'b'=>$req['to'],'target'=>$target,'status'=>'firmado'];
+            mp_private_log($room,[$req['from'],$req['to']],"🎯 $from e $to combinaram votar em $targetName nesta semana. A decisão no confessionário permanece individual.");
+        }
+    }
+    if($req['type']==='i4_protecao' && $answer==='aceitar'){
+        $room['protectionPacts'][$key]=$room['week'];
+    }
+    mp_story_log($room,$req,$from,$to,$answer);
+    if($reply!=='')mp_private_log($room,[$req['from'],$req['to']],"✉️ Resposta particular de $to para $from: “$reply”");
+}
 function mp_phases(): array {
     return [
         'interacoes_1'=>['💬 Interações','Todos podem fazer até três interações, como no modo solo.'],
@@ -123,14 +183,26 @@ function mp_story_log(array &$room,array $request,string $from,string $to,string
         'alianca'=>'O assunto foi parceria de jogo; a aproximação poderá influenciar as próximas decisões.',
         default=>'A conversa movimentou a convivência e poderá influenciar a relação dos dois.'
     };
+    $positive=in_array($answer,['aceitar','retribuir','conversar','dialogar'],true);
     if ($answer==='recusar') {
-        $title='🧊 Conversa interrompida';
-        $story="$from procurou $to $placePhrase para falar sobre $topicPhrase, mas o convite foi recusado. O encontro não aconteceu e a tentativa ficou registrada no Ao Vivo.";
+        $title='🧊 Convite recusado';
+        $story="$from procurou $to $placePhrase para falar sobre $topicPhrase, mas $to preferiu não participar. A tentativa movimentou os bastidores da casa.";
+    } elseif ($answer==='rebater') {
+        $title='🔥 Clima de tensão';
+        $story="Em um encontro $placePhrase, $from abordou $to sobre $topicPhrase. $to rebateu o assunto e os dois saíram da conversa sem chegar a um entendimento.";
+    } elseif ($answer==='contrapropor') {
+        $title='🎯 Estratégia em negociação';
+        $story="$from e $to se encontraram $placePhrase para discutir $topicPhrase. $to propôs rever a ideia original; nenhum compromisso foi firmado naquele momento.";
+    } elseif ($answer==='amistoso') {
+        $title='💜 Conversa sincera';
+        $story="$from e $to conversaram $placePhrase sobre $topicPhrase. $to preferiu manter a aproximação na amizade, sem criar expectativas românticas.";
+    } elseif ($answer==='ponderar') {
+        $title='👀 Assunto em aberto';
+        $story="$from e $to se encontraram $placePhrase para falar sobre $topicPhrase. $to ouviu a proposta com cautela, mas não prometeu nada naquele momento.";
     } else {
-        $title=$answer==='aceitar'?'💬 Conversa na casa':'🎥 Papo reservado';
+        $title=$positive?'💬 Conversa na casa':'🎥 Papo reservado';
         $approach=match($request['approach']??'') {'cautelosa'=>'de maneira cautelosa','leve'=>'em um clima descontraído',default=>'com sinceridade'};
-        $response=$answer==='aceitar'?'aceitou o convite':'preferiu conversar com cautela';
-        $story="Durante um encontro $placePhrase, $from e $to conversaram sobre $topicPhrase. $to $response; o papo começou $approach. $context";
+        $story="Durante um encontro $placePhrase, $from e $to conversaram sobre $topicPhrase. $to participou da conversa, que começou $approach. $context";
     }
     mp_log($room,$story,'interacao',['title'=>$title,'place'=>$place,'topic'=>$topicClean]);
 }
@@ -210,6 +282,13 @@ function mp_finish_phase(array &$room): void {
         if($leaderPick && mp_find_player($room,$leaderPick) && $leaderPick!==$room['imune'])$nominees[]=$leaderPick;
         foreach(array_keys($votes) as $id)if(!in_array($id,$nominees,true) && mp_find_player($room,$id) && $id!==$room['imune']){$nominees[]=$id;break;}
         foreach($eligible as $p)if(count($nominees)<2&&!in_array($p['id'],$nominees,true))$nominees[]=$p['id'];
+        foreach($room['voteAgreements']??[] as &$agree){
+            if($agree['week']!==$room['week']||$agree['status']!=='firmado')continue;
+            $votesOf=[];foreach($room['players'] as $p)if(in_array($p['id'],[$agree['a'],$agree['b']],true))$votesOf[$p['id']]=$p['choice']['vote']??null;
+            $allKept=count($votesOf)===2 && $votesOf[$agree['a']]===$agree['target'] && $votesOf[$agree['b']]===$agree['target'];
+            $agree['status']=$allKept?'cumprido':'descumprido';
+            mp_private_log($room,[$agree['a'],$agree['b']],$allKept?'🤝 O acordo de voto desta semana foi cumprido.':'⚠️ O acordo de voto não foi cumprido por todos. O confessionário continua secreto.');
+        }unset($agree);
         $room['nominees']=$nominees;
         $names=array_map(static fn($id)=>mp_find_player($room,$id)['name']??'?', $nominees);
         mp_log($room,'🔥 Paredão formado: '.implode(' × ',$names).'. Votos do confessionário permaneceram secretos.');
@@ -244,6 +323,7 @@ function mp_finish_phase(array &$room): void {
 }
 function mp_tick(array &$room): bool {
     if(in_array($room['phase'],['lobby','final'],true))return false;
+    if(!empty($room['paused']))return false;
     $force=time()>=$room['endsAt'];
     $allDone=true;
     foreach(mp_active($room) as $p)if(!$p['done'])$allDone=false;
@@ -258,6 +338,25 @@ function mp_public(array $room,int $self): array {
     $me=$room['players'][$self];
     $pending=array_values(array_filter($room['pending'],static fn($q)=>$q['to']===$me['id']&&$q['status']==='pendente'));
     $outgoing=array_values(array_filter($room['pending'],static fn($q)=>$q['from']===$me['id']));
+    foreach($pending as &$inv){
+        $inv['options']=!empty($inv['counterDepth'])?[
+            ['value'=>'aceitar','label'=>'🤝 Aceitar o novo alvo'],
+            ['value'=>'recusar','label'=>'🚫 Recusar a contraproposta']
+        ]:mp_response_options((string)$inv['type']);
+        if($inv['type']==='i4_acordo' && empty($inv['counterDepth'])){
+            $available=false;
+            foreach(mp_active($room) as $p)if(!in_array($p['id'],[$inv['from'],$inv['to'],$inv['proposedTarget']??null],true)){$available=true;break;}
+            if(!$available)$inv['options']=array_values(array_filter($inv['options'],static fn($o)=>$o['value']!=='contrapropor'));
+        }
+    }
+    unset($inv);
+    $contacts=[];foreach($room['players'] as $p){if($p['id']===$me['id'])continue;
+        $k=mp_relation_key($p['id'],$me['id']);
+        if(!empty($room['alliances'][$k])||!empty($room['romanceMoments'][$k])||isset($room['protectionPacts'][$k]))
+            $contacts[]=['id'=>$p['id'],'name'=>$p['name'],'alliance'=>!empty($room['alliances'][$k]),'romanceMoments'=>(int)($room['romanceMoments'][$k]??0),'protection'=>isset($room['protectionPacts'][$k])];
+    }
+    $agreements=array_values(array_filter($room['voteAgreements']??[],static fn($p)=>$p['a']===$me['id']||$p['b']===$me['id']));
+    $privateLogs=array_values(array_filter($room['privateLogs']??[],static fn($p)=>in_array($me['id'],$p['to'],true))); 
     $players=[];
     foreach($room['players'] as $p)$players[]=[
         'id'=>$p['id'],'name'=>$p['name'],'profile'=>$p['profile']??[],'ready'=>$p['ready'],'done'=>$p['done'],
@@ -274,6 +373,8 @@ function mp_public(array $room,int $self): array {
         'myChoice'=>$me['choice'],'nominees'=>$room['nominees'],'leaderId'=>$room['leader'],
         'angelId'=>$room['angel'],'vipIds'=>$room['vip'],'immuneId'=>$room['imune'],
         'leaderPick'=>$room['leaderPick'],'lastEliminated'=>$room['lastEliminated'],
+        'paused'=>(bool)($room['paused']??false),'pauseRemaining'=>(int)($room['pauseRemaining']??0),
+        'contacts'=>$contacts,'agreements'=>$agreements,'privateLogs'=>array_slice($privateLogs,-20),
     ];
     return $state;
 }

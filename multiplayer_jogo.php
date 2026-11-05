@@ -3,8 +3,9 @@
 <meta name="theme-color" content="#09091f"><title>BBB Simulator • Temporada Online</title>
 <link rel="stylesheet" href="assets/css/jogo.css"><link rel="stylesheet" href="assets/css/header.css">
 <link rel="stylesheet" href="assets/css/interacoes_4.css?v=1"><link rel="stylesheet" href="assets/css/responsivo.css?v=34">
-<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=4">
-<script src="assets/js/multiplayer_jogo.js?v=4" defer></script>
+<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=5">
+<script src="assets/js/multiplayer_backup.js?v=5" defer></script>
+<script src="assets/js/multiplayer_jogo.js?v=5" defer></script>
 </head><body class="mp-app mp-game">
 <header class="top-header"><div class="header-glow"></div><div class="header-content">
 <div class="logo-area"><div class="bbb-icon">🎥</div><div class="brand-text"><h1>BBB Simulator</h1><div class="sub-info"><span id="headWeek">🔥 Semana 1</span><span class="dot"></span><span id="headCount">👥 Online</span></div></div></div>
@@ -20,6 +21,20 @@
 <main class="center mobile-panel mobile-panel-current" id="mobileJogo" data-mobile-panel="jogo">
 <div class="mobile-current-hero"><span class="mobile-current-kicker">DINÂMICA ATUAL • MULTIPLAYER</span><h2 id="phaseTitle">💬 Interações</h2><p id="phaseSubtitle">Semana 1 • Todos jogam simultaneamente</p></div>
 <h2 class="desktop-panel-title">🎮 Controle da Semana</h2>
+<div class="mp-pause-board" id="pauseBoard" hidden>
+ <div class="mp-pause-title">⏸️ Temporada pausada</div>
+ <p>O anfitrião congelou o cronômetro. Você pode acompanhar a casa, mas novas ações ficam bloqueadas até a retomada.</p>
+</div>
+<div class="mp-host-controls" id="hostPauseControls" hidden>
+ <div class="mp-host-label">👑 CONTROLES DO ANFITRIÃO</div>
+ <div class="mp-host-actions"><button type="button" id="pauseGame" class="btn mp-secondary">⏸ Pausar temporada</button><button type="button" id="resumeGame" class="btn mp-main-btn" hidden>▶ Retomar temporada</button></div>
+ <div id="backupControls" class="mp-backup-controls" hidden>
+  <label for="backupPassword">Senha para proteger o backup</label>
+  <input id="backupPassword" type="password" minlength="8" placeholder="Crie uma senha (mínimo 8 caracteres)" autocomplete="new-password">
+  <button type="button" id="downloadBackup" class="btn mp-secondary">💾 Baixar backup protegido</button>
+  <small>Baixe antes de encerrar. No Render gratuito, pausar no servidor não garante que a sala sobreviva ao reinício. Guarde o arquivo e a senha em segurança.</small>
+ </div>
+</div>
 <div class="box mp-phase-info"><div class="mp-phase-stats"><span id="weekLabel">🔥 Semana 1</span><span id="phaseReady">0/0 concluíram</span></div><div class="mp-timer"><span>⏳ Tempo restante</span><strong id="timer">03:00</strong></div><div class="mp-progress"><div id="phaseProgress"></div></div></div>
 <div class="box mp-timeline-box"><h3>📖 Etapas da semana</h3><div id="timeline" class="mp-timeline"></div></div>
 <div id="pendingSection" class="i4-dialogo" hidden><div class="i4-kicker">● REC • CONVITES PARA VOCÊ</div><h3>📩 Alguém quer conversar</h3><div id="pendingList"></div></div>
@@ -27,10 +42,17 @@
 <div class="i4-categorias" id="categories"><div class="i4-grupos" id="categoryGroups"></div></div>
 <div class="i4-selecao" id="interactionForm" hidden><div class="i4-kicker">CONVERSAS VIVAS • ESCOLHA COMO AGIR</div><h3 id="chosenTitle">Conversa</h3><label for="targetPlayer">Com quem você quer interagir?</label><select id="targetPlayer"></select>
 <label for="actionSubject">Qual assunto ou atividade?</label><select id="actionSubject"></select>
+<div id="voteAgreementField" hidden><label for="voteTarget">Alvo do acordo de voto (opcional)</label><select id="voteTarget"><option value="">Sem alvo definido</option></select><small>Apenas vocês dois saberão o alvo do acordo. A promessa não substitui o voto secreto no confessionário.</small></div>
+<label for="actionMessage">Mensagem particular (opcional)</label><textarea id="actionMessage" maxlength="160" rows="2" placeholder="Escreva uma mensagem curta para esta pessoa..."></textarea>
 <label for="actionApproach">Como você vai abordar?</label><select id="actionApproach"><option value="sincera">❤️ Sincera</option><option value="cautelosa">🧠 Cautelosa</option><option value="leve">🙂 Leve e descontraída</option></select>
 <button id="interactButton" type="button" class="btn mp-main-btn">💬 Enviar convite</button><button id="cancelAction" type="button" class="btn mp-secondary">← Voltar às categorias</button><small>O outro jogador decide como responder no próprio aparelho. Convites não são aceitos automaticamente.</small></div>
 <button class="btn mp-secondary mp-finish-btn" id="finishButton" type="button">⏭ Pular restante e finalizar</button><div id="waitingHint" class="i4-dialogo mp-wait" hidden><h3>⏳ Aguardando os outros jogadores...</h3><p>Você finalizou suas interações. Aguarde as respostas aos convites e o fim da rodada.</p></div>
 <div id="sentSection" class="i4-historico" hidden><h3>📓 Minhas conversas</h3><div id="sentList"></div></div></section>
+<section class="mp-private-panel" id="privatePanel" hidden>
+ <h3>💜 Minhas relações e acordos</h3>
+ <div id="relationsList"></div>
+ <div id="privateMessages" class="mp-private-messages"></div>
+</section>
 <section id="phaseControls" class="mp-controls" hidden></section>
 <section id="spectatorSection" class="i4-dialogo" hidden><h3>📺 Modo espectador</h3><p>Você foi eliminado. Pode acompanhar o andamento da temporada, mas não participa mais das decisões.</p></section>
 </main>

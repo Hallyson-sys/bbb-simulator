@@ -1,5 +1,5 @@
 <?php
-/** BBB Simulator – Multiplayer Beta 2; protótipo em PHP + JSON temporário. */
+/** BBB Simulator – Multiplayer Beta 5; interações contextuais, pausa e backup. */
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -12,10 +12,11 @@ if(isset($_SERVER['HTTP_ORIGIN'])){
     if(!is_string($a)||strtolower($a)!==$b)mp_error('Origem não autorizada.',403);
 }
 if(stripos($_SERVER['CONTENT_TYPE']??'','application/json')!==0)mp_error('Envie JSON.',415);
-$raw=file_get_contents('php://input',false,null,0,4097);
-if(!$raw||strlen($raw)>4096)mp_error('Solicitação inválida.',400);
+$raw=file_get_contents('php://input',false,null,0,524289);
+if(!$raw||strlen($raw)>524288)mp_error('Solicitação muito grande.',413);
 $data=json_decode($raw,true);if(!is_array($data))mp_error('JSON inválido.');
 $action=$data['action']??'';
+if($action!=='restore' && strlen($raw)>4096)mp_error('Solicitação inválida.',413);
 if(random_int(1,150)===1)foreach(glob(mp_dir().'/*.json')?:[] as $f)if(filemtime($f)<time()-86400)@unlink($f);
 function mp_reply(array $payload): never {echo json_encode(['ok'=>true,'serverTime'=>time()]+$payload,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);exit;}
 if($action==='create'){
@@ -28,6 +29,7 @@ if($action==='create'){
         'hostId'=>$player['id'],'players'=>[$player],'pending'=>[],'events'=>[],
         'relations'=>[],'alliances'=>[],'leader'=>null,'angel'=>null,'vip'=>[],
         'imune'=>null,'leaderPick'=>null,'nominees'=>[],'lastEliminated'=>null,
+        'paused'=>false,'pauseRemaining'=>0,'privateLogs'=>[],'romanceMoments'=>[],'voteAgreements'=>[],'protectionPacts'=>[],
         'createdAt'=>time(),'updatedAt'=>time(),
     ];
     for($i=0;$i<12;$i++){
@@ -37,6 +39,35 @@ if($action==='create'){
         }
     }
     mp_error('Não foi possível criar sua sala.',503);
+}
+if($action==='restore'){
+    $backup=$data['backup']??null;
+    $token=$data['token']??null;
+    if(!is_array($backup)||!is_string($token)||!isset($backup['players'])||!is_array($backup['players']))mp_error('Backup inválido.',400);
+    if(count($backup['players'])<1||count($backup['players'])>20||!in_array($backup['capacity']??0,[10,15,20],true))mp_error('Backup incompatível.',400);
+    $code=mp_code(is_string($backup['code']??null)?$backup['code']:'');
+    if(empty($backup['paused'])||!isset($backup['pauseRemaining'])||!is_int($backup['pauseRemaining'])||$backup['pauseRemaining']<0||$backup['pauseRemaining']>86400)mp_error('O backup precisa estar pausado.',400);
+    $hostIndex=mp_self($backup,$token);
+    if(($backup['players'][$hostIndex]['id']??'')!==($backup['hostId']??''))mp_error('Somente o anfitrião original pode restaurar.',403);
+    if(!isset($backup['phase'])||!in_array($backup['phase'],array_keys(mp_phases()),true))mp_error('Fase inválida.',400);
+    if(count($backup['pending']??[])>100||count($backup['events']??[])>240||count($backup['privateLogs']??[])>100)mp_error('Backup excede os limites.',413);
+    // Nunca sobrescrevemos uma sala existente. Se for do anfitrião original,
+    // recuperamos seu acesso sem apagar ações feitas após o último backup.
+    $path=mp_path($code);
+    if(is_file($path)){
+        $currentFile=@fopen($path,'r');if(!$currentFile||!flock($currentFile,LOCK_SH))mp_error('Sala ocupada.',503);
+        $current=json_decode((string)stream_get_contents($currentFile),true);
+        flock($currentFile,LOCK_UN);fclose($currentFile);
+        if(!is_array($current))mp_error('Sala existente inválida.',503);
+        $currentSelf=mp_self($current,$token);
+        if(($current['players'][$currentSelf]['id']??'')!==($current['hostId']??''))mp_error('Código já ocupado por outra sala.',409);
+        mp_reply(['room'=>mp_public($current,$currentSelf),'accessToken'=>$token,'reused'=>true]);
+    }
+    $f=@fopen($path,'x');if(!$f)mp_error('Sala já existente. Abra a sala pelo código original.',409);
+    @chmod($path,0600);
+    $backup['updatedAt']=time();$backup['endsAt']=0;
+    try{fwrite($f,json_encode($backup,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));fclose($f);}catch(Throwable $e){fclose($f);@unlink($path);mp_error('Falha ao restaurar o backup.',500);}
+    mp_reply(['room'=>mp_public($backup,$hostIndex),'accessToken'=>$token]);
 }
 $code=mp_code(is_string($data['code']??null)?$data['code']:'');
 if($action==='join'){
@@ -52,9 +83,39 @@ if($action==='join'){
     mp_reply(['accessToken'=>$token,'room'=>mp_public($room,count($room['players'])-1)]);
 }
 $token=is_string($data['token']??null)?$data['token']:'';
+if($action==='export'){
+    $path=mp_path($code);$f=@fopen($path,'r');if(!$f||!flock($f,LOCK_SH))mp_error('Sala indisponível.',503);
+    $room=json_decode((string)stream_get_contents($f),true);flock($f,LOCK_UN);fclose($f);
+    if(!is_array($room))mp_error('Sala inválida.',503);
+    $self=mp_self($room,$token);
+    if(($room['players'][$self]['id']??'')!==($room['hostId']??''))mp_error('Só o anfitrião pode salvar.',403);
+    if(empty($room['paused']))mp_error('Pause a temporada antes de salvar.',409);
+    mp_reply(['backup'=>$room]);
+}
+
 $state=mp_transact($code,$token,static function(array &$room,int $self)use($data,$action): bool{
     $me=&$room['players'][$self];$myId=$me['id'];$phase=$room['phase'];
     if($action==='status')return false;
+    if($action==='export')return false;
+    if($action==='pause'){
+        if($myId!==$room['hostId'])mp_error('Apenas o anfitrião pode pausar.',403);
+        if(in_array($phase,['lobby','final'],true))mp_error('A pausa fica disponível durante a temporada.',409);
+        if(!empty($room['paused']))return false;
+        $room['pauseRemaining']=max(1,$room['endsAt']-time());
+        $room['paused']=true;$room['endsAt']=0;
+        mp_log($room,'⏸️ O anfitrião pausou a temporada. O cronômetro foi congelado.');
+        return true;
+    }
+    if($action==='resume'){
+        if($myId!==$room['hostId'])mp_error('Apenas o anfitrião pode retomar.',403);
+        if(empty($room['paused']))mp_error('A temporada não está pausada.',409);
+        $room['endsAt']=time()+max(1,(int)$room['pauseRemaining']);
+        $room['pauseRemaining']=0;$room['paused']=false;
+        mp_log($room,'▶️ O anfitrião retomou a temporada.');
+        return true;
+    }
+    if(!empty($room['paused']))mp_error('A temporada está pausada. Aguarde o anfitrião.',409);
+
     if($action==='ready'){
         if($phase!=='lobby')mp_error('A partida já começou.',409);
         $me['ready']=!$me['ready'];return true;
@@ -79,7 +140,14 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
             $subject=$data['subject']??'';if(!is_string($subject)||!isset($catalog[$type][2][$subject]))mp_error('Assunto inválido.');
             $approach=$data['approach']??'';if(!in_array($approach,['sincera','cautelosa','leve'],true))mp_error('Abordagem inválida.');
             if(count($room['pending'])>=100)mp_error('Limite de convites desta fase alcançado.',409);
+            $message=mp_small_message($data['message']??'');
+            $voteTarget=null;
+            if($type==='i4_acordo'&&isset($data['voteTarget'])&&$data['voteTarget']!==''){
+                $voteTarget=mp_input_id($room,$data['voteTarget']);
+                if(in_array($voteTarget,[$myId,$target],true))mp_error('Escolha uma terceira pessoa para o acordo.');
+            }
             $request=['id'=>bin2hex(random_bytes(8)),'from'=>$myId,'to'=>$target,'type'=>$type,'label'=>$catalog[$type][0],
+                'message'=>$message,'proposedTarget'=>$voteTarget,
                 'subject'=>$catalog[$type][2][$subject],'approach'=>$approach,'status'=>'pendente','answer'=>null,'at'=>time()];
             $room['pending'][]=$request;$me['actions'][]=$request['id'];
             if(count($me['actions'])>=3)$me['done']=true;
@@ -88,18 +156,31 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
         }
         if($action==='respond'){
             $id=$data['requestId']??'';$response=$data['answer']??'';
-            if(!in_array($response,['aceitar','conversar','recusar'],true))mp_error('Resposta inválida.');
+            if(!is_string($id)||!is_string($response))mp_error('Resposta inválida.');
+            $reply=mp_small_message($data['reply']??'');
             foreach($room['pending'] as &$req){
                 if($req['id']!==$id)continue;
                 if($req['to']!==$myId||$req['status']!=='pendente')mp_error('Convite indisponível.',409);
-                $req['status']='respondido';$req['answer']=$response;
-                $delta=$response==='aceitar'?7:($response==='conversar'?2:-4);
-                if(in_array($req['type'],['i4_satisfacao','discutir'],true) && $response==='aceitar')$delta=-2;
-                $key=mp_relation_key($myId,$req['from']);
-                $room['relations'][$key]=max(-100,min(100,($room['relations'][$key]??0)+$delta));
-                if($req['type']==='alianca'&&$response==='aceitar')$room['alliances'][$key]=true;
-                $actor=mp_find_player($room,$req['from']);
-                mp_story_log($room,$req,($actor['name']??'Participante'),$me['name'],$response);
+                $allowed=array_column(mp_response_options((string)$req['type']),'value');
+                if(!in_array($response,$allowed,true))mp_error('Resposta não permitida para esta interação.',400);
+                $counterTarget=null;
+                if($response==='contrapropor'){
+                    if(!empty($req['counterDepth']))mp_error('Essa proposta já foi renegociada.',409);
+                    $counterTarget=mp_input_id($room,$data['counterTarget']??null);
+                    if(in_array($counterTarget,[$req['from'],$myId],true))mp_error('Escolha outra pessoa como alvo.');
+                    if($counterTarget===($req['proposedTarget']??null))mp_error('Escolha um alvo diferente do proposto.',400);
+                    if(count($room['pending'])>=100)mp_error('Limite de convites alcançado.',409);
+                }
+                $req['status']='respondido';$req['answer']=$response;$req['reply']=$reply;
+                mp_apply_response($room,$req,$response,$reply);
+                if($counterTarget){
+                    $newReq=['id'=>bin2hex(random_bytes(8)),'from'=>$myId,'to'=>$req['from'],'type'=>'i4_acordo',
+                        'label'=>'🎯 Contraproposta de acordo','subject'=>'🎯 Voto combinado',
+                        'approach'=>'cautelosa','message'=>$reply,'proposedTarget'=>$counterTarget,
+                        'counterDepth'=>1,'status'=>'pendente','answer'=>null,'at'=>time()];
+                    $room['pending'][]=$newReq;
+                    mp_private_log($room,[$myId,$req['from']],$me['name'].' sugeriu um novo alvo para um acordo de voto. A outra pessoa precisa confirmar.');
+                }
                 unset($req);return true;
             }unset($req);
             mp_error('Convite não encontrado.',404);

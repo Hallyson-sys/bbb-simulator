@@ -3,8 +3,9 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#09091f"><title>Multiplayer Online | BBB Simulator</title>
 <link rel="stylesheet" href="assets/css/jogo.css"><link rel="stylesheet" href="assets/css/header.css">
-<link rel="stylesheet" href="assets/css/responsivo.css?v=35"><link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=4">
-<script src="assets/js/multiplayer.js?v=4" defer></script>
+<link rel="stylesheet" href="assets/css/responsivo.css?v=35"><link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=5">
+<script src="assets/js/multiplayer_backup.js?v=5" defer></script>
+<script src="assets/js/multiplayer.js?v=5" defer></script>
 </head><body class="mp-app">
 <header class="top-header"><div class="header-glow"></div><div class="header-content">
 <div class="logo-area"><div class="bbb-icon">🎥</div><div class="brand-text"><h1>BBB Simulator</h1><div class="sub-info"><span>🌐 Multiplayer Online</span><span class="dot"></span><span>Beta</span></div></div></div>
@@ -78,8 +79,20 @@
         </section>
         <div class="mp-subcard-grid">
             <div class="mp-subcard"><strong>🎮 Experiência</strong><span>Mesma proposta do BBB Simulator, agora com pessoas reais.</span></div>
-            <div class="mp-subcard"><strong>⚠️ Versão beta</strong><span>As partidas ainda são temporárias e podem ser perdidas se o serviço reiniciar.</span></div>
+            <div class="mp-subcard"><strong>⚠️ Versão beta</strong><span>Na Beta 5, o anfitrião pode pausar e baixar um backup protegido para recuperar uma sala após reinícios do servidor.</span></div>
         </div>
+    </section>
+
+    <section class="mp-restore mp-lobby-card" id="backupRestoreSection">
+        <span class="mp-mini-kicker">💾 RETOMAR EM OUTRO DIA</span>
+        <h3>Restaurar uma temporada pausada</h3>
+        <p>O anfitrião pode recuperar seu acesso ou restaurar uma sala apagada pelo servidor usando o arquivo de backup e a senha. Os demais jogadores retornam com os acessos anteriores em seus navegadores.</p>
+        <label for="restoreFile">Arquivo de backup (.json)</label>
+        <input type="file" id="restoreFile" accept=".json,application/json">
+        <label for="restorePassword">Senha do backup</label>
+        <input type="password" id="restorePassword" autocomplete="off" placeholder="Senha escolhida ao salvar">
+        <button type="button" class="btn mp-secondary" id="restoreBackup">📂 RESTAURAR SALA PAUSADA</button>
+        <small>Guarde o arquivo em local privado. Sem o arquivo e sua senha, uma sala temporária perdida pelo servidor não poderá ser restaurada.</small>
     </section>
 
     <section id="room" class="center mp-lobby-card mp-room-card" hidden>
