@@ -16,6 +16,9 @@
 <?php if (empty($_SESSION['i4_pendente']) && empty($_SESSION['i4_resultado']))
     render('components/iniciativa_npc_2', ['jogadores'=>$jogadores,'meuNome'=>$meuNome,'fase'=>$fase]); ?>
 <?php if (empty($_SESSION['in2_conversa']) && empty($_SESSION['in2_resultado'])): ?>
+<?php if (empty($_SESSION['i4_pendente']) && empty($_SESSION['i4_resultado']))
+    render('components/romance_3', ['jogadores'=>$jogadores,'meuNome'=>$meuNome,'fase'=>$fase]); ?>
+<?php if (empty($_SESSION['rom3_pendente']) && empty($_SESSION['rom3_confirmacao']) && empty($_SESSION['rom3_resultado'])): ?>
 <?php render('components/interacoes_4', [
     'jogadores' => $jogadores,
     'meuNome' => $meuNome
@@ -357,6 +360,7 @@
                     </form>
 
                 <?php endif; // !i4_pendente e !i4_resultado ?>
+<?php endif; // !rom3_pendente, confirmacao e resultado ?>
 <?php endif; // !in2_conversa e !in2_resultado ?>
 <?php endif; // !ecBloqueia ?>
 

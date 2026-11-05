@@ -28,6 +28,11 @@ $r4Publicos = array_values(array_filter(
     function_exists('r4Recentes') ? r4Recentes(8) : [],
     static fn($evento) => (int)($evento['semana'] ?? 0) === $r4Semana
 ));
+// Relacionamentos Amorosos 3.0: mostrar só cenas observáveis entre NPCs.
+// Conversas privadas do jogador permanecem fora deste painel.
+$rom3Publicos = array_values(array_filter((array)($_SESSION['rom3_estado']['publicos'] ?? []),
+    static fn($evento) => (int)($evento['semana'] ?? 0) === $r4Semana));
+$r4Publicos = array_merge($r4Publicos, array_reverse($rom3Publicos));
 ?>
 <details class="rc2-painel">
     <summary>💞 Relações em Movimento <span class="rc2-contador"><?= count($r4Publicos) ?> <?= count($r4Publicos)===1 ? 'acontecimento':'acontecimentos' ?> nesta semana</span><span class="rc2-seta" aria-hidden="true">⌄</span></summary>
