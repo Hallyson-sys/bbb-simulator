@@ -92,3 +92,29 @@
 .mp-game .mobile-current-hero{display:block;margin-bottom:15px}
 @media (min-width:769px){.mp-game .desktop-panel-title{display:none}}
 .mp-app .mp-choice input[type="checkbox"]{display:inline-block;width:18px!important;min-height:0!important;height:18px;margin-right:10px;vertical-align:middle;accent-color:#e34cbd}
+
+/* Beta 4 — ficha dos participantes e leitura estável em mobile */
+.mp-app .mp-profile-intro{display:flex;align-items:center;gap:12px;margin:19px 0 8px;padding:14px;background:linear-gradient(115deg,rgba(244,29,163,.12),rgba(43,181,244,.07));border:1px solid rgba(255,255,255,.12);border-radius:16px}
+.mp-profile-intro>span{font-size:22px}.mp-profile-intro strong{display:block;font-size:13px;color:#fff}.mp-profile-intro small{display:block;margin-top:4px;font-size:12px;color:#d7c7ea;line-height:1.5}
+.mp-profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.mp-app .mp-confirm{border-top:1px solid rgba(255,255,255,.09);padding:18px 0 0}.mp-confirm h3{margin-top:6px;font-size:22px}.mp-confirm>p{font-size:13px;line-height:1.6;color:#ded0ed;margin:9px 0}
+.mp-character-preview{margin-top:14px;display:flex;gap:14px;align-items:center;padding:18px;background:linear-gradient(135deg,rgba(237,31,154,.25),rgba(102,29,201,.28),rgba(19,177,242,.15));border:1px solid rgba(255,255,255,.18);border-radius:18px}
+.mp-preview-avatar{width:56px;height:56px;flex-shrink:0;border:3px solid #ffe088;border-radius:50%;display:grid;place-items:center;background:#160929;font-family:'Orbitron',sans-serif;font-size:26px;font-weight:900}
+.mp-character-preview strong{display:block;font-size:20px;overflow-wrap:anywhere}.mp-character-preview p{font-size:12px;margin-top:6px;color:#e2cdef}.mp-character-preview span{display:inline-block;font-size:12px;margin-top:8px;color:#ffdaef}
+.mp-confirm .mp-secondary{width:100%;margin-top:9px}
+.mp-lobby-identity{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}.mp-lobby-identity small{font-size:11px;line-height:1.35;color:#c8b5dc;overflow-wrap:anywhere}
+.mp-game .mp-avatar-initial{display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 40% 28%,#6b1a8c,#130821);color:#fff2ba;font-family:'Orbitron',sans-serif;font-size:23px;font-weight:900;border:3px solid #ffe083;box-shadow:0 0 15px rgba(255,222,131,.24)}
+.mp-game .mp-profile-line{font-size:10px;margin:5px auto 0;color:#f5d9fa;text-align:center;line-height:1.4;overflow-wrap:anywhere}
+.mp-game .mp-profile-tag{display:block;margin:6px auto 0;padding:4px 6px;max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:rgba(9,5,24,.35);color:#e6cfff;text-align:center;font-size:9px;overflow-wrap:anywhere}
+.mp-game .mp-event-story{border-color:rgba(241,125,211,.35);background:linear-gradient(125deg,rgba(60,23,92,.7),rgba(19,20,52,.8))}
+.mp-game .mp-event-title{display:block;font-size:14px;color:#ffe3f7;margin:2px 0 7px}.mp-game .mp-event-place{font-size:11px;color:#75e8fa;margin-bottom:10px}
+.mp-feed-panel{min-width:0;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:17px;background:linear-gradient(145deg,rgba(19,17,50,.8),rgba(58,13,73,.6));}
+.mp-feed-panel h2{font-size:21px}.mp-feed-posts{display:grid;gap:12px;margin-top:17px}.mp-feed-post{border:1px solid rgba(255,255,255,.11);background:rgba(12,8,30,.63);padding:14px;border-radius:17px}
+.mp-feed-head{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:#69e6f9;font-weight:800;letter-spacing:.5px}.mp-feed-head small{font-size:9px;color:#c7b5d8}.mp-feed-post h4{margin:12px 0 6px;font-size:14px;color:#ffe5f6}.mp-feed-post p{font-size:12px;line-height:1.65;color:#e4d9f0}.mp-feed-tags{margin-top:11px;font-size:11px;color:#e69bef}.mp-feed-empty{font-size:12px;color:#dfd3ec}
+@media(min-width:769px){.mp-game .mp-feed-panel{grid-column:2/3}}
+@media(max-width:768px){.mp-game .mp-feed-panel{order:4;width:100%}.mp-game .mp-feed-panel.mobile-collapsed>*:not(.mobile-panel-toggle){display:none!important}.mp-game .mp-profile-line{font-size:9px}.mp-game .mp-profile-tag{font-size:8px}.mp-game .card{min-width:0!important}.mp-game .card p.mp-profile-line{display:block!important}.mp-game .card .mp-profile-line{display:block!important}}
+@media(max-width:440px){.mp-profile-grid{grid-template-columns:1fr 1fr}.mp-game .mp-profile-line.mp-job{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.mp-game .mp-profile-tag{padding:3px 4px}}
+/* Evita largura fantasma causada pelo brilho absoluto do cabeçalho em telas estreitas. */
+html:has(body.mp-app){overflow-x:clip}
+body.mp-app{overflow-x:clip}
+.mp-app .header-glow{right:0;max-width:100%}
