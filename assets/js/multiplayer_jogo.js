@@ -1,11 +1,11 @@
-/* BBB Simulator • Multiplayer Beta 2 — interface original adaptada para jogadores reais. */
+/* BBB Simulator • Multiplayer Beta 6 — Provas Online competitivas. */
 (() => {
 'use strict';
 const $=(id)=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 let code=(params.get('sala')||'').toUpperCase();
 let token='',room=null,busy=false,polling=false,serverOffset=0,seq=0,lastApplied=0;
-let currentPhase='',selectedType='',controlKey='',catalogBuilt=false,playersKey='',eventsKey='',feedKey='',sentKey='',privateKey='';
+let currentPhase='',selectedType='',controlKey='',catalogBuilt=false,playersKey='',eventsKey='',feedKey='',sentKey='',privateKey='',proofResultsKey='';
 const storeKey=c=>`bbb_mp_beta2_${c}`;
 const stored=()=>{try{return JSON.parse(localStorage.getItem(storeKey(code))||'null');}catch(e){return null;}};
 const notice=(text,error=false)=>{const n=$('notice');n.textContent=text;n.className='mp-notice mp-global-notice'+(error?' error':'');n.hidden=false;};
@@ -38,7 +38,7 @@ function eligible(extras={}){
 return active().filter(p=>extras.allowSelf||p.id!==room.myId).filter(p=>!extras.exclude?.includes(p.id)).map(p=>({value:p.id,text:p.name}));
 }
 function remaining(){return Math.max(0,Math.ceil((room.endsAt*1000-(Date.now()+serverOffset))/1000));}
-function timer(){if(!room)return;const t=room.paused?room.pauseRemaining:remaining();$('timer').textContent=room.phase==='final'?'—':`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;$('timer').classList.toggle('low',t<=15);}
+function timer(){if(!room)return;const t=room.paused?room.pauseRemaining:remaining();$('timer').textContent=room.phase==='final'?'—':`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;$('timer').classList.toggle('low',t<=15);if(room.proof?.type==='memoria' && !room.paused && (room.phase==='lider'||room.phase==='anjo'))renderControls(false);}
 function renderPause(){
  const host=room.myId===room.hostId;
  $('pauseBoard').hidden=!room.paused;
@@ -78,7 +78,7 @@ const phase=room.phases[room.phase]||['🎮 Fase',''];$('phaseTitle').textConten
 $('weekLabel').textContent=`🔥 Semana ${room.week}`;
 const done=active().filter(p=>p.done).length;$('phaseReady').textContent=`${done}/${active().length} concluíram`;
 $('phaseProgress').style.width=`${Math.round(done*100/Math.max(1,active().length))}%`;
-renderPause();renderPrivate();
+renderPause();renderPrivate();renderProofResults();
 const changed=currentPhase!==room.phase;
 if(changed){selectedType='';currentPhase=room.phase;controlKey='';renderTimeline();catalogBuilt=false;}
 renderPlayers();renderEvents();renderInvites();
@@ -176,16 +176,110 @@ const status=q.status==='pendente'?'⏳ Aguardando resposta':q.status==='expirou
 const block=elem('div','mp-sent-item',`${label(q.to)} • ${q.label} — ${status}`);
 if(q.reply)block.appendChild(elem('p','mp-private-reply',`✉️ ${q.reply}`));list.appendChild(block);
 }}
+function renderProofResults(){
+  const info=room.lastProof;
+  const panel=$('proofResults');if(!panel)return;
+  panel.hidden=!info || info.week!==room.week || ['lider','anjo'].includes(room.phase);
+  if(panel.hidden)return;
+  const key=JSON.stringify(info);if(key===proofResultsKey)return;proofResultsKey=key;
+  const heading=$('proofResultsTitle');const list=$('proofRanking');list.replaceChildren();
+  heading.textContent=`${info.phase==='lider'?'👑 Prova do Líder':'😇 Prova do Anjo'} • ${info.title}`;
+  const winner=room.players.find(p=>p.id===info.winner);
+  $('proofWinner').textContent=`🏆 ${winner?.name||'Participante'} venceu!`;
+  $('proofDraw').textContent=info.noSubmissions?'Ninguém jogou a prova: vencedor definido por sorteio.':info.tiebreakDraw?'Houve empate na pontuação. Sorteio entre os participantes empatados.':'Maior pontuação venceu a prova.';
+  for(const [i,p] of info.ranking.entries()){
+    const row=elem('div','mp-proof-ranking-row');
+    row.appendChild(elem('span','',`${i+1}º · ${p.name}${p.id===info.winner?' 🏆':''}`));
+    row.appendChild(elem('strong','',p.submitted?`${p.score} pontos`:'Não participou'));
+    list.appendChild(row);
+  }
+}
+function proofIntro(title,desc){
+    const sec=controlsCard(title,desc);
+    const progress=elem('div','mp-proof-topline');
+    progress.appendChild(elem('span','',`${room.proof.submitted} respostas recebidas`));
+    progress.appendChild(elem('span','',`Até ${room.proof.numberOfPlayers} na casa`));
+    sec.appendChild(progress);
+    return sec;
+}
+function proofButtons(container,choices,selection,max){
+  const buttons=[];
+  const redraw=()=>buttons.forEach((b,i)=>{b.classList.toggle('selected',selection.includes(i));b.setAttribute('aria-pressed',String(selection.includes(i)));});
+  choices.forEach((label,i)=>{
+    const b=makeButton(label,()=>{
+      if(selection.includes(i))selection.splice(selection.indexOf(i),1);
+      else if(selection.length<max)selection.push(i);
+      redraw();
+    },'mp-proof-option');
+    b.setAttribute('aria-pressed','false');container.appendChild(b);buttons.push(b);
+  });
+  return redraw;
+}
+function renderProof(){
+  const p=room.proof;
+  if(!p){controlsCard('Preparando prova','O servidor está organizando o desafio para todos os participantes.');return;}
+  const mine=me();
+  const titles={memoria:'🧠 Memória da Casa',logica:'🔢 Sequência Lógica',caixas:'🎁 Caixas Misteriosas'};
+  const descriptions={memoria:'Memorize cinco símbolos durante 14 segundos. Depois repita a sequência na ordem exata. Cada posição certa vale 20 pontos.',logica:'Resolva cinco sequências numéricas. Cada resposta certa vale 20 pontos. Todos recebem as mesmas questões.',caixas:'Escolha três entre 20 caixas. O conteúdo é idêntico para toda a sala, mas fica escondido até o fim. O maior total vence.'};
+  const sec=proofIntro(titles[p.type]||p.title,descriptions[p.type]||'Desafio online.');
+  const rules=elem('div','mp-proof-rules','✅ Mesma prova para todos • Pontuação conferida pelo servidor • Sem bônus por velocidade');sec.appendChild(rules);
+  if(!p.eligible){sec.appendChild(elem('div','mp-proof-done','👑 Você é o Líder e não disputa a Prova do Anjo nesta semana. Acompanhe seus colegas.'));return;}
+  if(p.mySubmitted||mine?.done){sec.appendChild(elem('div','mp-proof-done',`✅ Resposta registrada! ${mine?.choice?.score??'—'} pontos. Aguarde os participantes restantes ou o fim do relógio.`));return;}
+  if(p.type==='memoria'){
+    const now=Math.floor((Date.now()+serverOffset)/1000);
+    if(now < p.revealUntil){
+      sec.appendChild(elem('div','mp-proof-phase-caption',`👀 OBSERVE E MEMORIZE • ${Math.max(0,p.revealUntil-now)} segundos`));
+      const seqBox=elem('div','mp-proof-memory-show');
+      (p.sequence||[]).forEach((icon,i)=>seqBox.appendChild(elem('div','mp-proof-symbol',icon)));
+      sec.appendChild(seqBox);
+      sec.appendChild(elem('p','mp-proof-hint','Quando os símbolos sumirem, marque a sequência na mesma ordem. Não precisa clicar agora.'));
+      return;
+    }
+    sec.appendChild(elem('div','mp-proof-phase-caption','🧠 RECONSTRUA A ORDEM DOS CINCO SÍMBOLOS'));
+    const selected=[];
+    const slots=elem('div','mp-proof-memory-slots');
+    const board=elem('div','mp-proof-memory-options');
+    const buttonList=[];
+    const repaint=()=>{
+      slots.replaceChildren();for(let i=0;i<5;i++)slots.appendChild(elem('span','mp-proof-memory-slot',selected[i]??'•'));
+      buttonList.forEach(b=>{b.disabled=selected.includes(b.dataset.icon);b.setAttribute('aria-pressed',String(selected.includes(b.dataset.icon)));});
+    };
+    p.symbols.forEach((icon)=>{const b=makeButton(icon,()=>{if(selected.length<5){selected.push(icon);repaint();}},'mp-proof-symbol-button');b.dataset.icon=icon;buttonList.push(b);board.appendChild(b);});
+    repaint();sec.appendChild(slots);sec.appendChild(board);
+    sec.appendChild(makeButton('↶ Desfazer último',()=>{selected.pop();repaint();},'btn mp-secondary'));
+    sec.appendChild(makeButton('✅ Confirmar sequência',()=>{if(selected.length!==5)return notice('Escolha os cinco símbolos para enviar.',true);act('prova',{answers:selected.slice()});},'btn mp-main-btn'));
+  }else if(p.type==='logica'){
+    const choices=[];
+    for(const [i,q] of p.questions.entries()){
+      const question=elem('fieldset','mp-proof-question');
+      const legend=elem('legend','',`${i+1}. ${q.q}`);question.appendChild(legend);
+      const options=elem('div','mp-proof-answers');
+      q.o.forEach((choice,j)=>{
+        const label=elem('label','mp-proof-radio');
+        const input=elem('input');input.type='radio';input.name=`mp-proof-q${i}`;input.value=String(j);input.onchange=()=>{choices[i]=j;};
+        label.append(input,document.createTextNode(choice));options.appendChild(label);
+      });
+      question.appendChild(options);sec.appendChild(question);
+    }
+    sec.appendChild(makeButton('✅ Enviar respostas',()=>{if(choices.length!==5||choices.some(a=>a===undefined))return notice('Responda às cinco sequências antes de enviar.',true);act('prova',{answers:choices});},'btn mp-main-btn'));
+  }else if(p.type==='caixas'){
+    sec.appendChild(elem('p','mp-proof-hint','As 20 caixas podem ser escolhidas por qualquer jogador. Cada caixa tem um valor secreto, e todos concorrem em condições iguais.'));
+    const selected=[];const count=elem('strong','mp-proof-boxcount','0/3 caixas escolhidas');sec.appendChild(count);
+    const boxGrid=elem('div','mp-proof-box-grid');
+    const labels=Array.from({length:20},(_,i)=>`🎁 ${i+1}`);
+    const redraw=proofButtons(boxGrid,labels,selected,3);
+    const paint=()=>{redraw();count.textContent=`${selected.length}/3 caixas escolhidas`;};
+    boxGrid.querySelectorAll('button').forEach(b=>{const old=b.onclick;b.onclick=()=>{old();paint();};});
+    sec.appendChild(boxGrid);
+    sec.appendChild(makeButton('🎁 Abrir minhas três caixas',()=>{if(selected.length!==3)return notice('Escolha exatamente três caixas.',true);act('prova',{answers:selected.slice()});},'btn mp-main-btn'));
+  }
+}
 function controlsCard(title,desc){const c=$('phaseControls');c.replaceChildren();const sec=elem('div','i4-selecao');sec.appendChild(elem('div','i4-kicker',`● REC • ${room.phases[room.phase]?.[0]||'SEMANA'}`));sec.appendChild(elem('h3','',title));sec.appendChild(elem('p','',desc));c.appendChild(sec);return sec;}
-function renderControls(force){const mine=me();const key=room.phase+'|'+!!mine?.done+'|'+JSON.stringify(mine?.choice)+'|'+room.leaderPick+'|'+JSON.stringify(room.nominees);
+function renderControls(force){const mine=me();const proofStage=room.proof?.type==='memoria'?(Math.floor((Date.now()+serverOffset)/1000)<room.proof.revealUntil?'reveal':'play'):'';
+const key=room.phase+'|'+!!mine?.done+'|'+JSON.stringify(mine?.choice)+'|'+room.leaderPick+'|'+JSON.stringify(room.nominees)+'|'+(room.proof?.type||'')+'|'+(room.proof?.mySubmitted||false)+'|'+(room.proof?.eligible||false)+'|'+proofStage;
 if(!force&&controlKey===key)return;controlKey=key;
 const phase=room.phase;
-if(phase==='lider'||phase==='anjo'){
-const sec=controlsCard(phase==='lider'?'👑 Prova do Líder':'😇 Prova do Anjo','Prova rápida experimental: escolha uma opção. O servidor sorteia uma pontuação para cada participante e anuncia o vencedor. As provas interativas do modo solo serão adaptadas depois.');
-if(mine.done){sec.appendChild(elem('p','',`✅ Sua escolha foi registrada. Aguarde os demais jogadores. Pontuação: ${mine.choice?.score??'—'}`));return;}
-for(const [n,text] of [[1,'🔴 Caixa vermelha'],[2,'🟣 Caixa roxa'],[3,'🔵 Caixa azul']])sec.appendChild(makeButton(text,()=>act('prova',{number:n}),'btn mp-secondary'));
-return;
-}
+if(phase==='lider'||phase==='anjo'){renderProof();return;}
 if(phase==='vip_xepa'){
 const sec=controlsCard('🍽️ VIP & Xepa',`O Líder escolhe até ${Math.max(1,Math.floor(active().length/3))} pessoas para o VIP, contando com ele próprio.`);
 if(room.myId!==room.leaderId){sec.appendChild(elem('p','','⏳ Aguarde a escolha do Líder.'));return;}
