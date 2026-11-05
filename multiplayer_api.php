@@ -1,5 +1,5 @@
 <?php
-/** BBB Simulator – Multiplayer Beta 6; interações contextuais, pausa e backup. */
+/** BBB Simulator – Multiplayer Beta 7; interações contextuais, pausa e backup. */
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -30,7 +30,7 @@ if($action==='create'){
         'relations'=>[],'alliances'=>[],'leader'=>null,'angel'=>null,'vip'=>[],
         'imune'=>null,'leaderPick'=>null,'nominees'=>[],'lastEliminated'=>null,
         'paused'=>false,'pauseRemaining'=>0,'privateLogs'=>[],'romanceMoments'=>[],'voteAgreements'=>[],'protectionPacts'=>[],
-        'prova'=>null,'lastProof'=>null,
+        'prova'=>null,'lastProof'=>null,'monstro'=>[],'monsterTasks'=>[],'debates'=>[],'lastQueridometro'=>null,
         'createdAt'=>time(),'updatedAt'=>time(),
     ];
     for($i=0;$i<12;$i++){
@@ -51,7 +51,7 @@ if($action==='restore'){
     $hostIndex=mp_self($backup,$token);
     if(($backup['players'][$hostIndex]['id']??'')!==($backup['hostId']??''))mp_error('Somente o anfitrião original pode restaurar.',403);
     if(!isset($backup['phase'])||!in_array($backup['phase'],array_keys(mp_phases()),true))mp_error('Fase inválida.',400);
-    if(count($backup['pending']??[])>100||count($backup['events']??[])>240||count($backup['privateLogs']??[])>100)mp_error('Backup excede os limites.',413);
+    if(count($backup['pending']??[])>300||count($backup['events']??[])>240||count($backup['privateLogs']??[])>100)mp_error('Backup excede os limites.',413);
     // Nunca sobrescrevemos uma sala existente. Se for do anfitrião original,
     // recuperamos seu acesso sem apagar ações feitas após o último backup.
     $path=mp_path($code);
@@ -138,7 +138,51 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
     }
     if($phase==='lobby'||$phase==='final')mp_error('Esta fase não aceita ações.',409);
     if($me['eliminated'])mp_error('Você está no modo espectador.',403);
+    if($phase==='interacoes_2'&&$action==='monstro_task'){
+        if(!in_array($myId,$room['monstro']??[],true))mp_error('Você não recebeu o Monstro.',403);
+        if(isset($room['monsterTasks'][$myId]))mp_error('Você já cumpriu o castigo nesta semana.',409);
+        $tasks=['cozinha'=>'🍳 Organizar a cozinha','limpeza'=>'🧽 Limpar a área externa','roupas'=>'🧺 Organizar o figurino do Monstro'];
+        $task=$data['task']??null;
+        if(!is_string($task)||!isset($tasks[$task]))mp_error('Escolha uma tarefa válida do Monstro.');
+        $room['monsterTasks'][$myId]=$task;
+        mp_log($room,'👹 '.$me['name'].' cumpriu o Castigo do Monstro: '.$tasks[$task].'.','monstro',['title'=>'👹 Castigo cumprido']);
+        return true;
+    }
     if(in_array($phase,['interacoes_1','interacoes_2','festa'],true)){
+        if($phase==='festa'&&$action==='festa_action'){
+            if($me['done']||count($me['actions'])>=3)mp_error('Você já utilizou suas três ações da festa.',409);
+            $kind=$data['festaType']??'';$options=mp7_festa_opcoes();
+            if(!is_string($kind)||!isset($options[$kind]))mp_error('Ação de festa inválida.');
+            $item=$options[$kind];$message=mp_small_message($data['message']??'');
+            $validTargets=[];$voteTarget=null;
+            if($item[3]){
+                $rawIds=$kind==='negociar'?($data['targetIds']??[]):[$data['targetId']??null];
+                if(!is_array($rawIds)||!array_is_list($rawIds)||count($rawIds)<1||count($rawIds)>($kind==='negociar'?3:1))mp_error('Selecione participantes válidos.');
+                foreach($rawIds as $value){$id=mp_input_id($room,$value);if($id===$myId||in_array($id,$validTargets,true))mp_error('Escolha participantes distintos, sem incluir você.');$validTargets[]=$id;}
+            }
+            if($kind==='negociar'){
+                $voteTarget=mp_input_id($room,$data['voteTarget']??null);
+                if($voteTarget===$myId||in_array($voteTarget,$validTargets,true))mp_error('O alvo do voto deve ser outra pessoa, diferente dos convidados.');
+            }
+            if(count($room['pending'])+count($validTargets)>300)mp_error('Limite de convites alcançado.',409);
+            $actionId=bin2hex(random_bytes(8));
+            if($item[3]){
+                foreach($validTargets as $id){
+                    $room['pending'][]=['id'=>bin2hex(random_bytes(8)),'groupId'=>$actionId,'from'=>$myId,'to'=>$id,
+                        'type'=>$item[2],'label'=>$item[0],
+                        'subject'=>match($kind){'sondar'=>'🗳️ Intenção de voto','negociar'=>'🎯 Articular votos',default=>$item[1]},
+                        'message'=>$message,'proposedTarget'=>$voteTarget,'approach'=>'leve','status'=>'pendente','answer'=>null,'at'=>time()];
+                }
+                mp_log($room,'🎉 '.$me['name'].' iniciou uma ação da festa: '.$item[0].'.','festa',['title'=>'🎉 Festa da Semana']);
+            }else{
+                $text=$kind==='vt'
+                    ?'📺 '.$me['name'].' fez um VT na sala, aproveitando o momento para falar de sua trajetória na semana.'
+                    :'🍹 '.$me['name'].' exagerou na bebida durante a festa. O acontecimento repercutiu entre os participantes da casa.';
+                mp_log($room,$text,'festa',['title'=>$kind==='vt'?'📺 VT da Festa':'🍹 Festa e Consequências']);
+            }
+            $me['actions'][]=$actionId;if(count($me['actions'])>=3)$me['done']=true;
+            return true;
+        }
         if($action==='interact'){
             if($me['done']||count($me['actions'])>=3)mp_error('Você já finalizou suas ações.',409);
             $target=mp_input_id($room,$data['targetId']??null);
@@ -146,7 +190,7 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
             $type=$data['type']??'';$catalog=mp_catalog();if(!is_string($type)||!isset($catalog[$type]))mp_error('Interação inválida.');
             $subject=$data['subject']??'';if(!is_string($subject)||!isset($catalog[$type][2][$subject]))mp_error('Assunto inválido.');
             $approach=$data['approach']??'';if(!in_array($approach,['sincera','cautelosa','leve'],true))mp_error('Abordagem inválida.');
-            if(count($room['pending'])>=100)mp_error('Limite de convites desta fase alcançado.',409);
+            if(count($room['pending'])>=300)mp_error('Limite de convites desta fase alcançado.',409);
             $message=mp_small_message($data['message']??'');
             $voteTarget=null;
             if($type==='i4_acordo'&&isset($data['voteTarget'])&&$data['voteTarget']!==''){
@@ -176,7 +220,7 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
                     $counterTarget=mp_input_id($room,$data['counterTarget']??null);
                     if(in_array($counterTarget,[$req['from'],$myId],true))mp_error('Escolha outra pessoa como alvo.');
                     if($counterTarget===($req['proposedTarget']??null))mp_error('Escolha um alvo diferente do proposto.',400);
-                    if(count($room['pending'])>=100)mp_error('Limite de convites alcançado.',409);
+                    if(count($room['pending'])>=300)mp_error('Limite de convites alcançado.',409);
                 }
                 $req['status']='respondido';$req['answer']=$response;$req['reply']=$reply;
                 mp_apply_response($room,$req,$response,$reply);
@@ -193,6 +237,32 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
             mp_error('Convite não encontrado.',404);
         }
         if($action==='finish'){$me['done']=true;return true;}
+    }
+    // Debates continuam aceitando respostas mesmo depois de o participante finalizar seu apontamento.
+    if($phase==='discordia'&&in_array($action,['discordia_responder','discordia_treplica'],true)){
+        $debateId=$data['debateId']??null;$choice=$data['choice']??null;
+        if(!is_string($debateId)||!preg_match('/^[a-f0-9]{16}$/D',$debateId)||!is_string($choice))mp_error('Debate inválido.');
+        $room['debates']??=[];foreach($room['debates'] as &$d){
+            if($d['id']!==$debateId)continue;
+            if($action==='discordia_responder'){
+                if($d['target']!==$myId||$d['status']!=='aguardando')mp_error('Não há resposta pendente para você.',409);
+                if(!isset(mp7_respostas()[$choice]))mp_error('Resposta inválida.');
+                $d['response']=$choice;$d['status']='treplica';
+                $name=mp_find_player($room,$d['from'],false)['name']??'Participante';
+                mp_log($room,'🎙️ '.$me['name'].' respondeu ao apontamento de '.$name.': '.mp7_respostas()[$choice].'.','discordia',['title'=>'🎙️ Direito de Resposta']);
+                return true;
+            }
+            if($d['from']!==$myId||$d['status']!=='treplica')mp_error('A tréplica ainda não está disponível.',409);
+            if(!isset(mp7_treplicas()[$choice]))mp_error('Tréplica inválida.');
+            $d['replica']=$choice;$d['status']='concluido';
+            $targetName=mp_find_player($room,$d['target'],false)['name']??'Participante';
+            $key=mp_relation_key($myId,$d['target']);
+            $delta=($choice==='reconsiderar'?3:($choice==='manter'?-3:0))+($d['response']==='rebater'?-2:($d['response']==='assumir'?2:0));
+            $room['relations'][$key]=max(-100,min(100,(int)($room['relations'][$key]??0)+$delta));
+            mp_log($room,'🔥 '.$me['name'].' encerrou o debate com '.$targetName.': '.mp7_treplicas()[$choice].'.','discordia',['title'=>'🔥 Tréplica da Discórdia']);
+            return true;
+        }unset($d);
+        mp_error('Debate não encontrado.',404);
     }
     if($me['done'])mp_error('Você já concluiu esta fase.',409);
     if(in_array($phase,['lider','anjo'],true)&&$action==='prova'){
@@ -218,6 +288,13 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
         if(count($selected)>$max)mp_error('Excedeu as vagas VIP.');
         $room['vip']=$selected;$me['done']=true;return true;
     }
+    if($phase==='monstro'&&$action==='monstro'){
+        if($myId!==$room['angel'])mp_error('Apenas o Anjo pode escolher o Monstro.',403);
+        $ids=$data['ids']??null;$limit=min(2,max(0,count(mp_active($room))-1));
+        if(!is_array($ids)||!array_is_list($ids)||count($ids)>$limit)mp_error('Escolha até duas pessoas para o Monstro.');
+        $selected=[];foreach($ids as $id){$id=mp_input_id($room,$id);if($id===$myId||in_array($id,$selected,true))mp_error('Escolha participantes diferentes de você.');$selected[]=$id;}
+        $room['monstro']=$selected;$me['done']=true;return true;
+    }
     if($phase==='imunidade'&&$action==='imune'){
         if($myId!==$room['angel'])mp_error('Apenas o Anjo decide.',403);
         $id=mp_input_id($room,$data['id']??null);
@@ -225,18 +302,33 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
         $room['imune']=$id;$me['done']=true;return true;
     }
     if($phase==='queridometro'&&$action==='queridometro'){
-        $id=mp_input_id($room,$data['id']??null);if($id===$myId)mp_error('Escolha outra pessoa.');
-        $emoji=$data['emoji']??'';if(!in_array($emoji,['💜','🙂','🤝','🔥','😶'],true))mp_error('Emoji inválido.');
-        $me['choice']=['emoji'=>$emoji,'target'=>$id];$me['done']=true;
-        mp_log($room,'💟 '.($me['name']).' enviou '.$emoji.' para '.mp_find_player($room,$id)['name'].'.');return true;
+        $emojis=$data['emojis']??null;$allowed=mp7_emojis();
+        if(!is_array($emojis)||array_is_list($emojis))mp_error('Envie os emojis da casa completa.');
+        $targets=array_values(array_filter(mp_active($room),static fn($p)=>$p['id']!==$myId));
+        if(count($emojis)!==count($targets))mp_error('Escolha um emoji para cada participante da casa.');
+        $validated=[];
+        foreach($targets as $p){
+            $id=$p['id'];$emoji=$emojis[$id]??null;
+            if(!is_string($emoji)||!isset($allowed[$emoji]))mp_error('Escolha um emoji válido para '.$p['name'].'.');
+            $validated[$id]=$emoji;
+        }
+        $me['queridometro']=$validated;$me['done']=true;
+        mp_log($room,'💟 '.$me['name'].' confirmou o Queridômetro da casa. Os emojis continuam em segredo até a apuração.','queridometro',['title'=>'💟 Queridômetro confirmado']);
+        return true;
     }
     if($phase==='discordia'&&$action==='discordia'){
         $id=mp_input_id($room,$data['id']??null);if($id===$myId)mp_error('Escolha outra pessoa.');
-        $reason=$data['reason']??'';
-        $choices=['jogo'=>'joga dos dois lados','convivencia'=>'não sabe conviver','confianca'=>'quebrou sua confiança'];
-        if(!is_string($reason)||!isset($choices[$reason]))mp_error('Motivo inválido.');
-        $me['choice']=['target'=>$id,'reason'=>$reason];$me['done']=true;
-        mp_log($room,'🔥 '.($me['name']).' apontou '.mp_find_player($room,$id)['name'].' no Jogo da Discórdia: “'.$choices[$reason].'”.');return true;
+        $reason=$data['reason']??null;$argument=$data['argument']??null;
+        $reasons=['jogo'=>'joga dos dois lados','convivencia'=>'precisa rever a convivência','confianca'=>'quebrou sua confiança','estrategia'=>'esconde suas estratégias'];
+        if(!is_string($reason)||!isset($reasons[$reason])||!is_string($argument)||!isset(mp7_argumentos()[$argument]))mp_error('Selecione motivo e argumento válidos.');
+        $room['debates']??=[];
+        if(count($room['debates'])>=20)mp_error('Número máximo de debates da semana atingido.',409);
+        $room['debates'][]=['id'=>bin2hex(random_bytes(8)),'from'=>$myId,'target'=>$id,
+            'reason'=>$reason,'argument'=>$argument,'response'=>null,'replica'=>null,'status'=>'aguardando'];
+        $me['done']=true;
+        $name=mp_find_player($room,$id)['name'];
+        mp_log($room,'🔥 No Jogo da Discórdia, '.$me['name'].' apontou '.$name.' porque acha que '.$name.' '.$reasons[$reason].'. Argumento: '.mp7_argumentos()[$argument].'.','discordia',['title'=>'🎙️ Apontamento da Discórdia']);
+        return true;
     }
     if($phase==='paredao'){
         if($action==='indicar'){
