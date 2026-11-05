@@ -16,7 +16,7 @@ $_SESSION = [];
 foreach ([
     'utilitarios.php','modo_teste.php','relacoes.php','aliancas.php',
     'aliancas_3.php','dinamicas_surpresa.php','paredao.php',
-    'provas_novas.php','reta_final.php','top4.php','fofoca_vt.php','objetivos_npc.php','dilemas_jogo.php','interacoes_4.php','discordia.php','discordia_3.php','dev_diagnosticos.php'
+    'provas_novas.php','reta_final.php','top4.php','fofoca_vt.php','objetivos_npc.php','dilemas_jogo.php','interacoes_4.php','romance.php','romance_3.php','discordia.php','discordia_3.php','dev_diagnosticos.php'
 ] as $arquivo) require_once $raiz.'/includes/logica/'.$arquivo;
 
 $dados = dev3Bateria([
