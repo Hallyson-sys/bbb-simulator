@@ -1,11 +1,11 @@
-/* BBB Simulator • Multiplayer Beta 9 — Feed BBB 3.0 Online. */
+/* BBB Simulator • Multiplayer Beta 11 — Reta Final e Campeão Online. */
 (() => {
 'use strict';
 const $=(id)=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 let code=(params.get('sala')||'').toUpperCase();
 let token='',room=null,busy=false,polling=false,serverOffset=0,seq=0,lastApplied=0;
-let currentPhase='',selectedType='',controlKey='',catalogBuilt=false,playersKey='',eventsKey='',feedKey='',sentKey='',privateKey='',proofResultsKey='';
+let currentPhase='',selectedType='',controlKey='',catalogBuilt=false,playersKey='',eventsKey='',feedKey='',sentKey='',privateKey='',proofResultsKey='',specialsKey='';
 const storeKey=c=>`bbb_mp_beta2_${c}`;
 const stored=()=>{try{return JSON.parse(localStorage.getItem(storeKey(code))||'null');}catch(e){return null;}};
 const notice=(text,error=false)=>{const n=$('notice');n.textContent=text;n.className='mp-notice mp-global-notice'+(error?' error':'');n.hidden=false;};
@@ -60,6 +60,15 @@ async function exportBackup(){
   notice('Backup criptografado preparado. Salve o arquivo em Arquivos e guarde sua senha. Se perder os dois, não conseguiremos recuperar a sala.');
  }catch(e){notice(e.message,true);}finally{button.disabled=false;button.textContent='💾 Baixar backup protegido';}
 }
+function renderSpecials(){
+ const box=$('specialsBoard');if(!box)return;
+ const sp=room.specials||{},bf=sp.bigFone||{},su=sp.surprise||null,secret=sp.secretRoom||null;
+ const key=JSON.stringify({sp,week:room.week});if(key===specialsKey)return;specialsKey=key;
+ box.replaceChildren();box.hidden=!su&&!bf.mine&&!secret;
+ if(su){const div=elem('div','mp-special-item');div.appendChild(elem('strong','',su.title));div.appendChild(elem('p','',su.description));box.appendChild(div);}
+ if(bf.mine){const div=elem('div','mp-special-item mp-special-private');div.appendChild(elem('strong','',bf.powerLabel||'☎️ Big Fone'));div.appendChild(elem('p','',bf.power==='trote'?'A produção fez um trote. Você não ganhou poder.':bf.used?'Poder registrado. Confira suas mensagens particulares.':'Você poderá usar seu poder na etapa indicada.'));box.appendChild(div);}
+ if(secret){const div=elem('div','mp-special-item mp-special-private');div.appendChild(elem('strong','','🚪 Quarto Secreto — só você pode ver'));div.appendChild(elem('p','',`Sua saída foi falsa. Observe a casa pelo Ao Vivo sem tomar decisões. Retorno na Semana ${secret.returnWeek}, antes da Festa.`));box.appendChild(div);}
+}
 function renderPrivate(){
  const contacts=room.contacts||[],agreements=room.agreements||[],logs=room.privateLogs||[];
  const key=JSON.stringify({contacts,agreements,logs});if(key===privateKey)return;privateKey=key;
@@ -78,13 +87,13 @@ const phase=room.phases[room.phase]||['🎮 Fase',''];$('phaseTitle').textConten
 $('weekLabel').textContent=`🔥 Semana ${room.week}`;
 const done=active().filter(p=>p.done).length;$('phaseReady').textContent=`${done}/${active().length} concluíram`;
 $('phaseProgress').style.width=`${Math.round(done*100/Math.max(1,active().length))}%`;
-renderPause();renderPrivate();renderProofResults();renderEliminationResults();renderQueridometroResults();renderMonstroTarefa();
+renderPause();renderPrivate();renderSpecials();renderProofResults();renderEliminationResults();renderQueridometroResults();renderMonstroTarefa();
 const changed=currentPhase!==room.phase;
 if(changed){selectedType='';selectedFesta='';currentPhase=room.phase;controlKey='';festaKey='';$('monstroTarefa').dataset.loaded='';renderTimeline();catalogBuilt=false;}
 renderPlayers();renderEvents();renderFeed();renderInvites();
 const social=isSocial()&&!mine?.eliminated;
-$('interactionsSection').hidden=!social;$('spectatorSection').hidden=!mine?.eliminated;
-$('phaseControls').hidden=social||!!mine?.eliminated;
+$('interactionsSection').hidden=!social;$('spectatorSection').hidden=!mine?.eliminated||['final_cerimonia','final'].includes(room.phase);
+$('phaseControls').hidden=social||(!!mine?.eliminated && !['final_cerimonia','final'].includes(room.phase));
 if(social){
  if(!catalogBuilt){renderCategories();catalogBuilt=true;}
  const left=3-(mine?.actionsUsed||0);
@@ -96,17 +105,35 @@ if(social){
  $('waitingHint').hidden=!mine?.done;
  if(selectedType){$('interactButton').disabled=!!mine?.done||left<=0;}
  renderSent();
-}else if(!mine?.eliminated){renderControls(changed);}
+}else if(!mine?.eliminated || ['final_cerimonia','final'].includes(room.phase)){renderControls(changed);}
  if(room.paused){$('interactionsSection').hidden=true;$('phaseControls').hidden=true;$('pendingSection').hidden=true;}
  timer();
 }
-function renderTimeline(){const phases=['interacoes_1','lider','vip_xepa','anjo','monstro','imunidade','queridometro','interacoes_2','festa','discordia','paredao','desempate','bate_volta','eliminacao'];const at=phases.indexOf(room.phase);
-$('timeline').replaceChildren();for(let i=0;i<phases.length;i++){const p=phases[i],step=elem('div','mp-step'+(i===at?' current':i<at||room.phase==='final'?' done':''),`${i<at||room.phase==='final'?'✓ ':i===at?'● ':''}${room.phases[p][0]}`);$('timeline').appendChild(step);}}
-function renderPlayers(){const key=JSON.stringify(room.players.map(p=>[p.id,p.name,p.profile,p.eliminated,p.isLeader,p.isAngel,p.isVIP,p.isImmune,p.isMonster,p.monsterTaskDone,p.relation,room.nominees.includes(p.id)]));if(playersKey===key)return;playersKey=key;const grid=$('playersGrid');grid.replaceChildren();
+function renderTimeline(){
+ const count=room.finalStage?.remaining??active().length;
+ const phases=['interacoes_1','lider','vip_xepa'];
+ if(count>5)phases.push('bigfone');
+ if(count>8)phases.push('anjo','monstro','imunidade');
+ phases.push('queridometro','interacoes_2','festa');
+ if(count>8)phases.push('discordia');
+ if(room.phase==='poder_bigfone')phases.push('poder_bigfone');
+ phases.push('paredao','desempate');
+ if(room.phase==='contragolpe')phases.push('contragolpe');
+ if(room.phase==='troca_emparedado')phases.push('troca_emparedado');
+ phases.push('bate_volta','eliminacao');
+ if(['top4_resistencia','final_paredao','final_cerimonia','final'].includes(room.phase))phases.push('top4_resistencia','final_paredao','final_cerimonia','final');
+ const at=phases.indexOf(room.phase);
+ $('timeline').replaceChildren();for(let i=0;i<phases.length;i++){
+  const id=phases[i];if(!room.phases[id])continue;
+  const step=elem('div','mp-step'+(i===at?' current':i<at?' done':''),`${i<at?'✓ ':i===at?'● ':''}${room.phases[id][0]}`);
+  $('timeline').appendChild(step);
+ }
+}
+function renderPlayers(){const key=JSON.stringify([room.phase,room.finalStage?.champion,room.players.map(p=>[p.id,p.name,p.profile,p.eliminated,p.isLeader,p.isAngel,p.isVIP,p.isImmune,p.isExtraImmune,p.isMonster,p.monsterTaskDone,p.relation,room.nominees.includes(p.id)])]);if(playersKey===key)return;playersKey=key;const grid=$('playersGrid');grid.replaceChildren();
 room.players.forEach(p=>{
 const card=elem('article','card'+(p.id===room.myId?' voce':'')+(p.eliminated?' eliminated':'')+(p.relation>=15?' positiva':p.relation<=-10?' negativa':''));
 const avatar=elem('div','avatar mp-avatar-initial',p.name.trim().charAt(0).toUpperCase());card.appendChild(avatar);card.appendChild(elem('h3','',p.name+(p.id===room.myId?' ⭐':'')));const prof=p.profile||{};if(prof.idade){card.appendChild(elem('div','mp-profile-line',`${prof.idade} anos • ${prof.estado}`));card.appendChild(elem('div','mp-profile-line mp-job',prof.profissao));card.appendChild(elem('div','mp-profile-tag',`✦ ${prof.personalidade}`));}
-let status=p.eliminated?'🚪 Eliminado':p.isLeader?'👑 Líder':p.isAngel?'😇 Anjo':p.isImmune?'🛡️ Imune':p.isVIP?'🟡 VIP':'🍞 Xepa'; if(p.isMonster)status+=' • 👹 Monstro'+(p.monsterTaskDone?' ✓':'');if(room.nominees.includes(p.id))status+=' • 🔥 Paredão';
+let status=room.phase==='final'&&room.finalStage?.champion===p.id?'🏆 Campeão':room.phase==='final'&&!p.eliminated?'🥈 Finalista':p.eliminated?'🚪 Eliminado':p.isLeader?'👑 Líder':p.isAngel?'😇 Anjo':(p.isImmune||p.isExtraImmune)?'🛡️ Imune':p.isVIP?'🟡 VIP':'🍞 Xepa'; if(p.isMonster)status+=' • 👹 Monstro'+(p.monsterTaskDone?' ✓':'');if(room.nominees.includes(p.id))status+=' • 🔥 Paredão';
 card.appendChild(elem('div','mp-state',status));if(p.id!==room.myId&&!p.eliminated)card.appendChild(elem('div','mp-state',`💜 Relação: ${p.relation>0?'+':''}${p.relation}`));
 grid.appendChild(card);
 });$('playersStatus').textContent=`Sala ${room.code} • ${room.players.length}/${room.capacity} inscritos • ${active().length} na casa`;
@@ -444,11 +471,97 @@ function renderVoteSummary(sec){
  for(const [id,n] of pairs)details.appendChild(elem('div','mp-vote-row',`${label(id)} — ${n} ${n===1?'voto':'votos'}`));
  sec.appendChild(details);
 }
+function renderTop4(){
+ const stage=room.finalStage?.top4||{},sec=controlsCard('🏆 A Última Resistência',
+ 'Oito ciclos inspirados no modo solo. Todos recebem a mesma faixa segura. Escolha a postura e tente encontrar o centro; o ponto ideal só é revelado após a rodada. A rapidez da internet não define a vitória.');
+ sec.appendChild(elem('div','mp-top4-cycle',`CICLO ${Math.min(stage.cycle||1,8)} DE 8 • ${stage.title||'Resistência'}`));
+ sec.appendChild(elem('p','mp-mini-hint',`📍 ${stage.place||'Plataforma'} • ⚠️ ${stage.effect||'Equilíbrio'}`));
+ const ranking=elem('div','mp-top4-ranking');
+ for(const [id,points] of Object.entries(stage.score||{})){
+  ranking.appendChild(elem('div','mp-top4-score',`${stage.standing?.[id]?'🟢':'🔴'} ${label(id)} — ${points} pontos • ${stage.energy?.[id]??0}% energia`));
+ }
+ sec.appendChild(ranking);
+ if(stage.last){const l=stage.last;sec.appendChild(elem('p','mp-top4-last',`🎯 Ciclo ${l.cycle} • O ponto ideal era ${l.target}.`));}
+ if(stage.winner){sec.appendChild(elem('h3','mp-champion',`👑 ${label(stage.winner)} venceu a Última Resistência!`));return;}
+ if(!stage.standing?.[room.myId]){sec.appendChild(elem('p','mp-vote-wait','Você deixou a plataforma. Acompanhe os ciclos restantes.'));return;}
+ if(stage.answered){sec.appendChild(elem('p','mp-vote-done','✅ Sua postura e marcador foram registrados. Aguarde os outros participantes.'));return;}
+ const z=stage.zone||{min:20,max:80};
+ sec.appendChild(elem('p','',`Faixa iluminada: de ${z.min} até ${z.max}. Quanto mais perto do centro secreto, melhor sua precisão.`));
+ const meter=elem('div','mp-top4-meter');const marker=elem('input');marker.type='range';marker.min='0';marker.max='100';marker.step='1';marker.value='50';marker.className='mp-top4-slider';
+ const value=elem('output','mp-top4-value','Posição escolhida: 50');marker.addEventListener('input',()=>{value.textContent='Posição escolhida: '+marker.value;});
+ meter.append(marker,value);sec.appendChild(meter);
+ const posture=makeSelect('mp-top4-posture',[{value:'conservar',text:'🌬️ Controlar a respiração — menos desgaste'},{value:'firmar',text:'🦾 Firmar a postura — equilíbrio'},{value:'arriscar',text:'⚡ Arriscar — mais pontos e desgaste'}],'Escolha sua postura');sec.appendChild(posture);
+ sec.appendChild(makeButton('🎯 Confirmar este ciclo',()=>{if(!posture.value)return notice('Escolha sua postura.',true);act('resistencia',{posture:posture.value,marker:Number(marker.value)});},'btn mp-main-btn'));
+}
+function renderFinalCeremony(){
+ const stage=room.finalStage?.ceremony||{},mine=me();
+ const sec=controlsCard('🎤 Cerimônia da Grande Final','Os finalistas pedem votos ao público simulado. Os eliminados podem declarar publicamente sua torcida, como nas entrevistas da final do modo solo.');
+ sec.appendChild(elem('h3','',`🏆 Finalistas: ${(stage.finalists||[]).map(label).join(' × ')}`));
+ const speeches=elem('div','mp-final-speeches');for(const [id,tone] of Object.entries(stage.speeches||{}))speeches.appendChild(elem('p','',`🎤 ${label(id)}: ${stage.tones?.[tone]?.text||''}`));sec.appendChild(speeches);
+ const supporters=elem('div','mp-final-supporters');for(const [id,candidate] of Object.entries(stage.support||{}))supporters.appendChild(elem('p','',`📣 ${label(id)} torce por ${label(candidate)}`));sec.appendChild(supporters);
+ if((stage.finalists||[]).includes(room.myId)){
+  if(stage.mySpeech){sec.appendChild(elem('p','mp-vote-done','✅ Seu pedido de voto está confirmado. Aguarde o resultado da final.'));return;}
+  const speech=makeSelect('mp-final-speech',Object.entries(stage.tones||{}).map(([value,d])=>({value,text:d.title})),'Como quer pedir votos?');sec.appendChild(speech);
+  const preview=elem('p','mp-final-preview','Selecione um tipo de discurso.');speech.addEventListener('change',()=>{preview.textContent=stage.tones?.[speech.value]?.text||'Selecione um tipo de discurso.';});sec.appendChild(preview);
+  sec.appendChild(makeButton('🎤 Fazer pedido de voto',()=>{if(!speech.value)return notice('Escolha o seu discurso.',true);act('discurso_final',{tone:speech.value});},'btn mp-main-btn'));return;
+ }
+ if(mine?.eliminated){
+  if(stage.mySupport){sec.appendChild(elem('p','mp-vote-done',`📣 Você declarou torcida por ${label(stage.mySupport)}.`));return;}
+  const select=makeSelect('mp-final-team',(stage.finalists||[]).map(id=>({value:id,text:label(id)})),'Escolha quem você vai apoiar');sec.appendChild(select);
+  sec.appendChild(makeButton('📣 Declarar minha torcida',()=>{if(!select.value)return notice('Escolha um finalista.',true);act('torcida_final',{id:select.value});},'btn mp-main-btn'));
+ }
+}
+function renderChampion(){
+ const sec=controlsCard('🏆 Grande Campeão do BBB Simulator','A cerimônia terminou! Esta é uma votação do público SIMULADA, como no modo solo; não são votos reais dos visitantes.');
+ const result=room.finalStage?.ceremony?.result;if(!result){sec.appendChild(elem('p','','Apurando os resultados da final...'));return;}
+ sec.appendChild(elem('div','mp-champion','👑 '+label(result.winner)));
+ sec.appendChild(elem('p','', 'CAMPEÃO DA TEMPORADA ONLINE'));
+ for(const id of result.ranking||[]){const pct=result.percentages?.[id]??0;const row=elem('div','mp-final-result');row.appendChild(elem('strong','',label(id)));
+  row.appendChild(elem('span','',`${Number(pct).toFixed(1).replace('.',',')}%`));sec.appendChild(row);
+ }
+ sec.appendChild(makeButton('🌐 Voltar à sala',here,'btn mp-secondary'));
+}
 function renderControls(force){const mine=me();const proofStage=room.proof?.type==='memoria'?(Math.floor((Date.now()+serverOffset)/1000)<room.proof.revealUntil?'reveal':'play'):'';
 const relevant=(room.debates||[]).filter(d=>d.from===room.myId||d.target===room.myId);
-const key=room.phase+'|'+JSON.stringify(room.paredao)+'|'+!!mine?.done+'|'+JSON.stringify(mine?.choice)+'|'+room.leaderPick+'|'+JSON.stringify(room.nominees)+'|'+(room.proof?.type||'')+'|'+(room.proof?.mySubmitted||false)+'|'+(room.proof?.eligible||false)+'|'+proofStage+'|'+JSON.stringify(relevant)+'|'+JSON.stringify(room.monsterIds)+'|'+JSON.stringify(room.myQueridometro);
+const key=room.phase+'|'+JSON.stringify(room.finalStage)+'|'+JSON.stringify(room.specials)+'|'+JSON.stringify(room.paredao)+'|'+!!mine?.done+'|'+JSON.stringify(mine?.choice)+'|'+room.leaderPick+'|'+JSON.stringify(room.nominees)+'|'+(room.proof?.type||'')+'|'+(room.proof?.mySubmitted||false)+'|'+(room.proof?.eligible||false)+'|'+proofStage+'|'+JSON.stringify(relevant)+'|'+JSON.stringify(room.monsterIds)+'|'+JSON.stringify(room.myQueridometro);
 if(!force&&controlKey===key)return;controlKey=key;
 const phase=room.phase;
+if(phase==='top4_resistencia'){renderTop4();return;}
+if(phase==='final_paredao'){const sec=controlsCard('🔥 Último Paredão','O vencedor da Última Resistência já garantiu a primeira vaga na Grande Final. Os outros três disputam as duas vagas restantes, sem Prova Bate e Volta. O público simulado decidirá quem sai.');sec.appendChild(elem('h3','',room.nominees.map(label).join(' × ')));sec.appendChild(elem('p','mp-vote-wait','🎤 Aguarde o discurso do apresentador e a revelação da votação simulada.'));return;}
+if(phase==='final_cerimonia'){renderFinalCeremony();return;}
+if(phase==='final'){renderChampion();return;}
+if(phase==='bigfone'){
+ const sp=room.specials?.bigFone||{};
+ const sec=controlsCard('☎️ Big Fone',sp.ring?'O telefone está tocando! Quem atender primeiro terá uma consequência, mas isso não garante um poder. O servidor decide quem chegou primeiro.':'O Big Fone não tocou nesta semana. A produção avança para a Prova do Anjo.');
+ if(sp.ring){if(sp.answered){sec.appendChild(elem('p','mp-vote-wait',`☎️ ${label(sp.answeredBy)} atendeu. Aguarde o anúncio da próxima dinâmica.`));}
+ else sec.appendChild(makeButton('☎️ ATENDER BIG FONE AGORA',()=>act('answer_phone'),'btn mp-main-btn mp-phone-button'));}
+ return;
+}
+if(phase==='poder_bigfone'){
+ const bf=room.specials?.bigFone||{},sec=controlsCard('☎️ Poder do Big Fone','O poder foi revelado somente à pessoa que atendeu. Os detalhes secretos não aparecem aos demais.');
+ if(!bf.mine){sec.appendChild(elem('p','mp-vote-wait','⏳ Uma decisão do Big Fone está sendo tomada.'));return;}
+ sec.appendChild(elem('h3','',bf.powerLabel||'Poder especial'));
+ const ids=room.specials?.powerTargets||[];
+ if(ids.length){const select=makeSelect('mp-power-target',ids.map(id=>({value:id,text:label(id)})));sec.appendChild(select);
+ sec.appendChild(makeButton('☎️ Confirmar meu poder',()=>{if(!select.value)return notice('Escolha um participante.',true);act('use_phone_power',{id:select.value});},'btn mp-main-btn'));}
+ else sec.appendChild(elem('p','','Não há alvo elegível nesta semana. Aguarde o relógio avançar.'));
+ return;
+}
+if(phase==='contragolpe'){
+ const sec=controlsCard('🔥 Contragolpe Especial','O indicado do Líder pode puxar um participante elegível para o Paredão. Esta decisão é definitiva.');
+ const ids=room.specials?.contragolpeTargets||[];
+ if(!ids.length){sec.appendChild(elem('p','mp-vote-wait','⏳ Aguarde a decisão do indicado do Líder ou o fim do cronômetro.'));return;}
+ const select=makeSelect('mp-counter-target',ids.map(id=>({value:id,text:label(id)})));sec.appendChild(select);
+ sec.appendChild(makeButton('🔥 Confirmar meu contragolpe',()=>{if(!select.value)return notice('Escolha alguém.',true);act('use_contragolpe',{id:select.value});},'btn mp-main-btn'));return;
+}
+if(phase==='troca_emparedado'){
+ const sec=controlsCard('🔄 Troca de Emparedado','O Big Fone permite retirar um indicado da casa (não o indicado do Líder) e substituir por outra pessoa elegível.');
+ const outs=room.specials?.swapNominees||[],ins=room.specials?.swapReplacements||[];
+ if(!outs.length||!ins.length){sec.appendChild(elem('p','mp-vote-wait','⏳ Aguarde a decisão de quem recebeu o poder.'));return;}
+ const a=makeSelect('mp-swap-out',outs.map(id=>({value:id,text:label(id)})),'Quem vai sair do Paredão?');
+ const b=makeSelect('mp-swap-in',ins.map(id=>({value:id,text:label(id)})),'Quem entra no lugar?');
+ sec.append(a,b);sec.appendChild(makeButton('🔄 Confirmar troca definitiva',()=>{if(!a.value||!b.value)return notice('Escolha os dois participantes.',true);act('swap_nominee',{out:a.value,in:b.value});},'btn mp-main-btn'));return;
+}
 if(phase==='lider'||phase==='anjo'){renderProof();return;}
 if(phase==='vip_xepa'){
 const sec=controlsCard('🍽️ VIP & Xepa',`O Líder escolhe até ${Math.max(1,Math.floor(active().length/3))} pessoas para o VIP, contando com ele próprio.`);
@@ -482,7 +595,7 @@ if(leader){
  sec.appendChild(elem('h3','','👑 Indicação do Líder'));
  if(room.leaderPick)sec.appendChild(elem('p','mp-vote-done',`✅ Você indicou ${label(room.leaderPick)}. O Líder não vota no Confessionário.`));
  else {
-  const choices=eligible({exclude:[room.immuneId].filter(Boolean)});
+  const choices=eligible({exclude:active().filter(p=>p.isImmune||p.isExtraImmune).map(p=>p.id).concat(room.specials?.extraNomineeId||[])});
   const sel=makeSelect('mp-indicar',choices,'Escolha quem vai direto ao Paredão');sec.appendChild(sel);
   sec.appendChild(makeButton('👑 Confirmar indicação definitiva',()=>{if(!sel.value)return notice('Escolha uma pessoa.',true);act('indicar',{id:sel.value});},'btn mp-main-btn'));
  }
@@ -492,7 +605,7 @@ if(!room.leaderPick){sec.appendChild(elem('div','mp-vote-wait','⏳ Aguarde a in
 sec.appendChild(elem('h3','','🗳️ Confessionário secreto'));
 sec.appendChild(elem('p','','O voto é individual e não poderá ser alterado. Não é permitido votar em si, no Líder, no indicado do Líder ou em alguém imune.'));
 if(mine.done){sec.appendChild(elem('p','mp-vote-done','🔒 Seu voto foi confirmado. Os demais não conseguem ver sua escolha.'));return;}
-const sel=makeSelect('mp-voto',eligible({exclude:[room.immuneId,room.leaderId,room.leaderPick].filter(Boolean)}),'Quem você quer indicar pela casa?');sec.appendChild(sel);
+const sel=makeSelect('mp-voto',eligible({exclude:active().filter(p=>p.isImmune||p.isExtraImmune).map(p=>p.id).concat([room.leaderId,room.leaderPick,room.specials?.extraNomineeId].filter(Boolean))}),'Quem você quer indicar pela casa?');sec.appendChild(sel);
 sec.appendChild(makeButton('🗳️ Confirmar voto secreto',()=>{if(!sel.value)return notice('Escolha quem receberá seu voto.',true);act('vote',{id:sel.value});},'btn mp-main-btn'));return;
 }
 if(phase==='desempate'){
@@ -524,10 +637,6 @@ const names=room.nominees.map(label);sec.appendChild(elem('h3','mp-elimination-n
 const bv=room.paredao?.lastBateVolta;
 if(bv?.week===room.week)sec.appendChild(elem('p','',`🚗 ${label(bv.winner)} escapou do Bate e Volta.`));
 sec.appendChild(elem('p','mp-vote-wait','🎤 O apresentador prepara o discurso. Aguarde a revelação da porcentagem de cada participante.'));return;
-}
-if(phase==='final'){
-const sec=controlsCard('🏁 Protótipo concluído','A temporada experimental chegou à fase final. A final completa e as dinâmicas especiais do jogo solo ainda não foram adaptadas.');
-sec.appendChild(elem('h3','',`Participantes restantes: ${active().map(p=>p.name).join(', ')}`));sec.appendChild(makeButton('🌐 Voltar à sala',here,'btn mp-secondary'));return;
 }
 controlsCard('Dinâmica em andamento','Acompanhe os acontecimentos no Ao Vivo.');
 }
