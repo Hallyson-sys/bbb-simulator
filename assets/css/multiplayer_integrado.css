@@ -169,3 +169,53 @@ body.mp-app{overflow-x:clip}
 .mp-proof-ranking-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 3px;border-bottom:1px solid rgba(255,255,255,.1);font-size:12px}
 .mp-proof-ranking-row:last-child{border-bottom:0}.mp-proof-ranking-row strong{font-size:12px;white-space:nowrap;color:#f0dcff}
 @media(max-width:480px){.mp-proof-symbol,.mp-proof-symbol-button{min-height:48px;font-size:21px}.mp-proof-memory-show,.mp-proof-memory-slots,.mp-proof-memory-options{gap:5px}.mp-proof-option{font-size:11px;min-height:58px}.mp-proof-answers{grid-template-columns:repeat(2,minmax(0,1fr))}.mp-proof-radio{padding:9px;font-size:13px!important}}
+
+/* BETA 7 · convivência semanal — mantém a identidade dos painéis do modo solo. */
+.mp-querido-results{border:1px solid rgba(249,138,214,.32);border-radius:18px;background:linear-gradient(130deg,rgba(117,25,111,.23),rgba(29,22,57,.64));padding:16px;margin-bottom:16px}
+.mp-querido-results summary{cursor:pointer;font-weight:800;color:#fce9ff}
+.mp-querido-results>p{font-size:12px;margin:10px 0;color:#e3d5f2}
+#queridometroResultsList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:13px}
+.mp-querido-result-item{background:rgba(13,8,34,.55);border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:12px}
+.mp-querido-result-item h4{font-size:12px;color:#ffe4fa;margin:0 0 7px}
+.mp-querido-result-item p{font-size:13px;line-height:1.5;margin:0;overflow-wrap:anywhere}
+.mp-querido-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:16px 0}
+.mp-querido-card{min-width:0;border-radius:15px;padding:14px;background:linear-gradient(135deg,rgba(100,39,133,.3),rgba(19,12,42,.7));border:1px solid rgba(220,169,249,.23)}
+.mp-querido-card h4{font-size:14px;margin:0 0 6px;color:#fff;overflow-wrap:anywhere}
+.mp-querido-card small{display:block;color:#d0b8e8;font-size:11px;line-height:1.4;margin-bottom:11px}
+.mp-querido-card select{border-color:rgba(240,132,219,.36)!important}
+.mp-debate{border-radius:15px;background:rgba(24,12,46,.64);border:1px solid rgba(255,126,171,.31);padding:14px;margin-top:15px}
+.mp-debate h4{font-size:14px;margin:0 0 8px;color:#ffe2f7}
+.mp-debate p{font-size:12px;line-height:1.55;margin:8px 0}
+.mp-debate-btn{display:block;width:100%;text-align:left;min-height:42px;border-radius:12px;background:rgba(106,61,145,.35);border:1px solid rgba(230,172,241,.25);color:#fff;padding:10px 12px;margin:7px 0;font-size:12px;cursor:pointer}
+.mp-debate-btn:hover{background:rgba(170,57,149,.4)}
+.mp-festa-board{margin:15px 0}.mp-festa-card{position:relative;overflow:hidden;border:1px solid rgba(248,139,229,.32)!important}
+.mp-festa-card>h3{font-size:20px;color:#fff}.mp-festa-card>p{color:#d6c4ec;font-size:13px;line-height:1.55}
+.mp-festa-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:15px 0}
+.mp-festa-choice{min-height:55px;line-height:1.35;background:linear-gradient(125deg,rgba(218,31,138,.25),rgba(77,50,163,.45));border:1px solid rgba(255,163,229,.28);color:#fff;font-weight:700;border-radius:13px;padding:10px;font-size:12px;text-align:left;cursor:pointer}
+.mp-festa-choice:hover{filter:brightness(1.16)}
+.mp-festa-form{margin:13px 0}.mp-festa-form:empty{display:none}.mp-festa-form:not(:empty){background:rgba(7,5,19,.36);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:13px}
+.mp-festa-form h4{font-size:15px;color:#ffe0fa;margin-bottom:7px}.mp-festa-form p{font-size:12px;line-height:1.5;margin-bottom:12px}
+.mp-festa-form label{font-size:12px;line-height:1.4}
+.mp-festa-message{min-height:70px;width:100%;border-radius:12px;padding:10px;color:#fff;background:rgba(16,12,38,.88);border:1px solid rgba(255,255,255,.17)}
+.mp-festa-targets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:215px;overflow:auto;margin:9px 0}
+.mp-festa-target{display:flex!important;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.13);background:rgba(23,19,47,.53);font-size:11px!important;margin:0!important}
+.mp-festa-target input{width:17px!important;height:17px!important;min-height:0!important;accent-color:#ed42b4}
+.mp-monstro-task{border:1px solid rgba(247,122,85,.36);margin:12px 0;background:rgba(93,33,58,.34)}
+.mp-monstro-task h3{font-size:16px}.mp-monstro-task p{font-size:12px;line-height:1.5;margin:9px 0}
+.mp-controls .mp-form-label{margin:13px 0 6px}
+@media(max-width:620px){.mp-querido-grid,#queridometroResultsList{grid-template-columns:1fr}.mp-festa-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:355px){.mp-festa-grid{grid-template-columns:1fr}.mp-festa-targets{grid-template-columns:1fr}}
+
+/* Beta 8 — votação, Bate e Volta e resultado, alinhados aos cards do jogo */
+.mp-game .mp-vote-summary,.mp-game .mp-elimination-results{margin:14px 0;border:1px solid rgba(227,143,250,.28);background:linear-gradient(130deg,rgba(101,33,143,.18),rgba(11,9,35,.68));border-radius:15px;padding:13px}
+.mp-game .mp-vote-summary summary,.mp-game .mp-elimination-results summary{font-weight:800;font-size:13px;cursor:pointer;color:#f5c7ff}
+.mp-game .mp-vote-summary p,.mp-game .mp-elimination-results p{font-size:12px;color:#d5c4e9;line-height:1.5;margin:9px 0}
+.mp-game .mp-vote-row,.mp-game .mp-elimination-row{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:11px 6px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;color:#f4eaff}
+.mp-game .mp-elimination-row strong{font-family:'Orbitron',sans-serif;color:#ffe4f5;font-size:14px}
+.mp-game .mp-elimination-names{font-size:clamp(17px,4vw,23px);line-height:1.4;margin:15px 0}
+.mp-game .mp-vote-wait,.mp-game .mp-vote-done{border:1px solid rgba(185,142,244,.25);border-radius:13px;padding:13px;background:rgba(123,59,188,.16);margin:13px 0}
+.mp-game .mp-vote-done{border-color:rgba(90,224,191,.4);background:rgba(33,115,106,.14)}
+.mp-game .mp-bv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:16px 0}
+.mp-game .mp-bv-option{background:rgba(70,35,112,.45);color:#fff;min-height:64px;border:1px solid rgba(220,174,255,.3);border-radius:14px;font-family:'Orbitron',sans-serif;font-size:17px;font-weight:900}
+.mp-game .mp-bv-option.selected{background:linear-gradient(120deg,#d923af,#823de5);border-color:#fdceff;box-shadow:0 0 15px rgba(213,78,234,.25)}
+@media(max-width:360px){.mp-game .mp-bv-grid{gap:6px}.mp-game .mp-bv-option{min-height:53px;font-size:15px}}
