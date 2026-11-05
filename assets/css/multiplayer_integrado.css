@@ -219,3 +219,35 @@ body.mp-app{overflow-x:clip}
 .mp-game .mp-bv-option{background:rgba(70,35,112,.45);color:#fff;min-height:64px;border:1px solid rgba(220,174,255,.3);border-radius:14px;font-family:'Orbitron',sans-serif;font-size:17px;font-weight:900}
 .mp-game .mp-bv-option.selected{background:linear-gradient(120deg,#d923af,#823de5);border-color:#fdceff;box-shadow:0 0 15px rgba(213,78,234,.25)}
 @media(max-width:360px){.mp-game .mp-bv-grid{gap:6px}.mp-game .mp-bv-option{min-height:53px;font-size:15px}}
+
+/* BETA 9 — Feed BBB 3.0 Online (identidade visual do Feed solo) */
+.mp-feed-version{font:800 10px 'Poppins',sans-serif;letter-spacing:.7px;color:#85e5ff;border:1px solid rgba(110,218,255,.27);background:rgba(21,148,188,.14);padding:5px 8px;border-radius:8px;vertical-align:middle;white-space:nowrap}
+.mp-feed-panel .mp-mini-hint{line-height:1.6;margin-top:9px}
+.mp-feed-filters{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin:14px 0 16px;padding:5px;background:rgba(8,5,24,.45);border:1px solid rgba(255,255,255,.07);border-radius:14px}
+.mp-feed-filters::-webkit-scrollbar{display:none}
+.mp-feed-panel button.mp-feed-filter{width:auto;flex:1;min-width:98px;border:1px solid transparent;border-radius:10px;background:rgba(255,255,255,.045);color:#cfc0e1;padding:11px 8px;font:700 12px 'Poppins',sans-serif;cursor:pointer;white-space:nowrap;box-shadow:none;transform:none}
+.mp-feed-panel button.mp-feed-filter.active{color:#fff;border-color:rgba(247,121,221,.45);background:linear-gradient(110deg,rgba(233,21,160,.45),rgba(87,39,204,.65))}
+.mp-feed-box{padding:15px;border:1px solid rgba(201,125,251,.18);background:linear-gradient(130deg,rgba(67,21,97,.32),rgba(9,22,58,.40));border-radius:15px;margin:11px 0}
+.mp-feed-box h3{font:800 14px 'Poppins',sans-serif;color:#ffdcf4;margin:0 0 7px}
+.mp-feed-box>p{font-size:11px;line-height:1.55;color:#c6b9dd;margin-bottom:10px}
+.mp-feed-trending{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mp-feed-trend,.mp-feed-fan{display:flex;flex-direction:column;gap:5px;padding:10px;border:1px solid rgba(255,255,255,.07);background:rgba(8,7,28,.38);border-radius:11px;min-width:0;overflow-wrap:anywhere}
+.mp-feed-trend strong,.mp-feed-fan strong{font-size:12px;color:#f9eaff}
+.mp-feed-trend small,.mp-feed-fan span{font-size:10px;color:#7ce6ff;overflow-wrap:anywhere}
+.mp-feed-fan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mp-feed-mutirao{padding:12px 0;border-top:1px solid rgba(255,255,255,.09)}.mp-feed-mutirao:first-child{border-top:0}.mp-feed-mutirao strong{font-size:13px;color:#fff}
+.mp-feed-post-heading{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px;gap:10px;font-size:10px;letter-spacing:.9px;color:#bfe9ff}.mp-feed-post-heading span{color:#dbbbeb;font-size:11px}
+.mp-feed-posts{gap:12px}
+.mp-feed-post{padding:16px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(160deg,rgba(19,12,49,.92),rgba(36,16,61,.72))}
+.mp-feed-post[hidden]{display:none!important}
+.mp-feed-author{display:flex;gap:10px;align-items:center}
+.mp-feed-avatar{width:39px;height:39px;flex:0 0 39px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#dc259e,#5150ce);font-weight:900;color:#fff}
+.mp-feed-identity{display:flex;flex-direction:column;gap:4px;min-width:0}.mp-feed-identity strong{font-size:12px;color:#fff;overflow-wrap:anywhere}.mp-feed-identity small{font-size:10px;color:#bcaad4}
+.mp-feed-post h4{margin:12px 0 6px;color:#fce7fb;font-size:13px}
+.mp-feed-post p{font-size:12px;line-height:1.65;color:#eee7f3}
+.mp-feed-tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.mp-feed-tag-row span{display:inline-block;background:rgba(22,148,200,.13);border:1px solid rgba(69,198,229,.12);color:#87e1fa;border-radius:8px;padding:5px 8px;font-size:10px;overflow-wrap:anywhere}
+.mp-feed-mutirao .mp-feed-tag-row span:first-child{color:#9ef1e7}.mp-feed-mutirao .mp-feed-tag-row span:nth-child(2){color:#ffb4cc;background:rgba(221,21,89,.12)}
+.mp-feed-stats{display:flex;align-items:center;gap:21px;padding-top:11px;margin-top:12px;border-top:1px solid rgba(255,255,255,.07);color:#c7b8e0;font-size:11px}
+.mp-feed-empty{font-size:12px;line-height:1.6;color:#bdb0d5;margin:9px 0}
+@media(max-width:410px){.mp-feed-trending,.mp-feed-fan-grid{grid-template-columns:1fr 1fr}.mp-feed-panel button.mp-feed-filter{font-size:11px;min-width:90px;padding:10px 6px}.mp-feed-box{padding:12px}.mp-feed-stats{gap:13px}}
