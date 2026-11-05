@@ -5,7 +5,7 @@ const $=(id)=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 let code=(params.get('sala')||'').toUpperCase();
 let token='',room=null,busy=false,polling=false,serverOffset=0,seq=0,lastApplied=0;
-let currentPhase='',selectedType='',controlKey='',catalogBuilt=false,playersKey='',eventsKey='',feedKey='',sentKey='';
+let currentPhase='',selectedType='',controlKey='',catalogBuilt=false,playersKey='',eventsKey='',feedKey='',sentKey='',privateKey='';
 const storeKey=c=>`bbb_mp_beta2_${c}`;
 const stored=()=>{try{return JSON.parse(localStorage.getItem(storeKey(code))||'null');}catch(e){return null;}};
 const notice=(text,error=false)=>{const n=$('notice');n.textContent=text;n.className='mp-notice mp-global-notice'+(error?' error':'');n.hidden=false;};
@@ -21,7 +21,7 @@ if(!res.ok||!data.ok)throw Error(data.erro||'Não foi possível realizar a açã
 if(num>=lastApplied){lastApplied=num;serverOffset=data.serverTime*1000-Date.now();room=data.room;render();}
 return data;
 }
-async function act(action,extra={}){if(busy)return;busy=true;try{await request(action,extra);clear();}catch(e){notice(e.message,true);}finally{busy=false;}}
+async function act(action,extra={}){if(busy)return false;busy=true;try{await request(action,extra);clear();if(action==='pause')notice('Temporada pausada! Antes de fechar, baixe o backup protegido por senha.');return true;}catch(e){notice(e.message,true);return false;}finally{busy=false;}}
 const me=()=>room?.players.find(p=>p.id===room.myId);
 const byId=id=>room?.players.find(p=>p.id===id);
 const label=id=>byId(id)?.name||'Participante';
@@ -38,7 +38,38 @@ function eligible(extras={}){
 return active().filter(p=>extras.allowSelf||p.id!==room.myId).filter(p=>!extras.exclude?.includes(p.id)).map(p=>({value:p.id,text:p.name}));
 }
 function remaining(){return Math.max(0,Math.ceil((room.endsAt*1000-(Date.now()+serverOffset))/1000));}
-function timer(){if(!room)return;const t=remaining();$('timer').textContent=room.phase==='final'?'—':`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;$('timer').classList.toggle('low',t<=15);}
+function timer(){if(!room)return;const t=room.paused?room.pauseRemaining:remaining();$('timer').textContent=room.phase==='final'?'—':`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;$('timer').classList.toggle('low',t<=15);}
+function renderPause(){
+ const host=room.myId===room.hostId;
+ $('pauseBoard').hidden=!room.paused;
+ $('hostPauseControls').hidden=!host||room.phase==='final'||room.phase==='lobby';
+ $('pauseGame').hidden=!!room.paused;
+ $('resumeGame').hidden=!room.paused;
+ $('backupControls').hidden=!room.paused;
+ $('phaseReady').textContent=room.paused?'⏸️ Cronômetro congelado':`${active().filter(p=>p.done).length}/${active().length} concluíram`;
+}
+async function exportBackup(){
+ const password=$('backupPassword').value;
+ if(password.length<8)return notice('Escolha uma senha de 8 caracteres ou mais para criptografar o arquivo.',true);
+ const button=$('downloadBackup');button.disabled=true;button.textContent='CRIPTOGRAFANDO...';
+ try{
+  const response=await fetch('multiplayer_api.php',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({action:'export',code,token})});
+  const data=await response.json();if(!response.ok||!data.ok)throw Error(data.erro||'Falha ao preparar o backup.');
+  const secured=await BBBBackup.seal(data.backup,token,password);
+  BBBBackup.download(secured,`BBB-ONLINE-${code}-SEMANA-${room.week}.json`);
+  notice('Backup criptografado preparado. Salve o arquivo em Arquivos e guarde sua senha. Se perder os dois, não conseguiremos recuperar a sala.');
+ }catch(e){notice(e.message,true);}finally{button.disabled=false;button.textContent='💾 Baixar backup protegido';}
+}
+function renderPrivate(){
+ const contacts=room.contacts||[],agreements=room.agreements||[],logs=room.privateLogs||[];
+ const key=JSON.stringify({contacts,agreements,logs});if(key===privateKey)return;privateKey=key;
+ $('privatePanel').hidden=!contacts.length&&!agreements.length&&!logs.length;
+ const rel=$('relationsList');rel.replaceChildren();
+ for(const c of contacts){const tags=[c.alliance?'🤝 Aliança':'',c.romanceMoments?`💗 Aproximação (${c.romanceMoments})`:'',c.protection?'🛡️ Pacto de proteção':''].filter(Boolean);rel.appendChild(elem('p','mp-relation-row',`${c.name} • ${tags.join(' • ')}`));}
+ for(const a of agreements){const partner=label(a.a===room.myId?a.b:a.a),target=label(a.target);rel.appendChild(elem('p','mp-relation-row',`🎯 Acordo com ${partner} para votar em ${target} (semana ${a.week}) • ${a.status}`));}
+ const messages=$('privateMessages');messages.replaceChildren();
+ for(const item of [...logs].reverse()){const row=elem('div','mp-private-item');row.appendChild(elem('small','',`SEMANA ${item.week}`));row.appendChild(elem('p','',item.text));messages.appendChild(row);}
+}
 function render(){
 if(!room)return;if(room.phase==='lobby'){here();return;}
 const mine=me();
@@ -47,6 +78,7 @@ const phase=room.phases[room.phase]||['🎮 Fase',''];$('phaseTitle').textConten
 $('weekLabel').textContent=`🔥 Semana ${room.week}`;
 const done=active().filter(p=>p.done).length;$('phaseReady').textContent=`${done}/${active().length} concluíram`;
 $('phaseProgress').style.width=`${Math.round(done*100/Math.max(1,active().length))}%`;
+renderPause();renderPrivate();
 const changed=currentPhase!==room.phase;
 if(changed){selectedType='';currentPhase=room.phase;controlKey='';renderTimeline();catalogBuilt=false;}
 renderPlayers();renderEvents();renderInvites();
@@ -64,6 +96,7 @@ if(social){
  if(selectedType){$('interactButton').disabled=!!mine?.done||left<=0;}
  renderSent();
 }else if(!mine?.eliminated){renderControls(changed);}
+ if(room.paused){$('interactionsSection').hidden=true;$('phaseControls').hidden=true;$('pendingSection').hidden=true;}
  timer();
 }
 function renderTimeline(){const phases=['interacoes_1','lider','vip_xepa','anjo','imunidade','queridometro','interacoes_2','festa','discordia','paredao','eliminacao'];const at=phases.indexOf(room.phase);
@@ -104,22 +137,44 @@ const target=$('targetPlayer');target.replaceChildren();target.appendChild(new O
 for(const p of eligible())target.appendChild(new Option(p.text,p.value));
 const subject=$('actionSubject');subject.replaceChildren();for(const [id,title] of Object.entries(cat[2]))subject.appendChild(new Option(title,id));
 $('interactionForm').hidden=false;$('categories').hidden=true;
-$('interactionForm').scrollIntoView({behavior:'smooth',block:'center'});
+$('actionMessage').value='';
+ $('voteAgreementField').hidden=type!=='i4_acordo';
+ if(type==='i4_acordo'){
+  const refresh=()=>{const s=$('voteTarget');s.replaceChildren();s.appendChild(new Option('Sem alvo definido',''));
+   for(const p of eligible({exclude:[$('targetPlayer').value]}))s.appendChild(new Option(p.text,p.value));};
+  refresh();target.onchange=refresh;
+ }
+ $('interactionForm').scrollIntoView({behavior:'smooth',block:'center'});
 }
-function renderInvites(){const pending=room.pending||[];$('pendingSection').hidden=pending.length===0;
-const list=$('pendingList');const previous=list.dataset.key;const key=JSON.stringify(pending.map(p=>[p.id,p.status]));if(previous===key)return;list.dataset.key=key;
-list.replaceChildren();for(const q of pending){const block=elem('div','mp-request');
-block.appendChild(elem('strong','',`💬 ${label(q.from)} te chamou para conversar`));
-block.appendChild(elem('p','',`${q.label} • ${q.subject} • Abordagem ${q.approach}`));
-const responses=elem('div','mp-responses');
-for(const [value,text] of [['aceitar','💜 Aceitar'],['conversar','💬 Responder com cautela'],['recusar','🧊 Recusar']])responses.appendChild(makeButton(text,()=>act('respond',{requestId:q.id,answer:value}),'mp-choice-button'));
-block.appendChild(responses);list.appendChild(block);
+function renderInvites(){
+ const pending=room.pending||[];$('pendingSection').hidden=room.paused||pending.length===0;
+ const list=$('pendingList');const previous=list.dataset.key;
+ const key=JSON.stringify(pending.map(p=>[p.id,p.status,p.options,p.message,p.proposedTarget]));if(previous===key)return;list.dataset.key=key;
+ list.replaceChildren();for(const q of pending){const block=elem('div','mp-request');
+  block.appendChild(elem('strong','',`💬 ${label(q.from)} quer conversar com você`));
+  block.appendChild(elem('p','',`${q.label} • ${q.subject} • Abordagem ${q.approach}`));
+  if(q.message)block.appendChild(elem('p','mp-invite-message',`✉️ “${q.message}”`));
+  if(q.proposedTarget)block.appendChild(elem('p','mp-invite-message',`🎯 Proposta de voto: ${label(q.proposedTarget)}`));
+  const reply=elem('textarea','mp-reply-text');reply.rows=2;reply.maxLength=160;reply.placeholder='Sua resposta particular (opcional, até 160 caracteres)';block.appendChild(reply);
+  let counter=null;
+  if(q.type==='i4_acordo' && q.options?.some(o=>o.value==='contrapropor')){
+   counter=makeSelect('counter-'+q.id,eligible({exclude:[q.from,q.proposedTarget].filter(Boolean)}),'Escolha outro alvo para contrapropor');
+   block.appendChild(elem('label','', 'Se quiser propor outro alvo:'));block.appendChild(counter);
+  }
+  const responses=elem('div','mp-responses');
+  for(const o of q.options||[]){const b=makeButton(o.label,()=>{
+   if(o.value==='contrapropor'&&!counter?.value)return notice('Escolha outro participante para a contraproposta.',true);
+   act('respond',{requestId:q.id,answer:o.value,reply:reply.value,...(o.value==='contrapropor'?{counterTarget:counter.value}:{})});
+  },'mp-choice-button');responses.appendChild(b);}
+  block.appendChild(responses);list.appendChild(block);
+ }
 }
-}
-function renderSent(){const outgoing=room.outgoing||[];$('sentSection').hidden=!outgoing.length;const key=JSON.stringify(outgoing.map(q=>[q.id,q.status,q.answer]));if(sentKey===key)return;sentKey=key;
+function renderSent(){const outgoing=room.outgoing||[];$('sentSection').hidden=!outgoing.length;
+const key=JSON.stringify(outgoing.map(q=>[q.id,q.status,q.answer,q.reply,q.message]));if(sentKey===key)return;sentKey=key;
 const list=$('sentList');list.replaceChildren();for(const q of [...outgoing].reverse()){
-const status=q.status==='pendente'?'⏳ Aguardando resposta':q.status==='expirou'?'⌛ Tempo esgotado':q.answer==='recusar'?'🧊 Recusou':q.answer==='aceitar'?'💜 Aceitou':'💬 Respondeu';
-list.appendChild(elem('div','mp-sent-item',`${label(q.to)} • ${q.label} — ${status}`));
+const status=q.status==='pendente'?'⏳ Aguardando resposta':q.status==='expirou'?'⌛ Tempo esgotado':q.answer==='recusar'?'🧊 Recusou':q.answer==='aceitar'||q.answer==='retribuir'?'💜 Aceitou':q.answer==='contrapropor'?'🔄 Contrapropôs':'💬 Respondeu';
+const block=elem('div','mp-sent-item',`${label(q.to)} • ${q.label} — ${status}`);
+if(q.reply)block.appendChild(elem('p','mp-private-reply',`✉️ ${q.reply}`));list.appendChild(block);
 }}
 function controlsCard(title,desc){const c=$('phaseControls');c.replaceChildren();const sec=elem('div','i4-selecao');sec.appendChild(elem('div','i4-kicker',`● REC • ${room.phases[room.phase]?.[0]||'SEMANA'}`));sec.appendChild(elem('h3','',title));sec.appendChild(elem('p','',desc));c.appendChild(sec);return sec;}
 function renderControls(force){const mine=me();const key=room.phase+'|'+!!mine?.done+'|'+JSON.stringify(mine?.choice)+'|'+room.leaderPick+'|'+JSON.stringify(room.nominees);
@@ -185,12 +240,15 @@ controlsCard('Dinâmica em andamento','Acompanhe os acontecimentos no Ao Vivo.')
 }
 $('interactButton').addEventListener('click',()=>{
 if(!selectedType||!$('targetPlayer').value)return notice('Escolha com quem conversar.',true);
-act('interact',{type:selectedType,targetId:$('targetPlayer').value,subject:$('actionSubject').value,approach:$('actionApproach').value}).then(()=>{
- selectedType='';$('interactionForm').hidden=true;$('categories').hidden=!!me()?.done;
+act('interact',{type:selectedType,targetId:$('targetPlayer').value,subject:$('actionSubject').value,approach:$('actionApproach').value,message:$('actionMessage').value,voteTarget:selectedType==='i4_acordo' ? $('voteTarget').value : undefined}).then(ok=>{
+ if(ok){selectedType='';$('interactionForm').hidden=true;$('categories').hidden=!!me()?.done;}
 });
 });
 $('cancelAction').onclick=()=>{selectedType='';$('interactionForm').hidden=true;$('categories').hidden=false;};
 $('finishButton').onclick=()=>act('finish');
+$('pauseGame').onclick=()=>{if(confirm('Pausar a temporada e congelar o relógio para todos?'))act('pause');};
+$('resumeGame').onclick=()=>{if(confirm('Retomar agora? Todos voltarão a jogar e o cronômetro continuará.'))act('resume');};
+$('downloadBackup').onclick=exportBackup;
 function openPanel(id){const target=$(id);if(!target)return;
 if(target.classList.contains('mobile-collapsed')){target.classList.remove('mobile-collapsed');target.querySelector('.mobile-panel-toggle')?.setAttribute('aria-expanded','true');}
 target.scrollIntoView({behavior:'smooth',block:'start'});
