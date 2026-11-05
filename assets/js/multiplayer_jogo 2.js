@@ -1,11 +1,11 @@
-/* BBB Simulator • Multiplayer Beta 7 — Semana e Convivência Online. */
+/* BBB Simulator • Multiplayer Beta 10 — Dinâmicas Especiais Online. */
 (() => {
 'use strict';
 const $=(id)=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 let code=(params.get('sala')||'').toUpperCase();
 let token='',room=null,busy=false,polling=false,serverOffset=0,seq=0,lastApplied=0;
-let currentPhase='',selectedType='',controlKey='',catalogBuilt=false,playersKey='',eventsKey='',feedKey='',sentKey='',privateKey='',proofResultsKey='';
+let currentPhase='',selectedType='',controlKey='',catalogBuilt=false,playersKey='',eventsKey='',feedKey='',sentKey='',privateKey='',proofResultsKey='',specialsKey='';
 const storeKey=c=>`bbb_mp_beta2_${c}`;
 const stored=()=>{try{return JSON.parse(localStorage.getItem(storeKey(code))||'null');}catch(e){return null;}};
 const notice=(text,error=false)=>{const n=$('notice');n.textContent=text;n.className='mp-notice mp-global-notice'+(error?' error':'');n.hidden=false;};
@@ -60,6 +60,15 @@ async function exportBackup(){
   notice('Backup criptografado preparado. Salve o arquivo em Arquivos e guarde sua senha. Se perder os dois, não conseguiremos recuperar a sala.');
  }catch(e){notice(e.message,true);}finally{button.disabled=false;button.textContent='💾 Baixar backup protegido';}
 }
+function renderSpecials(){
+ const box=$('specialsBoard');if(!box)return;
+ const sp=room.specials||{},bf=sp.bigFone||{},su=sp.surprise||null,secret=sp.secretRoom||null;
+ const key=JSON.stringify({sp,week:room.week});if(key===specialsKey)return;specialsKey=key;
+ box.replaceChildren();box.hidden=!su&&!bf.mine&&!secret;
+ if(su){const div=elem('div','mp-special-item');div.appendChild(elem('strong','',su.title));div.appendChild(elem('p','',su.description));box.appendChild(div);}
+ if(bf.mine){const div=elem('div','mp-special-item mp-special-private');div.appendChild(elem('strong','',bf.powerLabel||'☎️ Big Fone'));div.appendChild(elem('p','',bf.power==='trote'?'A produção fez um trote. Você não ganhou poder.':bf.used?'Poder registrado. Confira suas mensagens particulares.':'Você poderá usar seu poder na etapa indicada.'));box.appendChild(div);}
+ if(secret){const div=elem('div','mp-special-item mp-special-private');div.appendChild(elem('strong','','🚪 Quarto Secreto — só você pode ver'));div.appendChild(elem('p','',`Sua saída foi falsa. Observe a casa pelo Ao Vivo sem tomar decisões. Retorno na Semana ${secret.returnWeek}, antes da Festa.`));box.appendChild(div);}
+}
 function renderPrivate(){
  const contacts=room.contacts||[],agreements=room.agreements||[],logs=room.privateLogs||[];
  const key=JSON.stringify({contacts,agreements,logs});if(key===privateKey)return;privateKey=key;
@@ -78,10 +87,10 @@ const phase=room.phases[room.phase]||['🎮 Fase',''];$('phaseTitle').textConten
 $('weekLabel').textContent=`🔥 Semana ${room.week}`;
 const done=active().filter(p=>p.done).length;$('phaseReady').textContent=`${done}/${active().length} concluíram`;
 $('phaseProgress').style.width=`${Math.round(done*100/Math.max(1,active().length))}%`;
-renderPause();renderPrivate();renderProofResults();renderQueridometroResults();renderMonstroTarefa();
+renderPause();renderPrivate();renderSpecials();renderProofResults();renderEliminationResults();renderQueridometroResults();renderMonstroTarefa();
 const changed=currentPhase!==room.phase;
 if(changed){selectedType='';selectedFesta='';currentPhase=room.phase;controlKey='';festaKey='';$('monstroTarefa').dataset.loaded='';renderTimeline();catalogBuilt=false;}
-renderPlayers();renderEvents();renderInvites();
+renderPlayers();renderEvents();renderFeed();renderInvites();
 const social=isSocial()&&!mine?.eliminated;
 $('interactionsSection').hidden=!social;$('spectatorSection').hidden=!mine?.eliminated;
 $('phaseControls').hidden=social||!!mine?.eliminated;
@@ -100,29 +109,61 @@ if(social){
  if(room.paused){$('interactionsSection').hidden=true;$('phaseControls').hidden=true;$('pendingSection').hidden=true;}
  timer();
 }
-function renderTimeline(){const phases=['interacoes_1','lider','vip_xepa','anjo','monstro','imunidade','queridometro','interacoes_2','festa','discordia','paredao','eliminacao'];const at=phases.indexOf(room.phase);
+function renderTimeline(){const phases=['interacoes_1','lider','vip_xepa','bigfone','anjo','monstro','imunidade','queridometro','interacoes_2','festa','discordia'];
+if(room.phase==='poder_bigfone')phases.push('poder_bigfone');phases.push('paredao','desempate');
+if(room.phase==='contragolpe')phases.push('contragolpe');if(room.phase==='troca_emparedado')phases.push('troca_emparedado');
+phases.push('bate_volta','eliminacao');const at=phases.indexOf(room.phase);
 $('timeline').replaceChildren();for(let i=0;i<phases.length;i++){const p=phases[i],step=elem('div','mp-step'+(i===at?' current':i<at||room.phase==='final'?' done':''),`${i<at||room.phase==='final'?'✓ ':i===at?'● ':''}${room.phases[p][0]}`);$('timeline').appendChild(step);}}
-function renderPlayers(){const key=JSON.stringify(room.players.map(p=>[p.id,p.name,p.profile,p.eliminated,p.isLeader,p.isAngel,p.isVIP,p.isImmune,p.isMonster,p.monsterTaskDone,p.relation]));if(playersKey===key)return;playersKey=key;const grid=$('playersGrid');grid.replaceChildren();
+function renderPlayers(){const key=JSON.stringify(room.players.map(p=>[p.id,p.name,p.profile,p.eliminated,p.isLeader,p.isAngel,p.isVIP,p.isImmune,p.isExtraImmune,p.isMonster,p.monsterTaskDone,p.relation,room.nominees.includes(p.id)]));if(playersKey===key)return;playersKey=key;const grid=$('playersGrid');grid.replaceChildren();
 room.players.forEach(p=>{
 const card=elem('article','card'+(p.id===room.myId?' voce':'')+(p.eliminated?' eliminated':'')+(p.relation>=15?' positiva':p.relation<=-10?' negativa':''));
 const avatar=elem('div','avatar mp-avatar-initial',p.name.trim().charAt(0).toUpperCase());card.appendChild(avatar);card.appendChild(elem('h3','',p.name+(p.id===room.myId?' ⭐':'')));const prof=p.profile||{};if(prof.idade){card.appendChild(elem('div','mp-profile-line',`${prof.idade} anos • ${prof.estado}`));card.appendChild(elem('div','mp-profile-line mp-job',prof.profissao));card.appendChild(elem('div','mp-profile-tag',`✦ ${prof.personalidade}`));}
-let status=p.eliminated?'🚪 Eliminado':p.isLeader?'👑 Líder':p.isAngel?'😇 Anjo':p.isImmune?'🛡️ Imune':p.isVIP?'🟡 VIP':'🍞 Xepa'; if(p.isMonster)status+=' • 👹 Monstro'+(p.monsterTaskDone?' ✓':'');
+let status=p.eliminated?'🚪 Eliminado':p.isLeader?'👑 Líder':p.isAngel?'😇 Anjo':(p.isImmune||p.isExtraImmune)?'🛡️ Imune':p.isVIP?'🟡 VIP':'🍞 Xepa'; if(p.isMonster)status+=' • 👹 Monstro'+(p.monsterTaskDone?' ✓':'');if(room.nominees.includes(p.id))status+=' • 🔥 Paredão';
 card.appendChild(elem('div','mp-state',status));if(p.id!==room.myId&&!p.eliminated)card.appendChild(elem('div','mp-state',`💜 Relação: ${p.relation>0?'+':''}${p.relation}`));
 grid.appendChild(card);
 });$('playersStatus').textContent=`Sala ${room.code} • ${room.players.length}/${room.capacity} inscritos • ${active().length} na casa`;
 }
 function renderEvents(){const key=(room.events||[]).map(ev=>ev.id).join('|');if(eventsKey===key)return;eventsKey=key;const list=$('eventsList');list.replaceChildren();const events=[...room.events].reverse();
-if(!events.length){list.appendChild(elem('li','','Os primeiros acontecimentos da casa vão aparecer aqui.'));renderFeed();return;}
-for(const ev of events){const li=elem('li',ev.type==='interacao'?'mp-event-story':'');li.appendChild(elem('small','',`SEMANA ${ev.week} • ${new Date(ev.at*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`));if(ev.title)li.appendChild(elem('strong','mp-event-title',ev.title));if(ev.place)li.appendChild(elem('div','mp-event-place',`📍 ${ev.place} • ${ev.topic||'Convivência'}`));li.appendChild(elem('span','',ev.text));list.appendChild(li);}renderFeed();
+if(!events.length){list.appendChild(elem('li','','Os primeiros acontecimentos da casa vão aparecer aqui.'));return;}
+for(const ev of events){const li=elem('li',ev.type==='interacao'?'mp-event-story':'');li.appendChild(elem('small','',`SEMANA ${ev.week} • ${new Date(ev.at*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`));if(ev.title)li.appendChild(elem('strong','mp-event-title',ev.title));if(ev.place)li.appendChild(elem('div','mp-event-place',`📍 ${ev.place} • ${ev.topic||'Convivência'}`));li.appendChild(elem('span','',ev.text));list.appendChild(li);}
+}
+function feedNum(n){const v=Number(n)||0;return v>=1000?`${(v/1000).toFixed(v>=10000?0:1).replace('.',',')} mil`:String(v);}
+function feedEmpty(container,text){container.appendChild(elem('p','mp-feed-empty',text));}
+function applyFeedFilter(){
+ document.querySelectorAll('.mp-feed-filter').forEach(b=>{const on=b.dataset.feedFilter===feedFilter;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
+ let visible=0;
+ document.querySelectorAll('#feedPosts .mp-feed-post').forEach(p=>{const on=feedFilter==='todos'||p.dataset.feedType===feedFilter;p.hidden=!on;if(on)visible++;});
+ $('feedPostCount').textContent=`${visible} ${visible===1?'publicação':'publicações'}`;
+ const empty=$('feedPosts').querySelector('.mp-feed-filter-empty');if(empty)empty.remove();
+ if(!visible)feedEmpty($('feedPosts'),feedFilter==='todos'?'Quando os acontecimentos começarem, o público simulado comentará aqui.':'Ainda não há publicações desta categoria nesta semana.');
+ const last=$('feedPosts').lastElementChild;if(last?.classList.contains('mp-feed-empty'))last.classList.add('mp-feed-filter-empty');
 }
 function renderFeed(){
- const entries=(room.events||[]).filter(ev=>ev.type!=='convite').slice(-24).reverse();
- const key=entries.map(ev=>ev.id).join('|');if(feedKey===key)return;feedKey=key;
- const list=$('feedPosts');if(!list)return;list.replaceChildren();
- if(!entries.length){list.appendChild(elem('p','mp-feed-empty','Quando a casa começar a se movimentar, o Feed mostrará os principais acontecimentos.'));return;}
- entries.forEach(ev=>{const post=elem('article','mp-feed-post');const top=elem('div','mp-feed-head');top.append(elem('span','','📱 FEED BBB • ONLINE'),elem('small','',`SEMANA ${ev.week}`));post.appendChild(top);
- const tag=({interacao:'#Convivencia',festa:'#FestaBBB',discordia:'#JogoDaDiscordia',queridometro:'#Queridometro',monstro:'#CastigoDoMonstro',vip:'#VipEXepa',convivencia:'#RotinaDaCasa'})[ev.type]||(ev.text.includes('Paredão')?'#Paredao':ev.text.includes('Líder')?'#ProvaDoLider':'#BBBOnline');
- post.appendChild(elem('h4','',ev.title||'🎥 Aconteceu na casa'));post.appendChild(elem('p','',ev.text));post.appendChild(elem('div','mp-feed-tags',`${tag}  #BBBSimulator`));list.appendChild(post);});
+ const f=room.feedBBB||{posts:[],trending:[],torcidas:[],mutiroes:[]};
+ const posts=f.posts||[],trending=f.trending||[],fans=f.torcidas||[],mutiroes=f.mutiroes||[];
+ const key=JSON.stringify({ids:posts.map(p=>p.id),trending,fans,mutiroes});if(feedKey===key)return;feedKey=key;
+ const trends=$('feedTrending');trends.replaceChildren();
+ if(!trending.length)feedEmpty(trends,'As hashtags aparecem conforme a casa se movimenta.');
+ for(const t of trending){const row=elem('div','mp-feed-trend');row.append(elem('strong','',t.tag),elem('small','',`${t.mentions} menções simuladas`));trends.appendChild(row);}
+ const fansList=$('feedFans');fansList.replaceChildren();
+ if(!fans.length)feedEmpty(fansList,'As torcidas começam a se organizar depois dos primeiros acontecimentos.');
+ for(const fan of fans){const c=elem('div','mp-feed-fan');c.append(elem('strong','',fan.name),elem('span','',fan.tag));fansList.appendChild(c);}
+ const mutList=$('feedMutiroes');mutList.replaceChildren();
+ if(!mutiroes.length)feedEmpty(mutList,'Os mutirões aparecem quando o Paredão estiver definido.');
+ for(const m of mutiroes){const c=elem('div','mp-feed-mutirao');c.appendChild(elem('strong','',m.name));const tags=elem('div','mp-feed-tag-row');tags.append(elem('span','',m.ficar),elem('span','',m.fora));c.appendChild(tags);mutList.appendChild(c);}
+ const list=$('feedPosts');list.replaceChildren();
+ for(const post of posts){const card=elem('article','mp-feed-post');card.dataset.feedType=post.type;
+ const head=elem('div','mp-feed-author');
+ const avatar=elem('div','mp-feed-avatar',post.author?.charAt(0)||'B');
+ const identity=elem('div','mp-feed-identity');identity.append(elem('strong','',`${post.author||'Central BBB'} ✓`),elem('small','',`${post.handle||'@centralbbb'} • Semana ${post.week}`));
+ head.append(avatar,identity);card.appendChild(head);
+ if(post.headline)card.appendChild(elem('h4','',post.headline));
+ card.appendChild(elem('p','',post.text||''));
+ const tags=elem('div','mp-feed-tag-row');for(const tag of post.tags||[])tags.appendChild(elem('span','',tag));card.appendChild(tags);
+ const stats=elem('div','mp-feed-stats');stats.append(elem('span','',`💬 ${feedNum(post.comments)}`),elem('span','',`🔁 ${feedNum(post.shares)}`),elem('span','',`❤️ ${feedNum(post.likes)}`));card.appendChild(stats);
+ list.appendChild(card);
+ }
+ applyFeedFilter();
 }
 function renderCategories(){
 const c=$('categoryGroups');c.replaceChildren();const groups=[['social','💜 Social','Convivência, sentimentos e romance'],['estrategia','🎯 Estratégia','Sondagem e acordos reservados'],['conflitos','🔥 Conflitos','Esclarecer, confrontar ou mediar'],['aliancas','👥 Alianças e ações clássicas','Conversar, fofocas, VT e convites']];
@@ -392,11 +433,66 @@ function renderFesta(){
   },'mp-festa-choice'));
  }
 }
+let eliminationKey='';
+function renderEliminationResults(){
+ const panel=$('eliminationResults');if(!panel)return;
+ const result=room.paredao?.lastEliminacao;
+ panel.hidden=!result||room.phase==='eliminacao';
+ if(panel.hidden)return;
+ const key=JSON.stringify(result);if(key===eliminationKey)return;eliminationKey=key;
+ $('eliminationResultsTitle').textContent=`🚪 Resultado do Paredão • Semana ${result.week}`;
+ const list=$('eliminationRanking');list.replaceChildren();
+ const values=Object.entries(result.percentages||{}).sort((a,b)=>b[1]-a[1]);
+ for(const [id,pct] of values){const div=elem('div','mp-elimination-row');div.appendChild(elem('span','',label(id)+(id===result.eliminated?' 🚪':'')));div.appendChild(elem('strong','',Number(pct).toFixed(1).replace('.',',')+'%'));list.appendChild(div);}
+ $('eliminationWinner').textContent=label(result.eliminated)+' foi eliminado(a). Os percentuais são simulados.';
+}
+function renderVoteSummary(sec){
+ const summary=room.paredao?.votosApurados;
+ if(!summary||summary.week!==room.week)return;
+ const details=elem('details','mp-vote-summary');
+ const title=elem('summary','','📊 Ver tabela de votos da casa');details.appendChild(title);
+ details.appendChild(elem('p','',`${summary.total} votos válidos • ${summary.abstentions} abstenções. Eleitores não são identificados.`));
+ const pairs=Object.entries(summary.counts||{}).sort((a,b)=>b[1]-a[1]);
+ for(const [id,n] of pairs)details.appendChild(elem('div','mp-vote-row',`${label(id)} — ${n} ${n===1?'voto':'votos'}`));
+ sec.appendChild(details);
+}
 function renderControls(force){const mine=me();const proofStage=room.proof?.type==='memoria'?(Math.floor((Date.now()+serverOffset)/1000)<room.proof.revealUntil?'reveal':'play'):'';
 const relevant=(room.debates||[]).filter(d=>d.from===room.myId||d.target===room.myId);
-const key=room.phase+'|'+!!mine?.done+'|'+JSON.stringify(mine?.choice)+'|'+room.leaderPick+'|'+JSON.stringify(room.nominees)+'|'+(room.proof?.type||'')+'|'+(room.proof?.mySubmitted||false)+'|'+(room.proof?.eligible||false)+'|'+proofStage+'|'+JSON.stringify(relevant)+'|'+JSON.stringify(room.monsterIds)+'|'+JSON.stringify(room.myQueridometro);
+const key=room.phase+'|'+JSON.stringify(room.specials)+'|'+JSON.stringify(room.paredao)+'|'+!!mine?.done+'|'+JSON.stringify(mine?.choice)+'|'+room.leaderPick+'|'+JSON.stringify(room.nominees)+'|'+(room.proof?.type||'')+'|'+(room.proof?.mySubmitted||false)+'|'+(room.proof?.eligible||false)+'|'+proofStage+'|'+JSON.stringify(relevant)+'|'+JSON.stringify(room.monsterIds)+'|'+JSON.stringify(room.myQueridometro);
 if(!force&&controlKey===key)return;controlKey=key;
 const phase=room.phase;
+if(phase==='bigfone'){
+ const sp=room.specials?.bigFone||{};
+ const sec=controlsCard('☎️ Big Fone',sp.ring?'O telefone está tocando! Quem atender primeiro terá uma consequência, mas isso não garante um poder. O servidor decide quem chegou primeiro.':'O Big Fone não tocou nesta semana. A produção avança para a Prova do Anjo.');
+ if(sp.ring){if(sp.answered){sec.appendChild(elem('p','mp-vote-wait',`☎️ ${label(sp.answeredBy)} atendeu. Aguarde o anúncio da próxima dinâmica.`));}
+ else sec.appendChild(makeButton('☎️ ATENDER BIG FONE AGORA',()=>act('answer_phone'),'btn mp-main-btn mp-phone-button'));}
+ return;
+}
+if(phase==='poder_bigfone'){
+ const bf=room.specials?.bigFone||{},sec=controlsCard('☎️ Poder do Big Fone','O poder foi revelado somente à pessoa que atendeu. Os detalhes secretos não aparecem aos demais.');
+ if(!bf.mine){sec.appendChild(elem('p','mp-vote-wait','⏳ Uma decisão do Big Fone está sendo tomada.'));return;}
+ sec.appendChild(elem('h3','',bf.powerLabel||'Poder especial'));
+ const ids=room.specials?.powerTargets||[];
+ if(ids.length){const select=makeSelect('mp-power-target',ids.map(id=>({value:id,text:label(id)})));sec.appendChild(select);
+ sec.appendChild(makeButton('☎️ Confirmar meu poder',()=>{if(!select.value)return notice('Escolha um participante.',true);act('use_phone_power',{id:select.value});},'btn mp-main-btn'));}
+ else sec.appendChild(elem('p','','Não há alvo elegível nesta semana. Aguarde o relógio avançar.'));
+ return;
+}
+if(phase==='contragolpe'){
+ const sec=controlsCard('🔥 Contragolpe Especial','O indicado do Líder pode puxar um participante elegível para o Paredão. Esta decisão é definitiva.');
+ const ids=room.specials?.contragolpeTargets||[];
+ if(!ids.length){sec.appendChild(elem('p','mp-vote-wait','⏳ Aguarde a decisão do indicado do Líder ou o fim do cronômetro.'));return;}
+ const select=makeSelect('mp-counter-target',ids.map(id=>({value:id,text:label(id)})));sec.appendChild(select);
+ sec.appendChild(makeButton('🔥 Confirmar meu contragolpe',()=>{if(!select.value)return notice('Escolha alguém.',true);act('use_contragolpe',{id:select.value});},'btn mp-main-btn'));return;
+}
+if(phase==='troca_emparedado'){
+ const sec=controlsCard('🔄 Troca de Emparedado','O Big Fone permite retirar um indicado da casa (não o indicado do Líder) e substituir por outra pessoa elegível.');
+ const outs=room.specials?.swapNominees||[],ins=room.specials?.swapReplacements||[];
+ if(!outs.length||!ins.length){sec.appendChild(elem('p','mp-vote-wait','⏳ Aguarde a decisão de quem recebeu o poder.'));return;}
+ const a=makeSelect('mp-swap-out',outs.map(id=>({value:id,text:label(id)})),'Quem vai sair do Paredão?');
+ const b=makeSelect('mp-swap-in',ins.map(id=>({value:id,text:label(id)})),'Quem entra no lugar?');
+ sec.append(a,b);sec.appendChild(makeButton('🔄 Confirmar troca definitiva',()=>{if(!a.value||!b.value)return notice('Escolha os dois participantes.',true);act('swap_nominee',{out:a.value,in:b.value});},'btn mp-main-btn'));return;
+}
 if(phase==='lider'||phase==='anjo'){renderProof();return;}
 if(phase==='vip_xepa'){
 const sec=controlsCard('🍽️ VIP & Xepa',`O Líder escolhe até ${Math.max(1,Math.floor(active().length/3))} pessoas para o VIP, contando com ele próprio.`);
@@ -423,25 +519,58 @@ const s=makeSelect('mp-target',eligible());sec.appendChild(s);sec.appendChild(ma
 if(phase==='queridometro'){renderQueridometroControls(mine);return;}
 if(phase==='discordia'){renderDiscordiaControls(mine);return;}
 if(phase==='paredao'){
-const sec=controlsCard('🔥 Formação do Paredão','O Líder indica uma pessoa. Todos os participantes ativos fazem um voto secreto no confessionário.');
-if(room.myId===room.leaderId){
-if(!room.leaderPick){sec.appendChild(elem('h3','','👑 Indicação do Líder'));
-const s=makeSelect('mp-indicar',eligible({exclude:[room.immuneId].filter(Boolean)}));sec.appendChild(s);
-sec.appendChild(makeButton('👑 Confirmar indicação',()=>{if(!s.value){notice('Escolha a indicação.',true);return;}act('indicar',{id:s.value});},'btn mp-main-btn'));}
-else sec.appendChild(elem('p','',`👑 Você indicou ${label(room.leaderPick)}.`));
+const leader=room.myId===room.leaderId;
+const plan=room.paredao?.paredaoPlano;
+const sec=controlsCard('🔥 Formação do Paredão',`O Líder faz uma indicação e o restante da casa vota em segredo. Nesta semana, o Paredão terá ${plan?.tamanho||3} indicados${plan?.bateVolta?' antes do Bate e Volta':''}.`);
+if(leader){
+ sec.appendChild(elem('h3','','👑 Indicação do Líder'));
+ if(room.leaderPick)sec.appendChild(elem('p','mp-vote-done',`✅ Você indicou ${label(room.leaderPick)}. O Líder não vota no Confessionário.`));
+ else {
+  const choices=eligible({exclude:active().filter(p=>p.isImmune||p.isExtraImmune).map(p=>p.id).concat(room.specials?.extraNomineeId||[])});
+  const sel=makeSelect('mp-indicar',choices,'Escolha quem vai direto ao Paredão');sec.appendChild(sel);
+  sec.appendChild(makeButton('👑 Confirmar indicação definitiva',()=>{if(!sel.value)return notice('Escolha uma pessoa.',true);act('indicar',{id:sel.value});},'btn mp-main-btn'));
+ }
+ return;
 }
-if(mine.done){sec.appendChild(elem('p','','🗳️ Seu voto foi registrado em segredo.'));return;}
-if(room.myId===room.leaderId&&!room.leaderPick){sec.appendChild(elem('p','','Indique alguém antes de votar no confessionário.'));return;}
-sec.appendChild(elem('h3','','🗳️ Confessionário'));
-const s=makeSelect('mp-voto',eligible({exclude:[room.immuneId].filter(Boolean)}));sec.appendChild(s);
-sec.appendChild(makeButton('🗳️ Confirmar voto secreto',()=>{if(!s.value){notice('Escolha alguém para votar.',true);return;}act('vote',{id:s.value});},'btn mp-main-btn'));return;
+if(!room.leaderPick){sec.appendChild(elem('div','mp-vote-wait','⏳ Aguarde a indicação do Líder. O Confessionário abrirá depois.'));return;}
+sec.appendChild(elem('h3','','🗳️ Confessionário secreto'));
+sec.appendChild(elem('p','','O voto é individual e não poderá ser alterado. Não é permitido votar em si, no Líder, no indicado do Líder ou em alguém imune.'));
+if(mine.done){sec.appendChild(elem('p','mp-vote-done','🔒 Seu voto foi confirmado. Os demais não conseguem ver sua escolha.'));return;}
+const sel=makeSelect('mp-voto',eligible({exclude:active().filter(p=>p.isImmune||p.isExtraImmune).map(p=>p.id).concat([room.leaderId,room.leaderPick,room.specials?.extraNomineeId].filter(Boolean))}),'Quem você quer indicar pela casa?');sec.appendChild(sel);
+sec.appendChild(makeButton('🗳️ Confirmar voto secreto',()=>{if(!sel.value)return notice('Escolha quem receberá seu voto.',true);act('vote',{id:sel.value});},'btn mp-main-btn'));return;
+}
+if(phase==='desempate'){
+const sec=controlsCard('⚖️ Desempate do Líder','A votação terminou empatada por uma vaga. O Líder escolhe um dos participantes empatados. Se o tempo acabar, será feito um sorteio entre eles.');
+renderVoteSummary(sec);
+const options=room.paredao?.desempateIds||[];
+sec.appendChild(elem('p','',`Empatados: ${options.map(label).join(' × ')}`));
+if(room.myId!==room.leaderId){sec.appendChild(elem('p','mp-vote-wait','⏳ Aguardando a decisão do Líder.'));return;}
+const select=makeSelect('mp-tiebreak',options.map(id=>({value:id,text:label(id)})),'Escolha quem ocupará a vaga');sec.appendChild(select);
+sec.appendChild(makeButton('⚖️ Confirmar desempate',()=>{if(!select.value)return notice('Escolha um participante empatado.',true);act('desempatar',{id:select.value});},'btn mp-main-btn'));return;
+}
+if(phase==='bate_volta'){
+const bv=room.paredao?.bateVolta||{};
+const names={portas:'🚪 Portas da Sorte',urna:'🎲 Urna Misteriosa',dado:'🎯 Dado da Virada'};
+const sec=controlsCard('🚗 Bate e Volta — '+(names[bv.type]||'Prova da Sorte'),'Os indicados da casa disputam a chance de se salvar. O indicado do Líder não participa. Cada pessoa escolhe um número; a opção sorteada pelo servidor decide a proximidade. Empates são sorteados entre empatados, sem critério de velocidade.');
+renderVoteSummary(sec);
+sec.appendChild(elem('p','',`Participantes: ${(bv.participants||[]).map(label).join(' × ')}`));
+sec.appendChild(elem('p','','Respostas recebidas: '+(bv.submitted||0)+' de '+(bv.participants?.length||0)));
+if(!bv.eligible){sec.appendChild(elem('p','mp-vote-wait','📺 Você acompanha essa prova como espectador.'));return;}
+if(bv.mySubmitted){sec.appendChild(elem('p','mp-vote-done','✅ Sua escolha foi registrada em segredo. Aguarde os outros jogadores.'));return;}
+const grid=elem('div','mp-bv-grid');let selected=null;const buttons=[];
+for(let n=1;n<=6;n++){const b=makeButton((bv.type==='portas'?'🚪 ':bv.type==='urna'?'🎲 ':'🎯 ')+n,()=>{selected=n;buttons.forEach(x=>x.classList.toggle('selected',x===b));},'mp-bv-option');buttons.push(b);grid.appendChild(b);}
+sec.appendChild(grid);sec.appendChild(makeButton('🏁 Confirmar minha escolha',()=>{if(selected===null)return notice('Escolha uma opção de 1 a 6.',true);act('bate_volta',{choice:selected});},'btn mp-main-btn'));return;
 }
 if(phase==='eliminacao'){
-const sec=controlsCard('🚪 Noite de eliminação','Paredão definido! Este protótipo calcula a saída por um placar simplificado de convivência, não por uma votação pública real.');
-const names=room.nominees.map(label);sec.appendChild(elem('h3','',names.join(' × ')||'Paredão em apuração'));sec.appendChild(elem('p','','⏳ O resultado aparece no Ao Vivo quando o cronômetro terminar.'));return;
+const sec=controlsCard('🚪 Noite de Eliminação','O resultado é uma SIMULAÇÃO de votação do público, influenciada pelas relações da casa e por uma parcela de sorte — não são votos de visitantes reais. Todos descobrem o resultado juntos ao final do cronômetro.');
+renderVoteSummary(sec);
+const names=room.nominees.map(label);sec.appendChild(elem('h3','mp-elimination-names',names.join(' × ')||'Paredão em apuração'));
+const bv=room.paredao?.lastBateVolta;
+if(bv?.week===room.week)sec.appendChild(elem('p','',`🚗 ${label(bv.winner)} escapou do Bate e Volta.`));
+sec.appendChild(elem('p','mp-vote-wait','🎤 O apresentador prepara o discurso. Aguarde a revelação da porcentagem de cada participante.'));return;
 }
 if(phase==='final'){
-const sec=controlsCard('🏁 Protótipo concluído','A temporada experimental chegou à fase final. A final completa e as dinâmicas especiais do jogo solo ainda não foram adaptadas.');
+const sec=controlsCard('🏁 Protótipo concluído','A temporada experimental chegou à fase final. O modo de final completa ainda será adaptado na próxima atualização.');
 sec.appendChild(elem('h3','',`Participantes restantes: ${active().map(p=>p.name).join(', ')}`));sec.appendChild(makeButton('🌐 Voltar à sala',here,'btn mp-secondary'));return;
 }
 controlsCard('Dinâmica em andamento','Acompanhe os acontecimentos no Ao Vivo.');
@@ -469,6 +598,7 @@ for(const b of document.querySelectorAll('.mobile-panel-toggle'))b.onclick=()=>{
 $('mobileMenuBtn').onclick=()=>{const menu=$('mobileHeaderMenu');menu.hidden=!menu.hidden;$('mobileMenuBtn').setAttribute('aria-expanded',String(!menu.hidden));};
 $('menuCasa').onclick=()=>{openPanel('mobileCasa');$('mobileHeaderMenu').hidden=true;};
 $('menuAoVivo').onclick=()=>{openPanel('mobileAoVivo');$('mobileHeaderMenu').hidden=true;};
+document.querySelectorAll('.mp-feed-filter').forEach(button=>button.addEventListener('click',()=>{feedFilter=button.dataset.feedFilter||'todos';applyFeedFilter();}));
 request('status').catch(e=>{notice('Não foi possível entrar na sala: '+e.message,true);});
 setInterval(()=>{if(!room||busy||polling)return;polling=true;request('status').catch(e=>notice('Conexão interrompida: '+e.message,true)).finally(()=>polling=false);},2500);
 setInterval(timer,250);
