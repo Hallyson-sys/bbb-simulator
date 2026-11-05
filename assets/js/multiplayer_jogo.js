@@ -1,4 +1,4 @@
-/* BBB Simulator • Multiplayer Beta 6 — Provas Online competitivas. */
+/* BBB Simulator • Multiplayer Beta 9 — Feed BBB 3.0 Online. */
 (() => {
 'use strict';
 const $=(id)=>document.getElementById(id);
@@ -78,18 +78,19 @@ const phase=room.phases[room.phase]||['🎮 Fase',''];$('phaseTitle').textConten
 $('weekLabel').textContent=`🔥 Semana ${room.week}`;
 const done=active().filter(p=>p.done).length;$('phaseReady').textContent=`${done}/${active().length} concluíram`;
 $('phaseProgress').style.width=`${Math.round(done*100/Math.max(1,active().length))}%`;
-renderPause();renderPrivate();renderProofResults();
+renderPause();renderPrivate();renderProofResults();renderEliminationResults();renderQueridometroResults();renderMonstroTarefa();
 const changed=currentPhase!==room.phase;
-if(changed){selectedType='';currentPhase=room.phase;controlKey='';renderTimeline();catalogBuilt=false;}
-renderPlayers();renderEvents();renderInvites();
+if(changed){selectedType='';selectedFesta='';currentPhase=room.phase;controlKey='';festaKey='';$('monstroTarefa').dataset.loaded='';renderTimeline();catalogBuilt=false;}
+renderPlayers();renderEvents();renderFeed();renderInvites();
 const social=isSocial()&&!mine?.eliminated;
 $('interactionsSection').hidden=!social;$('spectatorSection').hidden=!mine?.eliminated;
 $('phaseControls').hidden=social||!!mine?.eliminated;
 if(social){
  if(!catalogBuilt){renderCategories();catalogBuilt=true;}
  const left=3-(mine?.actionsUsed||0);
- $('actionsTitle').textContent=`💬 Interações — ${left} restantes`;
+ $('actionsTitle').textContent=room.phase==='festa'?`🎉 Festa — ${left} ações restantes`:`💬 Interações — ${left} restantes`;
  $('categories').hidden=!!mine?.done||!!selectedType;
+ $('festaBoard').hidden=room.phase!=='festa'||!!selectedType;if(room.phase==='festa')renderFesta();
  $('interactionForm').hidden=!!mine?.done||!selectedType;
  $('finishButton').hidden=!!mine?.done;
  $('waitingHint').hidden=!mine?.done;
@@ -99,29 +100,58 @@ if(social){
  if(room.paused){$('interactionsSection').hidden=true;$('phaseControls').hidden=true;$('pendingSection').hidden=true;}
  timer();
 }
-function renderTimeline(){const phases=['interacoes_1','lider','vip_xepa','anjo','imunidade','queridometro','interacoes_2','festa','discordia','paredao','eliminacao'];const at=phases.indexOf(room.phase);
+function renderTimeline(){const phases=['interacoes_1','lider','vip_xepa','anjo','monstro','imunidade','queridometro','interacoes_2','festa','discordia','paredao','desempate','bate_volta','eliminacao'];const at=phases.indexOf(room.phase);
 $('timeline').replaceChildren();for(let i=0;i<phases.length;i++){const p=phases[i],step=elem('div','mp-step'+(i===at?' current':i<at||room.phase==='final'?' done':''),`${i<at||room.phase==='final'?'✓ ':i===at?'● ':''}${room.phases[p][0]}`);$('timeline').appendChild(step);}}
-function renderPlayers(){const key=JSON.stringify(room.players.map(p=>[p.id,p.name,p.profile,p.eliminated,p.isLeader,p.isAngel,p.isVIP,p.isImmune,p.relation]));if(playersKey===key)return;playersKey=key;const grid=$('playersGrid');grid.replaceChildren();
+function renderPlayers(){const key=JSON.stringify(room.players.map(p=>[p.id,p.name,p.profile,p.eliminated,p.isLeader,p.isAngel,p.isVIP,p.isImmune,p.isMonster,p.monsterTaskDone,p.relation,room.nominees.includes(p.id)]));if(playersKey===key)return;playersKey=key;const grid=$('playersGrid');grid.replaceChildren();
 room.players.forEach(p=>{
 const card=elem('article','card'+(p.id===room.myId?' voce':'')+(p.eliminated?' eliminated':'')+(p.relation>=15?' positiva':p.relation<=-10?' negativa':''));
 const avatar=elem('div','avatar mp-avatar-initial',p.name.trim().charAt(0).toUpperCase());card.appendChild(avatar);card.appendChild(elem('h3','',p.name+(p.id===room.myId?' ⭐':'')));const prof=p.profile||{};if(prof.idade){card.appendChild(elem('div','mp-profile-line',`${prof.idade} anos • ${prof.estado}`));card.appendChild(elem('div','mp-profile-line mp-job',prof.profissao));card.appendChild(elem('div','mp-profile-tag',`✦ ${prof.personalidade}`));}
-let status=p.eliminated?'🚪 Eliminado':p.isLeader?'👑 Líder':p.isAngel?'😇 Anjo':p.isImmune?'🛡️ Imune':p.isVIP?'🟡 VIP':'🍞 Xepa';
+let status=p.eliminated?'🚪 Eliminado':p.isLeader?'👑 Líder':p.isAngel?'😇 Anjo':p.isImmune?'🛡️ Imune':p.isVIP?'🟡 VIP':'🍞 Xepa'; if(p.isMonster)status+=' • 👹 Monstro'+(p.monsterTaskDone?' ✓':'');if(room.nominees.includes(p.id))status+=' • 🔥 Paredão';
 card.appendChild(elem('div','mp-state',status));if(p.id!==room.myId&&!p.eliminated)card.appendChild(elem('div','mp-state',`💜 Relação: ${p.relation>0?'+':''}${p.relation}`));
 grid.appendChild(card);
 });$('playersStatus').textContent=`Sala ${room.code} • ${room.players.length}/${room.capacity} inscritos • ${active().length} na casa`;
 }
 function renderEvents(){const key=(room.events||[]).map(ev=>ev.id).join('|');if(eventsKey===key)return;eventsKey=key;const list=$('eventsList');list.replaceChildren();const events=[...room.events].reverse();
-if(!events.length){list.appendChild(elem('li','','Os primeiros acontecimentos da casa vão aparecer aqui.'));renderFeed();return;}
-for(const ev of events){const li=elem('li',ev.type==='interacao'?'mp-event-story':'');li.appendChild(elem('small','',`SEMANA ${ev.week} • ${new Date(ev.at*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`));if(ev.title)li.appendChild(elem('strong','mp-event-title',ev.title));if(ev.place)li.appendChild(elem('div','mp-event-place',`📍 ${ev.place} • ${ev.topic||'Convivência'}`));li.appendChild(elem('span','',ev.text));list.appendChild(li);}renderFeed();
+if(!events.length){list.appendChild(elem('li','','Os primeiros acontecimentos da casa vão aparecer aqui.'));return;}
+for(const ev of events){const li=elem('li',ev.type==='interacao'?'mp-event-story':'');li.appendChild(elem('small','',`SEMANA ${ev.week} • ${new Date(ev.at*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`));if(ev.title)li.appendChild(elem('strong','mp-event-title',ev.title));if(ev.place)li.appendChild(elem('div','mp-event-place',`📍 ${ev.place} • ${ev.topic||'Convivência'}`));li.appendChild(elem('span','',ev.text));list.appendChild(li);}
+}
+function feedNum(n){const v=Number(n)||0;return v>=1000?`${(v/1000).toFixed(v>=10000?0:1).replace('.',',')} mil`:String(v);}
+function feedEmpty(container,text){container.appendChild(elem('p','mp-feed-empty',text));}
+function applyFeedFilter(){
+ document.querySelectorAll('.mp-feed-filter').forEach(b=>{const on=b.dataset.feedFilter===feedFilter;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
+ let visible=0;
+ document.querySelectorAll('#feedPosts .mp-feed-post').forEach(p=>{const on=feedFilter==='todos'||p.dataset.feedType===feedFilter;p.hidden=!on;if(on)visible++;});
+ $('feedPostCount').textContent=`${visible} ${visible===1?'publicação':'publicações'}`;
+ const empty=$('feedPosts').querySelector('.mp-feed-filter-empty');if(empty)empty.remove();
+ if(!visible)feedEmpty($('feedPosts'),feedFilter==='todos'?'Quando os acontecimentos começarem, o público simulado comentará aqui.':'Ainda não há publicações desta categoria nesta semana.');
+ const last=$('feedPosts').lastElementChild;if(last?.classList.contains('mp-feed-empty'))last.classList.add('mp-feed-filter-empty');
 }
 function renderFeed(){
- const entries=(room.events||[]).filter(ev=>ev.type!=='convite').slice(-24).reverse();
- const key=entries.map(ev=>ev.id).join('|');if(feedKey===key)return;feedKey=key;
- const list=$('feedPosts');if(!list)return;list.replaceChildren();
- if(!entries.length){list.appendChild(elem('p','mp-feed-empty','Quando a casa começar a se movimentar, o Feed mostrará os principais acontecimentos.'));return;}
- entries.forEach(ev=>{const post=elem('article','mp-feed-post');const top=elem('div','mp-feed-head');top.append(elem('span','','📱 FEED BBB • ONLINE'),elem('small','',`SEMANA ${ev.week}`));post.appendChild(top);
- const tag=(ev.type==='interacao'?'#Convivencia':ev.text.includes('Paredão')?'#Paredao':ev.text.includes('Líder')?'#ProvaDoLider':'#BBBOnline');
- post.appendChild(elem('h4','',ev.title||'🎥 Aconteceu na casa'));post.appendChild(elem('p','',ev.text));post.appendChild(elem('div','mp-feed-tags',`${tag}  #BBBSimulator`));list.appendChild(post);});
+ const f=room.feedBBB||{posts:[],trending:[],torcidas:[],mutiroes:[]};
+ const posts=f.posts||[],trending=f.trending||[],fans=f.torcidas||[],mutiroes=f.mutiroes||[];
+ const key=JSON.stringify({ids:posts.map(p=>p.id),trending,fans,mutiroes});if(feedKey===key)return;feedKey=key;
+ const trends=$('feedTrending');trends.replaceChildren();
+ if(!trending.length)feedEmpty(trends,'As hashtags aparecem conforme a casa se movimenta.');
+ for(const t of trending){const row=elem('div','mp-feed-trend');row.append(elem('strong','',t.tag),elem('small','',`${t.mentions} menções simuladas`));trends.appendChild(row);}
+ const fansList=$('feedFans');fansList.replaceChildren();
+ if(!fans.length)feedEmpty(fansList,'As torcidas começam a se organizar depois dos primeiros acontecimentos.');
+ for(const fan of fans){const c=elem('div','mp-feed-fan');c.append(elem('strong','',fan.name),elem('span','',fan.tag));fansList.appendChild(c);}
+ const mutList=$('feedMutiroes');mutList.replaceChildren();
+ if(!mutiroes.length)feedEmpty(mutList,'Os mutirões aparecem quando o Paredão estiver definido.');
+ for(const m of mutiroes){const c=elem('div','mp-feed-mutirao');c.appendChild(elem('strong','',m.name));const tags=elem('div','mp-feed-tag-row');tags.append(elem('span','',m.ficar),elem('span','',m.fora));c.appendChild(tags);mutList.appendChild(c);}
+ const list=$('feedPosts');list.replaceChildren();
+ for(const post of posts){const card=elem('article','mp-feed-post');card.dataset.feedType=post.type;
+ const head=elem('div','mp-feed-author');
+ const avatar=elem('div','mp-feed-avatar',post.author?.charAt(0)||'B');
+ const identity=elem('div','mp-feed-identity');identity.append(elem('strong','',`${post.author||'Central BBB'} ✓`),elem('small','',`${post.handle||'@centralbbb'} • Semana ${post.week}`));
+ head.append(avatar,identity);card.appendChild(head);
+ if(post.headline)card.appendChild(elem('h4','',post.headline));
+ card.appendChild(elem('p','',post.text||''));
+ const tags=elem('div','mp-feed-tag-row');for(const tag of post.tags||[])tags.appendChild(elem('span','',tag));card.appendChild(tags);
+ const stats=elem('div','mp-feed-stats');stats.append(elem('span','',`💬 ${feedNum(post.comments)}`),elem('span','',`🔁 ${feedNum(post.shares)}`),elem('span','',`❤️ ${feedNum(post.likes)}`));card.appendChild(stats);
+ list.appendChild(card);
+ }
+ applyFeedFilter();
 }
 function renderCategories(){
 const c=$('categoryGroups');c.replaceChildren();const groups=[['social','💜 Social','Convivência, sentimentos e romance'],['estrategia','🎯 Estratégia','Sondagem e acordos reservados'],['conflitos','🔥 Conflitos','Esclarecer, confrontar ou mediar'],['aliancas','👥 Alianças e ações clássicas','Conversar, fofocas, VT e convites']];
@@ -136,7 +166,7 @@ $('chosenTitle').textContent=cat[0];
 const target=$('targetPlayer');target.replaceChildren();target.appendChild(new Option('Escolha o participante',''));
 for(const p of eligible())target.appendChild(new Option(p.text,p.value));
 const subject=$('actionSubject');subject.replaceChildren();for(const [id,title] of Object.entries(cat[2]))subject.appendChild(new Option(title,id));
-$('interactionForm').hidden=false;$('categories').hidden=true;
+$('interactionForm').hidden=false;$('categories').hidden=true;if(room.phase==='festa')$('festaBoard').hidden=true;
 $('actionMessage').value='';
  $('voteAgreementField').hidden=type!=='i4_acordo';
  if(type==='i4_acordo'){
@@ -275,8 +305,148 @@ function renderProof(){
   }
 }
 function controlsCard(title,desc){const c=$('phaseControls');c.replaceChildren();const sec=elem('div','i4-selecao');sec.appendChild(elem('div','i4-kicker',`● REC • ${room.phases[room.phase]?.[0]||'SEMANA'}`));sec.appendChild(elem('h3','',title));sec.appendChild(elem('p','',desc));c.appendChild(sec);return sec;}
+
+function renderQueridometroResults(){
+ const root=$('queridometroResults'),data=room.queridometroResult;
+ root.hidden=!data||data.week!==room.week;if(root.hidden)return;
+ const key=JSON.stringify(data);if(key===queridoKey)return;queridoKey=key;
+ const list=$('queridometroResultsList');list.replaceChildren();
+ for(const p of room.players.filter(p=>!p.eliminated)){
+  const votes=data.received?.[p.id]||{};
+  const all=Object.entries(votes).sort((a,b)=>b[1]-a[1]);
+  const card=elem('article','mp-querido-result-item');card.appendChild(elem('h4','',p.name));
+  card.appendChild(elem('p','',all.length?all.map(([emoji,count])=>`${emoji} × ${count}`).join('   '):'Nenhum emoji recebido nesta rodada.'));
+  list.appendChild(card);
+ }
+}
+function renderQueridometroControls(mine){
+ const sec=controlsCard('💟 Queridômetro da Casa','Escolha um emoji para cada participante — igual ao modo solo. Você também pode preencher sugestões pelas relações e revisar antes de enviar. Os autores não serão revelados.');
+ if(mine.done){sec.appendChild(elem('div','mp-proof-done','✅ Seus emojis foram registrados. Aguarde o restante da casa.'));return;}
+ const board=elem('div','mp-querido-grid'),values={...(room.myQueridometro||{})};const targets=active().filter(p=>p.id!==room.myId);
+ for(const p of targets){
+  const row=elem('div','mp-querido-card');row.appendChild(elem('h4','',p.name));
+  row.appendChild(elem('small','',`${p.profile?.personalidade||'Participante'} • Relação: ${p.relation}`));
+  const select=elem('select','mp-querido-select');select.dataset.target=p.id;select.appendChild(new Option('Escolha um emoji',''));
+  for(const [emoji,labelText] of Object.entries(room.emojis||{}))select.appendChild(new Option(`${emoji} ${labelText}`,emoji));
+  select.value=values[p.id]||'';select.onchange=()=>{values[p.id]=select.value;};row.appendChild(select);board.appendChild(row);
+ }
+ sec.appendChild(board);
+ sec.appendChild(makeButton('✨ Sugerir emojis pelas relações',()=>{
+   for(const p of targets){const emoji=p.relation>=20?'❤️':p.relation>=8?'🤝':p.relation<=-20?'🐍':p.relation<=-8?'🙄':'😄';
+    values[p.id]=emoji;const select=board.querySelector(`select[data-target="${p.id}"]`);if(select)select.value=emoji;}
+ },'btn mp-secondary'));
+ sec.appendChild(makeButton('💟 Confirmar Queridômetro completo',()=>{
+  if(targets.some(p=>!values[p.id]))return notice('Escolha um emoji para cada participante antes de confirmar.',true);
+  act('queridometro',{emojis:values});
+ },'btn mp-main-btn'));
+}
+function renderDiscordiaControls(mine){
+ const t=room.discordiaTema||['🔥 Jogo da Discórdia','Escolha alguém para apontar'];
+ const sec=controlsCard(t[0],t[1]+' Você faz seu apontamento, a outra pessoa responde e você pode dar uma tréplica. As falas são públicas.');
+ if(!mine.done){
+  sec.appendChild(elem('label','mp-form-label','🎯 Quem você quer apontar?'));
+  const target=makeSelect('mp-discordia-alvo',eligible());sec.appendChild(target);
+  sec.appendChild(elem('label','mp-form-label','🎬 Motivo do apontamento'));
+  const motives=makeSelect('mp-disc-motivo',[{value:'jogo',text:'🎭 Joga dos dois lados'},{value:'convivencia',text:'🏠 Convivência'},{value:'confianca',text:'🤝 Confiança'},{value:'estrategia',text:'🎯 Estratégia'}],'Escolha um motivo');sec.appendChild(motives);
+  sec.appendChild(elem('label','mp-form-label','🎙️ Seu argumento'));
+  const args=makeSelect('mp-disc-argumento',Object.entries(room.discordiaArgumentos||{}).map(([value,text])=>({value,text})),'Escolha o argumento');sec.appendChild(args);
+  sec.appendChild(makeButton('🔥 Fazer apontamento',()=>{
+    if(!target.value||!motives.value||!args.value)return notice('Escolha participante, motivo e argumento.',true);
+    act('discordia',{id:target.value,reason:motives.value,argument:args.value});
+  },'btn mp-main-btn'));
+ }else sec.appendChild(elem('div','mp-proof-done','✅ Seu apontamento foi registrado. Você ainda pode responder aos debates que te envolvem.'));
+ const related=(room.debates||[]).filter(d=>d.from===room.myId||d.target===room.myId);
+ for(const d of related){
+   const b=elem('div','mp-debate');const other=d.from===room.myId?label(d.target):label(d.from);
+   b.appendChild(elem('h4','',`🎙️ Debate com ${other}`));
+   b.appendChild(elem('p','',room.discordiaArgumentos[d.argument]||'Argumento registrado'));
+   if(d.target===room.myId && d.status==='aguardando'){
+     b.appendChild(elem('p','','Você foi apontado. Escolha sua resposta:'));
+     for(const [value,text] of Object.entries(room.discordiaRespostas||{}))b.appendChild(makeButton(text,()=>act('discordia_responder',{debateId:d.id,choice:value}),'mp-debate-btn'));
+   }else if(d.from===room.myId && d.status==='treplica'){
+     b.appendChild(elem('p','',`${other} respondeu: ${room.discordiaRespostas[d.response]||d.response}`));
+     b.appendChild(elem('p','','Sua tréplica:'));
+     for(const [value,text] of Object.entries(room.discordiaTreplicas||{}))b.appendChild(makeButton(text,()=>act('discordia_treplica',{debateId:d.id,choice:value}),'mp-debate-btn'));
+   }else b.appendChild(elem('p','mp-mini-hint',d.status==='aguardando'?'⏳ Aguardando a resposta.':d.status==='treplica'?'⏳ Aguardando a tréplica.':d.status==='concluido'?'✅ Debate concluído.':'⌛ Debate encerrado pelo tempo.'));
+   sec.appendChild(b);
+ }
+}
+function renderMonstroTarefa(){
+ const root=$('monstroTarefa');if(!root)return;
+ const mine=me(),activeTask=room.phase==='interacoes_2'&&mine?.isMonster&&!mine?.monsterTaskDone&&!room.paused;
+ root.hidden=!activeTask;
+ if(!activeTask||root.dataset.loaded==='1')return;
+ root.dataset.loaded='1';root.replaceChildren();
+ root.appendChild(elem('h3','','👹 Castigo do Monstro'));
+ root.appendChild(elem('p','','Como Monstro, cumpra uma tarefa extra na casa. Não gasta suas interações.'));
+ for(const [value,labelText] of [['cozinha','🍳 Organizar a cozinha'],['limpeza','🧽 Limpar a área externa'],['roupas','🧺 Organizar o figurino']])root.appendChild(makeButton(labelText,()=>act('monstro_task',{task:value}),'mp-debate-btn'));
+}
+function renderFesta(){
+ const mine=me(),key=room.phase+'|'+mine?.actionsUsed+'|'+mine?.done;
+ if(key===festaKey)return;festaKey=key;selectedFesta='';
+ const root=$('festaBoard');root.replaceChildren();
+ const card=elem('section','i4-selecao mp-festa-card');root.appendChild(card);
+ card.appendChild(elem('div','i4-kicker','● REC • FESTA DA SEMANA'));
+ card.appendChild(elem('h3','','🎉 Sua festa, suas escolhas'));
+ card.appendChild(elem('p','',`Você tem ${Math.max(0,3-(mine?.actionsUsed||0))} ações restantes. Os convites precisam da resposta dos outros jogadores; acordos de voto ficam em segredo.`));
+ if(mine?.done){card.appendChild(elem('p','mp-proof-done','✅ Você terminou suas ações. Pode responder os convites recebidos.'));return;}
+ const options=elem('div','mp-festa-grid');card.appendChild(options);
+ const form=elem('div','mp-festa-form');card.appendChild(form);
+ const types=room.festaOptions||{};
+ for(const [id,c] of Object.entries(types)){
+  options.appendChild(makeButton(c[0],()=>{
+   selectedFesta=id;form.replaceChildren();form.appendChild(elem('h4','',c[0]));form.appendChild(elem('p','',c[1]));
+   let target=null,checklist=null,vote=null,message=null;
+   if(c[3]){
+     if(id==='negociar'){
+       checklist=elem('div','mp-festa-targets');for(const p of active().filter(p=>p.id!==room.myId)){
+         const l=elem('label','mp-festa-target');const cb=elem('input');cb.type='checkbox';cb.name='festa-convidado';cb.value=p.id;l.append(cb,document.createTextNode(p.name));checklist.appendChild(l);
+       }
+       form.appendChild(elem('label','','Convide de 1 a 3 colegas (sem incluir o alvo)'));form.appendChild(checklist);
+       form.appendChild(elem('label','','Qual participante vocês pretendem votar?'));
+       vote=makeSelect('mp-festa-vote',eligible(),'Escolha o alvo do possível acordo');form.appendChild(vote);
+     }else{
+       form.appendChild(elem('label','','Com quem?'));target=makeSelect('mp-festa-target',eligible());form.appendChild(target);
+     }
+     form.appendChild(elem('label','','Mensagem privada (opcional)'));
+     message=elem('textarea','mp-festa-message');message.maxLength=160;message.rows=2;message.placeholder='Escreva sua mensagem para o convidado...';form.appendChild(message);
+   }
+   form.appendChild(makeButton('🎉 Confirmar ação da festa',()=>{
+     let targetIds=[];if(checklist){targetIds=[...checklist.querySelectorAll('input:checked')].map(e=>e.value);
+       if(targetIds.length<1||targetIds.length>3)return notice('Selecione de um a três convidados.',true);
+       if(!vote.value||targetIds.includes(vote.value))return notice('Escolha um alvo diferente dos convidados.',true);
+     }else if(target&&!target.value)return notice('Escolha o participante.',true);
+     act('festa_action',{festaType:id,...(checklist?{targetIds,voteTarget:vote.value}:target?{targetId:target.value}:{}),message:message?.value||''});
+   },'btn mp-main-btn'));
+  },'mp-festa-choice'));
+ }
+}
+let eliminationKey='';
+function renderEliminationResults(){
+ const panel=$('eliminationResults');if(!panel)return;
+ const result=room.paredao?.lastEliminacao;
+ panel.hidden=!result||room.phase==='eliminacao';
+ if(panel.hidden)return;
+ const key=JSON.stringify(result);if(key===eliminationKey)return;eliminationKey=key;
+ $('eliminationResultsTitle').textContent=`🚪 Resultado do Paredão • Semana ${result.week}`;
+ const list=$('eliminationRanking');list.replaceChildren();
+ const values=Object.entries(result.percentages||{}).sort((a,b)=>b[1]-a[1]);
+ for(const [id,pct] of values){const div=elem('div','mp-elimination-row');div.appendChild(elem('span','',label(id)+(id===result.eliminated?' 🚪':'')));div.appendChild(elem('strong','',Number(pct).toFixed(1).replace('.',',')+'%'));list.appendChild(div);}
+ $('eliminationWinner').textContent=label(result.eliminated)+' foi eliminado(a). Os percentuais são simulados.';
+}
+function renderVoteSummary(sec){
+ const summary=room.paredao?.votosApurados;
+ if(!summary||summary.week!==room.week)return;
+ const details=elem('details','mp-vote-summary');
+ const title=elem('summary','','📊 Ver tabela de votos da casa');details.appendChild(title);
+ details.appendChild(elem('p','',`${summary.total} votos válidos • ${summary.abstentions} abstenções. Eleitores não são identificados.`));
+ const pairs=Object.entries(summary.counts||{}).sort((a,b)=>b[1]-a[1]);
+ for(const [id,n] of pairs)details.appendChild(elem('div','mp-vote-row',`${label(id)} — ${n} ${n===1?'voto':'votos'}`));
+ sec.appendChild(details);
+}
 function renderControls(force){const mine=me();const proofStage=room.proof?.type==='memoria'?(Math.floor((Date.now()+serverOffset)/1000)<room.proof.revealUntil?'reveal':'play'):'';
-const key=room.phase+'|'+!!mine?.done+'|'+JSON.stringify(mine?.choice)+'|'+room.leaderPick+'|'+JSON.stringify(room.nominees)+'|'+(room.proof?.type||'')+'|'+(room.proof?.mySubmitted||false)+'|'+(room.proof?.eligible||false)+'|'+proofStage;
+const relevant=(room.debates||[]).filter(d=>d.from===room.myId||d.target===room.myId);
+const key=room.phase+'|'+JSON.stringify(room.paredao)+'|'+!!mine?.done+'|'+JSON.stringify(mine?.choice)+'|'+room.leaderPick+'|'+JSON.stringify(room.nominees)+'|'+(room.proof?.type||'')+'|'+(room.proof?.mySubmitted||false)+'|'+(room.proof?.eligible||false)+'|'+proofStage+'|'+JSON.stringify(relevant)+'|'+JSON.stringify(room.monsterIds)+'|'+JSON.stringify(room.myQueridometro);
 if(!force&&controlKey===key)return;controlKey=key;
 const phase=room.phase;
 if(phase==='lider'||phase==='anjo'){renderProof();return;}
@@ -288,43 +458,72 @@ const max=Math.max(1,Math.floor(active().length/3))-1;
 for(const p of active().filter(p=>p.id!==room.myId)){const labelEl=elem('label','mp-choice');const ch=elem('input');ch.type='checkbox';ch.name='vip';ch.value=p.id;labelEl.append(ch,document.createTextNode(p.name));sec.appendChild(labelEl);}
 sec.appendChild(makeButton('🍽️ Confirmar VIP',()=>{const ids=[...sec.querySelectorAll('input[name="vip"]:checked')].map(x=>x.value);if(ids.length>max){notice('Escolha no máximo '+max+' colegas para acompanhar você no VIP.',true);return;}act('vip',{ids});},'btn mp-main-btn'));return;
 }
+if(phase==='monstro'){
+const sec=controlsCard('👹 Monstro do Anjo','O Anjo pode escolher até duas pessoas para o Castigo do Monstro. Elas terão uma tarefa extra de convivência após o Queridômetro.');
+if(room.myId!==room.angelId){sec.appendChild(elem('p','','⏳ Aguarde a decisão do Anjo.'));return;}
+if(mine.done){sec.appendChild(elem('p','','✅ Sua escolha de Monstros foi registrada.'));return;}
+const choices=active().filter(p=>p.id!==room.myId),limit=Math.min(2,choices.length);
+for(const p of choices){const l=elem('label','mp-choice');const input=elem('input');input.type='checkbox';input.name='mp-monstro';input.value=p.id;l.append(input,document.createTextNode(p.name));sec.appendChild(l);}
+sec.appendChild(makeButton('👹 Confirmar Monstros',()=>{const ids=[...sec.querySelectorAll('input[name="mp-monstro"]:checked')].map(x=>x.value);if(ids.length>limit)return notice('Escolha até '+limit+' pessoas.',true);act('monstro',{ids});},'btn mp-main-btn'));return;
+}
 if(phase==='imunidade'){
 const sec=controlsCard('🛡️ Presente do Anjo','O Anjo escolhe uma pessoa para receber imunidade. Nesta beta, não é possível imunizar a si próprio.');
 if(room.myId!==room.angelId){sec.appendChild(elem('p','','⏳ Aguarde a decisão do Anjo.'));return;}
 if(mine.done){sec.appendChild(elem('p','','✅ Imunidade escolhida.'));return;}
 const s=makeSelect('mp-target',eligible());sec.appendChild(s);sec.appendChild(makeButton('🛡️ Conceder imunidade',()=>{if(!s.value){notice('Escolha alguém.',true);return;}act('imune',{id:s.value});},'btn mp-main-btn'));return;
 }
-if(phase==='queridometro'){
-const sec=controlsCard('💟 Queridômetro','Escolha alguém e envie um emoji. O acontecimento aparece na casa.');
-if(mine.done){sec.appendChild(elem('p','','✅ Emoji enviado. Aguarde os outros.'));return;}
-const s=makeSelect('mp-target',eligible());sec.appendChild(s);
-const emojis=makeSelect('mp-emoji',[{value:'💜',text:'💜 Coração'},{value:'🙂',text:'🙂 Sorriso'},{value:'🤝',text:'🤝 Aperto de mão'},{value:'🔥',text:'🔥 Fogo'},{value:'😶',text:'😶 Indiferente'}],'Escolha o emoji');sec.appendChild(emojis);
-sec.appendChild(makeButton('💟 Enviar Queridômetro',()=>{if(!s.value||!emojis.value){notice('Escolha um participante e emoji.',true);return;}act('queridometro',{id:s.value,emoji:emojis.value});},'btn mp-main-btn'));return;
-}
-if(phase==='discordia'){
-const sec=controlsCard('🔥 Jogo da Discórdia','Como no jogo solo, você escolhe um participante e faz um posicionamento. Nesta beta, as falas são pré-definidas.');
-if(mine.done){sec.appendChild(elem('p','','✅ Seu posicionamento foi registrado.'));return;}
-const s=makeSelect('mp-target',eligible());sec.appendChild(s);
-const reasons=makeSelect('mp-reason',[{value:'jogo',text:'🎭 Joga dos dois lados'},{value:'convivencia',text:'🏠 Não sabe conviver'},{value:'confianca',text:'🤝 Quebrou minha confiança'}],'Escolha o motivo');sec.appendChild(reasons);
-sec.appendChild(makeButton('🔥 Fazer posicionamento',()=>{if(!s.value||!reasons.value){notice('Escolha participante e motivo.',true);return;}act('discordia',{id:s.value,reason:reasons.value});},'btn mp-main-btn'));return;
-}
+if(phase==='queridometro'){renderQueridometroControls(mine);return;}
+if(phase==='discordia'){renderDiscordiaControls(mine);return;}
 if(phase==='paredao'){
-const sec=controlsCard('🔥 Formação do Paredão','O Líder indica uma pessoa. Todos os participantes ativos fazem um voto secreto no confessionário.');
-if(room.myId===room.leaderId){
-if(!room.leaderPick){sec.appendChild(elem('h3','','👑 Indicação do Líder'));
-const s=makeSelect('mp-indicar',eligible({exclude:[room.immuneId].filter(Boolean)}));sec.appendChild(s);
-sec.appendChild(makeButton('👑 Confirmar indicação',()=>{if(!s.value){notice('Escolha a indicação.',true);return;}act('indicar',{id:s.value});},'btn mp-main-btn'));}
-else sec.appendChild(elem('p','',`👑 Você indicou ${label(room.leaderPick)}.`));
+const leader=room.myId===room.leaderId;
+const plan=room.paredao?.paredaoPlano;
+const sec=controlsCard('🔥 Formação do Paredão',`O Líder faz uma indicação e o restante da casa vota em segredo. Nesta semana, o Paredão terá ${plan?.tamanho||3} indicados${plan?.bateVolta?' antes do Bate e Volta':''}.`);
+if(leader){
+ sec.appendChild(elem('h3','','👑 Indicação do Líder'));
+ if(room.leaderPick)sec.appendChild(elem('p','mp-vote-done',`✅ Você indicou ${label(room.leaderPick)}. O Líder não vota no Confessionário.`));
+ else {
+  const choices=eligible({exclude:[room.immuneId].filter(Boolean)});
+  const sel=makeSelect('mp-indicar',choices,'Escolha quem vai direto ao Paredão');sec.appendChild(sel);
+  sec.appendChild(makeButton('👑 Confirmar indicação definitiva',()=>{if(!sel.value)return notice('Escolha uma pessoa.',true);act('indicar',{id:sel.value});},'btn mp-main-btn'));
+ }
+ return;
 }
-if(mine.done){sec.appendChild(elem('p','','🗳️ Seu voto foi registrado em segredo.'));return;}
-if(room.myId===room.leaderId&&!room.leaderPick){sec.appendChild(elem('p','','Indique alguém antes de votar no confessionário.'));return;}
-sec.appendChild(elem('h3','','🗳️ Confessionário'));
-const s=makeSelect('mp-voto',eligible({exclude:[room.immuneId].filter(Boolean)}));sec.appendChild(s);
-sec.appendChild(makeButton('🗳️ Confirmar voto secreto',()=>{if(!s.value){notice('Escolha alguém para votar.',true);return;}act('vote',{id:s.value});},'btn mp-main-btn'));return;
+if(!room.leaderPick){sec.appendChild(elem('div','mp-vote-wait','⏳ Aguarde a indicação do Líder. O Confessionário abrirá depois.'));return;}
+sec.appendChild(elem('h3','','🗳️ Confessionário secreto'));
+sec.appendChild(elem('p','','O voto é individual e não poderá ser alterado. Não é permitido votar em si, no Líder, no indicado do Líder ou em alguém imune.'));
+if(mine.done){sec.appendChild(elem('p','mp-vote-done','🔒 Seu voto foi confirmado. Os demais não conseguem ver sua escolha.'));return;}
+const sel=makeSelect('mp-voto',eligible({exclude:[room.immuneId,room.leaderId,room.leaderPick].filter(Boolean)}),'Quem você quer indicar pela casa?');sec.appendChild(sel);
+sec.appendChild(makeButton('🗳️ Confirmar voto secreto',()=>{if(!sel.value)return notice('Escolha quem receberá seu voto.',true);act('vote',{id:sel.value});},'btn mp-main-btn'));return;
+}
+if(phase==='desempate'){
+const sec=controlsCard('⚖️ Desempate do Líder','A votação terminou empatada por uma vaga. O Líder escolhe um dos participantes empatados. Se o tempo acabar, será feito um sorteio entre eles.');
+renderVoteSummary(sec);
+const options=room.paredao?.desempateIds||[];
+sec.appendChild(elem('p','',`Empatados: ${options.map(label).join(' × ')}`));
+if(room.myId!==room.leaderId){sec.appendChild(elem('p','mp-vote-wait','⏳ Aguardando a decisão do Líder.'));return;}
+const select=makeSelect('mp-tiebreak',options.map(id=>({value:id,text:label(id)})),'Escolha quem ocupará a vaga');sec.appendChild(select);
+sec.appendChild(makeButton('⚖️ Confirmar desempate',()=>{if(!select.value)return notice('Escolha um participante empatado.',true);act('desempatar',{id:select.value});},'btn mp-main-btn'));return;
+}
+if(phase==='bate_volta'){
+const bv=room.paredao?.bateVolta||{};
+const names={portas:'🚪 Portas da Sorte',urna:'🎲 Urna Misteriosa',dado:'🎯 Dado da Virada'};
+const sec=controlsCard('🚗 Bate e Volta — '+(names[bv.type]||'Prova da Sorte'),'Os indicados da casa disputam a chance de se salvar. O indicado do Líder não participa. Cada pessoa escolhe um número; a opção sorteada pelo servidor decide a proximidade. Empates são sorteados entre empatados, sem critério de velocidade.');
+renderVoteSummary(sec);
+sec.appendChild(elem('p','',`Participantes: ${(bv.participants||[]).map(label).join(' × ')}`));
+sec.appendChild(elem('p','','Respostas recebidas: '+(bv.submitted||0)+' de '+(bv.participants?.length||0)));
+if(!bv.eligible){sec.appendChild(elem('p','mp-vote-wait','📺 Você acompanha essa prova como espectador.'));return;}
+if(bv.mySubmitted){sec.appendChild(elem('p','mp-vote-done','✅ Sua escolha foi registrada em segredo. Aguarde os outros jogadores.'));return;}
+const grid=elem('div','mp-bv-grid');let selected=null;const buttons=[];
+for(let n=1;n<=6;n++){const b=makeButton((bv.type==='portas'?'🚪 ':bv.type==='urna'?'🎲 ':'🎯 ')+n,()=>{selected=n;buttons.forEach(x=>x.classList.toggle('selected',x===b));},'mp-bv-option');buttons.push(b);grid.appendChild(b);}
+sec.appendChild(grid);sec.appendChild(makeButton('🏁 Confirmar minha escolha',()=>{if(selected===null)return notice('Escolha uma opção de 1 a 6.',true);act('bate_volta',{choice:selected});},'btn mp-main-btn'));return;
 }
 if(phase==='eliminacao'){
-const sec=controlsCard('🚪 Noite de eliminação','Paredão definido! Este protótipo calcula a saída por um placar simplificado de convivência, não por uma votação pública real.');
-const names=room.nominees.map(label);sec.appendChild(elem('h3','',names.join(' × ')||'Paredão em apuração'));sec.appendChild(elem('p','','⏳ O resultado aparece no Ao Vivo quando o cronômetro terminar.'));return;
+const sec=controlsCard('🚪 Noite de Eliminação','O resultado é uma SIMULAÇÃO de votação do público, influenciada pelas relações da casa e por uma parcela de sorte — não são votos de visitantes reais. Todos descobrem o resultado juntos ao final do cronômetro.');
+renderVoteSummary(sec);
+const names=room.nominees.map(label);sec.appendChild(elem('h3','mp-elimination-names',names.join(' × ')||'Paredão em apuração'));
+const bv=room.paredao?.lastBateVolta;
+if(bv?.week===room.week)sec.appendChild(elem('p','',`🚗 ${label(bv.winner)} escapou do Bate e Volta.`));
+sec.appendChild(elem('p','mp-vote-wait','🎤 O apresentador prepara o discurso. Aguarde a revelação da porcentagem de cada participante.'));return;
 }
 if(phase==='final'){
 const sec=controlsCard('🏁 Protótipo concluído','A temporada experimental chegou à fase final. A final completa e as dinâmicas especiais do jogo solo ainda não foram adaptadas.');
@@ -338,7 +537,7 @@ act('interact',{type:selectedType,targetId:$('targetPlayer').value,subject:$('ac
  if(ok){selectedType='';$('interactionForm').hidden=true;$('categories').hidden=!!me()?.done;}
 });
 });
-$('cancelAction').onclick=()=>{selectedType='';$('interactionForm').hidden=true;$('categories').hidden=false;};
+$('cancelAction').onclick=()=>{selectedType='';$('interactionForm').hidden=true;$('categories').hidden=false;if(room?.phase==='festa')$('festaBoard').hidden=false;};
 $('finishButton').onclick=()=>act('finish');
 $('pauseGame').onclick=()=>{if(confirm('Pausar a temporada e congelar o relógio para todos?'))act('pause');};
 $('resumeGame').onclick=()=>{if(confirm('Retomar agora? Todos voltarão a jogar e o cronômetro continuará.'))act('resume');};
@@ -355,6 +554,7 @@ for(const b of document.querySelectorAll('.mobile-panel-toggle'))b.onclick=()=>{
 $('mobileMenuBtn').onclick=()=>{const menu=$('mobileHeaderMenu');menu.hidden=!menu.hidden;$('mobileMenuBtn').setAttribute('aria-expanded',String(!menu.hidden));};
 $('menuCasa').onclick=()=>{openPanel('mobileCasa');$('mobileHeaderMenu').hidden=true;};
 $('menuAoVivo').onclick=()=>{openPanel('mobileAoVivo');$('mobileHeaderMenu').hidden=true;};
+document.querySelectorAll('.mp-feed-filter').forEach(button=>button.addEventListener('click',()=>{feedFilter=button.dataset.feedFilter||'todos';applyFeedFilter();}));
 request('status').catch(e=>{notice('Não foi possível entrar na sala: '+e.message,true);});
 setInterval(()=>{if(!room||busy||polling)return;polling=true;request('status').catch(e=>notice('Conexão interrompida: '+e.message,true)).finally(()=>polling=false);},2500);
 setInterval(timer,250);
