@@ -1,5 +1,5 @@
 <?php
-/** BBB Simulator – Multiplayer Beta 7; interações contextuais, pausa e backup. */
+/** BBB Simulator – Multiplayer Beta 9; Feed BBB 3.0, interações, provas, semana e backup. */
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -33,6 +33,8 @@ if($action==='create'){
         'prova'=>null,'lastProof'=>null,'monstro'=>[],'monsterTasks'=>[],'debates'=>[],'lastQueridometro'=>null,
         'paredaoPlano'=>null,'tieState'=>null,'voteSummary'=>null,'bateVolta'=>null,'lastBateVolta'=>null,
         'eliminacaoSimulada'=>null,'lastEliminacao'=>null,
+        'feedBBB'=>['posts'=>[],'processed'=>[],'reactionCounts'=>[],'fans'=>[],
+            'mutiroesDone'=>[],'mutiroes'=>[],'popularity'=>[]],
         'createdAt'=>time(),'updatedAt'=>time(),
     ];
     for($i=0;$i<12;$i++){

@@ -3,9 +3,9 @@
 <meta name="theme-color" content="#09091f"><title>BBB Simulator • Temporada Online</title>
 <link rel="stylesheet" href="assets/css/jogo.css"><link rel="stylesheet" href="assets/css/header.css">
 <link rel="stylesheet" href="assets/css/interacoes_4.css?v=1"><link rel="stylesheet" href="assets/css/responsivo.css?v=34">
-<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=8">
+<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=9">
 <script src="assets/js/multiplayer_backup.js?v=5" defer></script>
-<script src="assets/js/multiplayer_jogo.js?v=8" defer></script>
+<script src="assets/js/multiplayer_jogo.js?v=9" defer></script>
 </head><body class="mp-app mp-game">
 <header class="top-header"><div class="header-glow"></div><div class="header-content">
 <div class="logo-area"><div class="bbb-icon">🎥</div><div class="brand-text"><h1>BBB Simulator</h1><div class="sub-info"><span id="headWeek">🔥 Semana 1</span><span class="dot"></span><span id="headCount">👥 Online</span></div></div></div>
@@ -66,7 +66,18 @@
 <h2 class="mp-live-title">📺 Na Casa • Ao Vivo</h2><div class="mp-live-tag">● REC • ACONTECENDO AGORA</div><ul id="eventsList" class="mp-events"></ul></aside>
 <aside class="mp-feed-panel mobile-panel mobile-collapsed" id="mobileFeed" data-mobile-panel="feed">
 <button class="mobile-panel-toggle" type="button" data-target="mobileFeed" aria-expanded="false"><span>📱 <strong>Feed BBB</strong></span><span class="mobile-panel-chevron">⌄</span></button>
-<h2>📱 Feed BBB • Online</h2><p class="mp-mini-hint">Acompanhe os destaques da temporada em formato de posts. O Feed 3.0 completo do modo solo será adaptado depois.</p><div id="feedPosts" class="mp-feed-posts"></div></aside>
+<h2>📱 Feed BBB <span class="mp-feed-version">3.0 ONLINE</span></h2>
+<p class="mp-mini-hint">Acompanhe a repercussão pública da casa. Torcidas, curtidas, comentários, compartilhamentos e mutirões são simulados, como no modo solo. Nenhum voto secreto ou mensagem privada aparece aqui.</p>
+<div class="mp-feed-filters" role="group" aria-label="Filtrar publicações">
+<button type="button" class="mp-feed-filter active" data-feed-filter="todos" aria-pressed="true">🌐 Para você</button>
+<button type="button" class="mp-feed-filter" data-feed-filter="torcida" aria-pressed="false">📣 Torcidas</button>
+<button type="button" class="mp-feed-filter" data-feed-filter="mutirao" aria-pressed="false">🗳️ Mutirões</button>
+</div>
+<section class="mp-feed-box" aria-label="Assuntos em alta"><h3>🔥 Em alta nesta semana</h3><div id="feedTrending" class="mp-feed-trending"></div></section>
+<section class="mp-feed-box" aria-label="Torcidas"><h3>📣 Torcidas em movimento</h3><p>Movimentações baseadas nos acontecimentos públicos, não nas intenções de voto.</p><div id="feedFans" class="mp-feed-fan-grid"></div></section>
+<section class="mp-feed-box" aria-label="Central de mutirões"><h3>🗳️ Central de Mutirões</h3><p>Campanhas simuladas exibidas após a formação definitiva do Paredão. Não revelam o resultado.</p><div id="feedMutiroes" class="mp-feed-mutiroes"></div></section>
+<div class="mp-feed-post-heading"><strong>PUBLICAÇÕES</strong><span id="feedPostCount">0 posts</span></div>
+<div id="feedPosts" class="mp-feed-posts" aria-live="off"></div></aside>
 </div>
 <nav class="mobile-bottom-nav" aria-label="Navegação online">
 <button type="button" class="mobile-nav-item ativo" data-view="mobileJogo"><span>🏠</span><small>Jogo</small></button>

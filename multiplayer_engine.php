@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__.'/multiplayer_provas.php';
 require_once __DIR__.'/multiplayer_convivencia.php';
 require_once __DIR__.'/multiplayer_paredao.php';
+require_once __DIR__.'/multiplayer_feed.php';
 function mp_error(string $message, int $status=400): never {
     http_response_code($status);
     echo json_encode(['ok'=>false,'erro'=>$message],JSON_UNESCAPED_UNICODE);
@@ -412,6 +413,7 @@ function mp_public(array $room,int $self): array {
         'discordiaArgumentos'=>mp7_argumentos(),'discordiaRespostas'=>mp7_respostas(),'discordiaTreplicas'=>mp7_treplicas(),
         'debates'=>array_values($room['debates']??[]),
         'paredao'=>mp8_publico($room,$me['id']),
+        'feedBBB'=>mp9_public($room),
     ];
     return $state;
 }
@@ -423,6 +425,7 @@ function mp_transact(string $code,string $token,callable $change): array {
     $self=mp_self($room,$token);
     $changed=mp_tick($room);
     $changed=$change($room,$self)||$changed;
+    $changed=mp9_sync($room)||$changed;
     if($changed){$room['updatedAt']=time();rewind($f);ftruncate($f,0);
         fwrite($f,json_encode($room,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE|JSON_THROW_ON_ERROR));fflush($f);}
     flock($f,LOCK_UN);fclose($f);return mp_public($room,$self);

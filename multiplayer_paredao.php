@@ -124,12 +124,14 @@ function mp8_fechar_bate_volta(array &$room): void {
 }
 function mp8_preparar_eliminacao(array &$room): void {
     $nominees=array_values(array_filter($room['nominees'],static fn($id)=>mp_find_player($room,$id)!==null));
+    // A criação dos mutirões precede o cálculo; efeito pequeno, sem vazamento de votos.
+    if(function_exists('mp9_sync'))mp9_sync($room);
     $raw=[];
     foreach($nominees as $id){
         $relations=[];
         foreach($room['relations']??[] as $key=>$value)if(in_array($id,explode(':',(string)$key),true))$relations[]=(int)$value;
         $avg=$relations?array_sum($relations)/count($relations):0;
-        $raw[$id]=max(8,min(92,50-$avg*.55+random_int(-18,18)));
+        $raw[$id]=max(8,min(92,50-$avg*.55-((int)($room['feedBBB']['popularity'][$id]??50)-50)*.12+random_int(-18,18)));
     }
     if(!$raw){$room['eliminacaoSimulada']=null;return;}
     $total=array_sum($raw);$percentages=[];$soFar=0;$i=0;$n=count($raw);
@@ -137,7 +139,7 @@ function mp8_preparar_eliminacao(array &$room): void {
     $max=max($percentages);$ties=array_keys(array_filter($percentages,static fn($v)=>$v===$max));
     $loser=(string)$ties[random_int(0,count($ties)-1)];
     $room['eliminacaoSimulada']=['week'=>$room['week'],'percentages'=>$percentages,'eliminated'=>$loser,'tieDraw'=>count($ties)>1];
-    mp_log($room,'📺 A produção iniciou a noite de eliminação. A votação do público é simulada, baseada em relações da casa e aleatoriedade. O resultado será revelado ao fim do cronômetro.','eliminacao',['title'=>'🚪 Noite de Eliminação']);
+    mp_log($room,'📺 A produção iniciou a noite de eliminação. A votação do público é simulada, com relações da casa, pequena repercussão pública e aleatoriedade. O resultado será revelado ao fim do cronômetro.','eliminacao',['title'=>'🚪 Noite de Eliminação']);
 }
 function mp8_fechar_eliminacao(array &$room): void {
     $result=$room['eliminacaoSimulada']??null;
