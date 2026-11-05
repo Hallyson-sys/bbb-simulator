@@ -5,7 +5,7 @@ const $=(id)=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 let code=(params.get('sala')||'').toUpperCase();
 let token='',room=null,busy=false,polling=false,serverOffset=0,seq=0,lastApplied=0;
-let currentPhase='',selectedType='',controlKey='',catalogBuilt=false;
+let currentPhase='',selectedType='',controlKey='',catalogBuilt=false,playersKey='',eventsKey='',feedKey='',sentKey='';
 const storeKey=c=>`bbb_mp_beta2_${c}`;
 const stored=()=>{try{return JSON.parse(localStorage.getItem(storeKey(code))||'null');}catch(e){return null;}};
 const notice=(text,error=false)=>{const n=$('notice');n.textContent=text;n.className='mp-notice mp-global-notice'+(error?' error':'');n.hidden=false;};
@@ -68,18 +68,27 @@ if(social){
 }
 function renderTimeline(){const phases=['interacoes_1','lider','vip_xepa','anjo','imunidade','queridometro','interacoes_2','festa','discordia','paredao','eliminacao'];const at=phases.indexOf(room.phase);
 $('timeline').replaceChildren();for(let i=0;i<phases.length;i++){const p=phases[i],step=elem('div','mp-step'+(i===at?' current':i<at||room.phase==='final'?' done':''),`${i<at||room.phase==='final'?'✓ ':i===at?'● ':''}${room.phases[p][0]}`);$('timeline').appendChild(step);}}
-function renderPlayers(){const grid=$('playersGrid');grid.replaceChildren();
+function renderPlayers(){const key=JSON.stringify(room.players.map(p=>[p.id,p.name,p.profile,p.eliminated,p.isLeader,p.isAngel,p.isVIP,p.isImmune,p.relation]));if(playersKey===key)return;playersKey=key;const grid=$('playersGrid');grid.replaceChildren();
 room.players.forEach(p=>{
 const card=elem('article','card'+(p.id===room.myId?' voce':'')+(p.eliminated?' eliminated':'')+(p.relation>=15?' positiva':p.relation<=-10?' negativa':''));
-card.appendChild(elem('div','avatar'));card.appendChild(elem('h3','',p.name+(p.id===room.myId?' ⭐':'')));
+const avatar=elem('div','avatar mp-avatar-initial',p.name.trim().charAt(0).toUpperCase());card.appendChild(avatar);card.appendChild(elem('h3','',p.name+(p.id===room.myId?' ⭐':'')));const prof=p.profile||{};if(prof.idade){card.appendChild(elem('div','mp-profile-line',`${prof.idade} anos • ${prof.estado}`));card.appendChild(elem('div','mp-profile-line mp-job',prof.profissao));card.appendChild(elem('div','mp-profile-tag',`✦ ${prof.personalidade}`));}
 let status=p.eliminated?'🚪 Eliminado':p.isLeader?'👑 Líder':p.isAngel?'😇 Anjo':p.isImmune?'🛡️ Imune':p.isVIP?'🟡 VIP':'🍞 Xepa';
 card.appendChild(elem('div','mp-state',status));if(p.id!==room.myId&&!p.eliminated)card.appendChild(elem('div','mp-state',`💜 Relação: ${p.relation>0?'+':''}${p.relation}`));
 grid.appendChild(card);
 });$('playersStatus').textContent=`Sala ${room.code} • ${room.players.length}/${room.capacity} inscritos • ${active().length} na casa`;
 }
-function renderEvents(){const list=$('eventsList');list.replaceChildren();const events=[...room.events].reverse();
-if(!events.length){list.appendChild(elem('li','','Os primeiros acontecimentos da casa vão aparecer aqui.'));return;}
-for(const ev of events){const li=elem('li');li.appendChild(elem('small','',`SEMANA ${ev.week} • ${new Date(ev.at*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`));li.appendChild(elem('span','',ev.text));list.appendChild(li);}
+function renderEvents(){const key=(room.events||[]).map(ev=>ev.id).join('|');if(eventsKey===key)return;eventsKey=key;const list=$('eventsList');list.replaceChildren();const events=[...room.events].reverse();
+if(!events.length){list.appendChild(elem('li','','Os primeiros acontecimentos da casa vão aparecer aqui.'));renderFeed();return;}
+for(const ev of events){const li=elem('li',ev.type==='interacao'?'mp-event-story':'');li.appendChild(elem('small','',`SEMANA ${ev.week} • ${new Date(ev.at*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`));if(ev.title)li.appendChild(elem('strong','mp-event-title',ev.title));if(ev.place)li.appendChild(elem('div','mp-event-place',`📍 ${ev.place} • ${ev.topic||'Convivência'}`));li.appendChild(elem('span','',ev.text));list.appendChild(li);}renderFeed();
+}
+function renderFeed(){
+ const entries=(room.events||[]).filter(ev=>ev.type!=='convite').slice(-24).reverse();
+ const key=entries.map(ev=>ev.id).join('|');if(feedKey===key)return;feedKey=key;
+ const list=$('feedPosts');if(!list)return;list.replaceChildren();
+ if(!entries.length){list.appendChild(elem('p','mp-feed-empty','Quando a casa começar a se movimentar, o Feed mostrará os principais acontecimentos.'));return;}
+ entries.forEach(ev=>{const post=elem('article','mp-feed-post');const top=elem('div','mp-feed-head');top.append(elem('span','','📱 FEED BBB • ONLINE'),elem('small','',`SEMANA ${ev.week}`));post.appendChild(top);
+ const tag=(ev.type==='interacao'?'#Convivencia':ev.text.includes('Paredão')?'#Paredao':ev.text.includes('Líder')?'#ProvaDoLider':'#BBBOnline');
+ post.appendChild(elem('h4','',ev.title||'🎥 Aconteceu na casa'));post.appendChild(elem('p','',ev.text));post.appendChild(elem('div','mp-feed-tags',`${tag}  #BBBSimulator`));list.appendChild(post);});
 }
 function renderCategories(){
 const c=$('categoryGroups');c.replaceChildren();const groups=[['social','💜 Social','Convivência, sentimentos e romance'],['estrategia','🎯 Estratégia','Sondagem e acordos reservados'],['conflitos','🔥 Conflitos','Esclarecer, confrontar ou mediar'],['aliancas','👥 Alianças e ações clássicas','Conversar, fofocas, VT e convites']];
@@ -107,7 +116,7 @@ for(const [value,text] of [['aceitar','💜 Aceitar'],['conversar','💬 Respond
 block.appendChild(responses);list.appendChild(block);
 }
 }
-function renderSent(){const outgoing=room.outgoing||[];$('sentSection').hidden=!outgoing.length;
+function renderSent(){const outgoing=room.outgoing||[];$('sentSection').hidden=!outgoing.length;const key=JSON.stringify(outgoing.map(q=>[q.id,q.status,q.answer]));if(sentKey===key)return;sentKey=key;
 const list=$('sentList');list.replaceChildren();for(const q of [...outgoing].reverse()){
 const status=q.status==='pendente'?'⏳ Aguardando resposta':q.status==='expirou'?'⌛ Tempo esgotado':q.answer==='recusar'?'🧊 Recusou':q.answer==='aceitar'?'💜 Aceitou':'💬 Respondeu';
 list.appendChild(elem('div','mp-sent-item',`${label(q.to)} • ${q.label} — ${status}`));
