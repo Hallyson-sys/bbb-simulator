@@ -12,7 +12,8 @@ if (isset($_POST['avancar_fase'])) {
     // Diálogo em andamento precisa ser encerrado antes da mudança de fase.
     if (!empty($_SESSION['i4_pendente']) || !empty($_SESSION['i4_resultado'])
         || !empty($_SESSION['in2_conversa']) || !empty($_SESSION['in2_resultado'])
-        || !empty($_SESSION['d3_pendente'])) {
+        || !empty($_SESSION['d3_pendente'])
+        || !empty($_SESSION['rom3_pendente']) || !empty($_SESSION['rom3_confirmacao']) || !empty($_SESSION['rom3_resultado'])) {
         header('Location: jogo.php'); exit;
     }
 
