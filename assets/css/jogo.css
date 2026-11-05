@@ -3030,3 +3030,19 @@ overflow-y: auto !important;
 .d3-dialogo{padding:15px 17px;border-radius:14px;background:#1b1133;border-left:4px solid #b67df6;margin:12px 0}.d3-dialogo span{font-weight:800;color:#e2bfff}.d3-dialogo p{margin:8px 0 0}.d3-resposta{background:#0c2432;border-left-color:#38d4f5}.d3-resposta span{color:#86e7fc}.d3-rodape{opacity:.75;font-size:.82rem;margin:16px 0 0}
 .d3-desfecho{border:1px solid #874dbb;border-radius:16px;background:linear-gradient(120deg,#261236,#101c31);padding:15px 18px;margin:12px 0 20px}.d3-desfecho h3{margin:0 0 8px}.d3-desfecho p{margin:8px 0;line-height:1.5}
 @media(max-width:620px){.d3-palco{padding:16px!important}.d3-palco h3{font-size:1.2rem}.d3-opcao{padding:12px}.d3-passos{gap:5px}.d3-passos span{font-size:.73rem;padding:7px}}
+
+/* Relacionamentos Amorosos 3.0 — cenas de casal opcionais e privadas */
+.rom3-painel{margin:16px 0;padding:18px;border-radius:18px;border:1px solid rgba(255,102,180,.3);background:linear-gradient(145deg,#321341,#100d2c);color:#f8e9ff;box-shadow:0 10px 24px rgba(0,0,0,.12)}
+.rom3-painel h2{font-size:1.22rem;margin:8px 0 12px;color:#fff}.rom3-painel h3{font-size:1rem;margin:14px 0 9px}
+.rom3-kicker{font-size:.72rem;letter-spacing:.09em;font-weight:750;color:#f8a5d2}
+.rom3-painel details>summary{cursor:pointer;font-weight:750;list-style:none;font-size:1.03rem;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rom3-painel details>summary::-webkit-details-marker{display:none}.rom3-painel details>summary::before{content:'▸';margin-right:6px}.rom3-painel details[open]>summary::before{content:'▾'}
+.rom3-mini{font-size:.75rem;font-weight:500;color:#f2c7e3}.rom3-conteudo{padding:14px 0 0}.rom3-painel p{line-height:1.5;margin:8px 0 12px}
+.rom3-painel blockquote{margin:12px 0;padding:15px;background:rgba(8,12,32,.53);border-left:3px solid #f074b2;border-radius:9px}
+.rom3-escolhas{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:9px;margin:14px 0}
+.rom3-escolhas form{margin:0;display:flex}.rom3-painel button{width:100%;padding:12px 14px;border:1px solid rgba(255,255,255,.1);background:#503072;border-radius:11px;color:white;font-weight:700;text-align:left;cursor:pointer;line-height:1.4}
+.rom3-painel button:hover,.rom3-painel button:focus-visible{background:#703b99;outline:2px solid #e99bdf;outline-offset:1px}
+.rom3-painel small{color:#ddc9e8;line-height:1.5}.rom3-aviso{background:rgba(234,160,196,.11);padding:12px;border-radius:10px}
+.rom3-historico{margin-top:14px}.rom3-historico div{padding:10px 4px;border-top:1px solid rgba(255,255,255,.1)}
+.rom3-historico small{display:block}
+@media(max-width:650px){.rom3-painel{padding:13px}.rom3-escolhas{grid-template-columns:1fr}.rom3-painel details>summary{flex-wrap:wrap}}
