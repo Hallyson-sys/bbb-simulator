@@ -1,10 +1,11 @@
 <?php
-/** Multiplayer Beta 2: estado por sala isolado do PHP session do modo solo. */
+/** Multiplayer Beta 10: estado por sala isolado do PHP session do modo solo. */
 declare(strict_types=1);
 require_once __DIR__.'/multiplayer_provas.php';
 require_once __DIR__.'/multiplayer_convivencia.php';
 require_once __DIR__.'/multiplayer_paredao.php';
 require_once __DIR__.'/multiplayer_feed.php';
+require_once __DIR__.'/multiplayer_especiais.php';
 function mp_error(string $message, int $status=400): never {
     http_response_code($status);
     echo json_encode(['ok'=>false,'erro'=>$message],JSON_UNESCAPED_UNICODE);
@@ -156,6 +157,7 @@ function mp_phases(): array {
         'interacoes_1'=>['💬 Interações','Todos podem fazer até três interações, como no modo solo.'],
         'lider'=>['👑 Prova do Líder','Todos jogam o mesmo desafio em tempo real: memória, lógica ou caixas.'],
         'vip_xepa'=>['🍽️ VIP & Xepa','O Líder escolhe quem vai para o VIP.'],
+        'bigfone'=>['☎️ Big Fone','Atenda primeiro quando tocar: o servidor valida quem chegou antes.'],
         'anjo'=>['😇 Prova do Anjo','Prova igual para todos; o Líder não participa da disputa pelo Anjo.'],
         'monstro'=>['👹 Monstro do Anjo','O Anjo escolhe até duas pessoas para o castigo do Monstro.'],
         'imunidade'=>['🛡️ Imunidade do Anjo','O Anjo protege um participante.'],
@@ -163,7 +165,10 @@ function mp_phases(): array {
         'interacoes_2'=>['💬 Interações','Nova rodada de três interações.'],
         'festa'=>['🎉 Festa','Três ações especiais: romance, VT, provocar, dançar, sondar ou negociar votos.'],
         'discordia'=>['🔥 Jogo da Discórdia','Apontamento, argumento, resposta e tréplica entre jogadores reais.'],
+        'poder_bigfone'=>['☎️ Poder do Big Fone','A pessoa que atendeu escolhe o alvo de seu poder, em sigilo quando necessário.'],
         'paredao'=>['🔥 Formação do Paredão','O Líder indica e a casa vota em segredo.'],
+        'contragolpe'=>['🔥 Contragolpe','O dono do contragolpe poderá puxar alguém elegível ao Paredão.'],
+        'troca_emparedado'=>['🔄 Troca de Emparedado','O dono do poder poderá trocar um indicado da casa por alguém elegível.'],
         'desempate'=>['⚖️ Desempate do Líder','O Líder decide entre os participantes empatados na votação.'],
         'bate_volta'=>['🚗 Prova Bate e Volta','Indicados elegíveis disputam uma chance de escapar.'],
         'eliminacao'=>['🚪 Noite de Eliminação','Resultado da votação simulada do público com suspense e porcentagens.'],
@@ -247,17 +252,22 @@ function mp_self(array $room,string $token): int {
 function mp_phase_time(array $room,string $phase): int {
     if(in_array($phase,['interacoes_1','interacoes_2','festa'],true))return $room['duration'];
     if($phase==='eliminacao')return 60;
+    if($phase==='bigfone')return 40;
+    if(in_array($phase,['poder_bigfone','contragolpe','troca_emparedado'],true))return 75;
     if(in_array($phase,['desempate','bate_volta'],true))return 90;
     if(in_array($phase,['lider','anjo'],true))return max(120,min(240,(int)$room['duration']));
     return max(60,min(150,$room['duration']));
 }
 function mp_set_phase(array &$room,string $phase): void {
+    if($phase==='interacoes_1')mp10_week_start($room);
+    if($phase==='festa')mp10_secret_return($room);
     $room['phase']=$phase;$room['endsAt']=time()+mp_phase_time($room,$phase);$room['pending']=[];
     if(in_array($phase,['lider','anjo'],true))$room['prova']=mp_prova_criar($room,$phase);
     else unset($room['prova']);
     foreach($room['players'] as &$p){$p['done']=false;$p['actions']=[];$p['choice']=null;}
     unset($p);
     if($phase==='monstro')$room['monsterTasks']=[];
+    if($phase==='bigfone')mp10_bigfone_start($room);
     if($phase==='paredao')mp8_iniciar_paredao($room);
     if($phase==='bate_volta')mp8_criar_bate_volta($room);
     if($phase==='eliminacao')mp8_preparar_eliminacao($room);
@@ -273,6 +283,18 @@ function mp_set_phase(array &$room,string $phase): void {
     }
     if($phase==='anjo'){
         foreach($room['players'] as &$p)if($p['id']===($room['leader']??null))$p['done']=true;
+        unset($p);
+    }
+    if($phase==='bigfone' && empty($room['bigFone']['ring'])){
+        foreach($room['players'] as &$p)$p['done']=true;
+        unset($p);
+    }
+    if($phase==='poder_bigfone'){
+        foreach($room['players'] as &$p)$p['done']=$p['id']!==($room['bigFone']['answeredBy']??null);
+        unset($p);
+    }
+    if($phase==='contragolpe'||$phase==='troca_emparedado'){
+        foreach($room['players'] as &$p)$p['done']=$p['id']!==($room['contragolpe']['owner']??null);
         unset($p);
     }
     if($phase==='desempate'){
@@ -316,16 +338,25 @@ function mp_finish_phase(array &$room): void {
         }
     }
     if($phase==='queridometro')mp7_concluir_queridometro($room);
-    if($phase==='festa')mp7_festa_concluir($room);
+    if($phase==='festa'){mp7_festa_concluir($room);mp10_post_festa($room);}
     if($phase==='discordia')mp7_discordia_concluir($room);
     if($phase==='imunidade'){
         if($room['imune'])mp_log($room,'🛡️ '.(mp_find_player($room,$room['imune'])['name']??'Alguém').' recebeu a imunidade.');
     }
     if($phase==='paredao'){mp8_apurar_votos($room);return;}
+    if($phase==='bigfone'){mp_set_phase($room,'anjo');return;}
+    if($phase==='poder_bigfone'){
+        if(mp10_needs_power($room))mp_log($room,'⌛ O poder do Big Fone expirou sem um alvo confirmado.','bigfone');
+        mp_set_phase($room,'paredao');return;
+    }
+    if($phase==='contragolpe'||$phase==='troca_emparedado'){
+        mp_log($room,'⌛ O tempo da dinâmica especial acabou; nenhuma decisão foi confirmada.','dinamica');
+        mp10_next_post_formation($room);return;
+    }
     if($phase==='desempate'){mp8_desempatar($room,null);return;}
     if($phase==='bate_volta'){mp8_fechar_bate_volta($room);return;}
     if($phase==='eliminacao')mp8_fechar_eliminacao($room);
-    $sequence=['interacoes_1','lider','vip_xepa','anjo','monstro','imunidade','queridometro','interacoes_2','festa','discordia','paredao','desempate','bate_volta','eliminacao'];
+    $sequence=['interacoes_1','lider','vip_xepa','bigfone','anjo','monstro','imunidade','queridometro','interacoes_2','festa','discordia','poder_bigfone','paredao','desempate','bate_volta','eliminacao'];
     $position=array_search($phase,$sequence,true);
     if($phase==='final')return;
     if($phase==='eliminacao'){
@@ -335,6 +366,7 @@ function mp_finish_phase(array &$room): void {
         $room['leaderPick']=null;$room['nominees']=[];$room['lastEliminated']=null;
         mp_set_phase($room,'interacoes_1');return;
     }
+    if($phase==='discordia'){mp_set_phase($room,mp10_needs_power($room)?'poder_bigfone':'paredao');return;}
     if($position!==false)mp_set_phase($room,$sequence[$position+1]);
 }
 function mp_tick(array &$room): bool {
@@ -391,6 +423,8 @@ function mp_public(array $room,int $self): array {
         'isLeader'=>$room['leader']===$p['id'],'isAngel'=>$room['angel']===$p['id'],
         'isVIP'=>in_array($p['id'],$room['vip'],true),'isImmune'=>$room['imune']===$p['id'],
         'isMonster'=>in_array($p['id'],$room['monstro']??[],true),
+        'isExtraImmune'=>in_array($p['id'],[$room['surprise']['extraImmune']??null,$room['bigFone']['extraImmune']??null],true),
+        'isExtraImmune'=>in_array($p['id'],[$room['surprise']['extraImmune']??null,$room['bigFone']['extraImmune']??null],true),
         'monsterTaskDone'=>isset($room['monsterTasks'][$p['id']]),
         'relation'=>(int)($room['relations'][mp_relation_key($p['id'],$me['id'])]??0),
     ];
@@ -414,6 +448,7 @@ function mp_public(array $room,int $self): array {
         'debates'=>array_values($room['debates']??[]),
         'paredao'=>mp8_publico($room,$me['id']),
         'feedBBB'=>mp9_public($room),
+        'specials'=>mp10_public($room,$me['id']),
     ];
     return $state;
 }

@@ -3,9 +3,9 @@
 <meta name="theme-color" content="#09091f"><title>BBB Simulator • Temporada Online</title>
 <link rel="stylesheet" href="assets/css/jogo.css"><link rel="stylesheet" href="assets/css/header.css">
 <link rel="stylesheet" href="assets/css/interacoes_4.css?v=1"><link rel="stylesheet" href="assets/css/responsivo.css?v=34">
-<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=9">
+<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=10">
 <script src="assets/js/multiplayer_backup.js?v=5" defer></script>
-<script src="assets/js/multiplayer_jogo.js?v=9" defer></script>
+<script src="assets/js/multiplayer_jogo.js?v=10" defer></script>
 </head><body class="mp-app mp-game">
 <header class="top-header"><div class="header-glow"></div><div class="header-content">
 <div class="logo-area"><div class="bbb-icon">🎥</div><div class="brand-text"><h1>BBB Simulator</h1><div class="sub-info"><span id="headWeek">🔥 Semana 1</span><span class="dot"></span><span id="headCount">👥 Online</span></div></div></div>
@@ -35,6 +35,7 @@
   <small>Baixe antes de encerrar. No Render gratuito, pausar no servidor não garante que a sala sobreviva ao reinício. Guarde o arquivo e a senha em segurança.</small>
  </div>
 </div>
+<section id="specialsBoard" class="mp-specials-board" hidden aria-label="Dinâmicas especiais da semana"></section>
 <div class="box mp-phase-info"><div class="mp-phase-stats"><span id="weekLabel">🔥 Semana 1</span><span id="phaseReady">0/0 concluíram</span></div><div class="mp-timer"><span>⏳ Tempo restante</span><strong id="timer">03:00</strong></div><div class="mp-progress"><div id="phaseProgress"></div></div></div>
 <div class="box mp-timeline-box"><h3>📖 Etapas da semana</h3><div id="timeline" class="mp-timeline"></div></div>
 <details id="queridometroResults" class="mp-querido-results" hidden><summary>💟 Resultado do Queridômetro da Semana</summary><p>Confira os emojis recebidos. Os autores permanecem anônimos.</p><div id="queridometroResultsList"></div></details>

@@ -1,5 +1,5 @@
 <?php
-/** BBB Simulator – Multiplayer Beta 9; Feed BBB 3.0, interações, provas, semana e backup. */
+/** BBB Simulator – Multiplayer Beta 10; dinâmicas especiais integradas ao fluxo anterior. */
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -33,6 +33,8 @@ if($action==='create'){
         'prova'=>null,'lastProof'=>null,'monstro'=>[],'monsterTasks'=>[],'debates'=>[],'lastQueridometro'=>null,
         'paredaoPlano'=>null,'tieState'=>null,'voteSummary'=>null,'bateVolta'=>null,'lastBateVolta'=>null,
         'eliminacaoSimulada'=>null,'lastEliminacao'=>null,
+        'bigFone'=>null,'surprise'=>null,'lastSurpriseWeek'=>null,'extraNominee'=>null,
+        'secretRoom'=>null,'falseWallUsed'=>false,'contragolpe'=>null,
         'feedBBB'=>['posts'=>[],'processed'=>[],'reactionCounts'=>[],'fans'=>[],
             'mutiroesDone'=>[],'mutiroes'=>[],'popularity'=>[]],
         'createdAt'=>time(),'updatedAt'=>time(),
@@ -142,6 +144,17 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
     }
     if($phase==='lobby'||$phase==='final')mp_error('Esta fase não aceita ações.',409);
     if($me['eliminated'])mp_error('Você está no modo espectador.',403);
+    if($phase==='bigfone' && $action==='answer_phone'){mp10_answer($room,$myId);return true;}
+    if($phase==='poder_bigfone' && $action==='use_phone_power'){
+        $target=mp_input_id($room,$data['id']??null);mp10_use_power($room,$myId,$target);return true;
+    }
+    if($phase==='contragolpe' && $action==='use_contragolpe'){
+        $target=mp_input_id($room,$data['id']??null);mp10_contragolpe_use($room,$myId,$target);return true;
+    }
+    if($phase==='troca_emparedado' && $action==='swap_nominee'){
+        $out=mp_input_id($room,$data['out']??null);$in=mp_input_id($room,$data['in']??null);
+        mp10_swap_use($room,$myId,$out,$in);return true;
+    }
     if($phase==='interacoes_2'&&$action==='monstro_task'){
         if(!in_array($myId,$room['monstro']??[],true))mp_error('Você não recebeu o Monstro.',403);
         if(isset($room['monsterTasks'][$myId]))mp_error('Você já cumpriu o castigo nesta semana.',409);
@@ -339,7 +352,7 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
             if($myId!==($room['leader']??null))mp_error('Somente o Líder indica.',403);
             if($room['leaderPick'])mp_error('A indicação já foi confirmada.',409);
             $id=mp_input_id($room,$data['id']??null);
-            if(in_array($id,[$room['leader'],$room['imune']],true))mp_error('Este participante não pode ser indicado.',400);
+            if(mp10_is_immune($room,$id) || $id===($room['extraNominee']??null))mp_error('Este participante não pode ser indicado.',400);
             $room['leaderPick']=$id;$me['done']=true;
             mp_log($room,'👑 O Líder indicou '.(mp_find_player($room,$id)['name']??'um participante').' ao Paredão. Agora é a vez do Confessionário.','paredao',['title'=>'👑 Indicação do Líder']);
             return true;
