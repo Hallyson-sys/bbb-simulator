@@ -9,7 +9,7 @@ function in2Esc($valor): string { return htmlspecialchars((string)$valor, ENT_QU
 function in2Semana(): int { return max(1, (int)($_SESSION['rodada'] ?? 1)); }
 function in2FaseSocial(string $fase): bool { return in_array($fase, ['interacoes_1','interacoes_2','interacoes_3'], true); }
 function in2SituacaoOcupada(): bool {
-    foreach (['i4_pendente','i4_resultado','dj_ativo','dj_resultado','evento_convivencia_ativo','evento_convivencia_resultado'] as $chave)
+    foreach (['i4_pendente','i4_resultado','dj_ativo','dj_resultado','evento_convivencia_ativo','evento_convivencia_resultado','rom3_pendente','rom3_confirmacao','rom3_resultado'] as $chave)
         if (!empty($_SESSION[$chave])) return true;
     return false;
 }

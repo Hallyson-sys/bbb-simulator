@@ -113,6 +113,20 @@ function dev3InspecionarSave(array $s): array {
     foreach($i4Acordos as $nome=>$p) if(!is_array($p)||!isset($p['ate'],$p['semana']) || (int)$p['ate']<(int)$p['semana'] || (int)$p['ate']>(int)$p['semana']+1){$i4AcordosOk=false;break;}
     $add('I4_02',$i4AcordosOk,'Compromissos de Interações 4.0 limitados',
         'Promessas pessoais só podem durar até a semana seguinte.','aviso');
+    // Romance 3.0: nunca bloquear saves antigos; validar apenas o estado presente.
+    $rom3P = $s['rom3_pendente'] ?? $s['rom3_confirmacao'] ?? null;
+    $rom3Ok = !is_array($rom3P) || (
+        (int)($rom3P['semana']??-1)===$semana && (string)($rom3P['fase']??'')===$fase
+        && strlen((string)($rom3P['token']??''))>=16
+        && in_array((string)($rom3P['par']??''),$nomes,true)
+    );
+    $add('ROM3_01',$rom3Ok,'Cena do namoro corresponde à semana e ao parceiro',
+        'Diálogos de casal pendentes não devem pertencer a uma fase anterior.','aviso');
+    $rom3C=(array)($s['casais']??[]); $rom3Valido=true;
+    foreach($rom3C as $a=>$b) if ((string)$a===(string)$b || trim((string)$b)===''
+        || ((isset($rom3C[$b]) && (string)$rom3C[$b]!==(string)$a))) {$rom3Valido=false;break;}
+    $add('ROM3_02',$rom3Valido,'Casais oficiais sem parceiros conflitantes',
+        'Saves antigos com um lado do casal continuam aceitos; pares conflitantes exigem revisão.','aviso');
     return $out;
 }
 
@@ -389,6 +403,73 @@ function dev3TestesSinteticos(): array {
     $caso('AUTO_44','A etapa pendente expira na troca de fase',function()use($base){
         $s=$base(9);$s['d3_pendente']=['semana'=>4,'alvo'=>'NPC2','etapa'=>'argumento','token'=>'teste'];
         return dev3Sandbox($s,function(){d3Sincronizar($_SESSION['jogadores']);return empty($_SESSION['d3_pendente']);});
+    });
+    // Relacionamentos Amorosos 3.0 — nenhuma escolha é executada automaticamente.
+    $rom3Base=static function()use($base):array {
+        $s=$base(9);$s['casais']=['NPC1'=>'NPC2','NPC2'=>'NPC1'];
+        $s['relacoes_jogador']=['NPC2'=>30]; return $s;
+    };
+    $caso('AUTO_45','Namoro registrado aparece mesmo sem pontos numéricos de romance',function()use($rom3Base){
+        return dev3Sandbox($rom3Base(),fn()=>rom3Parceiro($_SESSION['jogadores'],'NPC1')==='NPC2'
+            && isset(rom3Temas($_SESSION['jogadores'],'NPC1','NPC2')['carinho']));
+    });
+    $caso('AUTO_46','Participante eliminado não pode abrir cena de namoro',function()use($rom3Base){
+        $s=$rom3Base();$s['jogadores'][1]['eliminado']=true;
+        return dev3Sandbox($s,fn()=>!rom3Iniciar($_SESSION['jogadores'],'NPC1','interacoes_1','carinho'));
+    });
+    $caso('AUTO_47','Cena começa sem alterar relações nem consumir ação',function()use($rom3Base){
+        $s=$rom3Base();$s['acoes_restantes']=2;
+        return dev3Sandbox($s,function(){
+            $j=$_SESSION['jogadores'];$antes=$j;
+            return rom3Iniciar($j,'NPC1','interacoes_1','apoio') && $j===$antes
+                && (int)$_SESSION['acoes_restantes']===2 && !rom3Iniciar($j,'NPC1','interacoes_1','carinho');
+        });
+    });
+    $caso('AUTO_48','Resposta repetida não duplica efeitos românticos',function()use($rom3Base){
+        return dev3Sandbox($rom3Base(),function(){
+            $j=$_SESSION['jogadores'];rom3Iniciar($j,'NPC1','interacoes_1','carinho');
+            $t=(string)($_SESSION['rom3_pendente']['token']??'');
+            if ($t==='' || !rom3Responder($j,'NPC1','interacoes_1',$t,0)) return false;
+            $antesJ=$j;$antesS=$_SESSION;
+            return !rom3Responder($j,'NPC1','interacoes_1',$t,0) && $j===$antesJ && $_SESSION===$antesS;
+        });
+    });
+    $caso('AUTO_49','Término exige confirmação separada',function()use($rom3Base){
+        return dev3Sandbox($rom3Base(),function(){
+            $j=$_SESSION['jogadores'];rom3Iniciar($j,'NPC1','interacoes_1','decisao');
+            $t=(string)($_SESSION['rom3_pendente']['token']??'');
+            return rom3Responder($j,'NPC1','interacoes_1',$t,2)
+                && isset($_SESSION['rom3_confirmacao']) && rom3Parceiro($j,'NPC1')==='NPC2';
+        });
+    });
+    $caso('AUTO_50','Cancelar término preserva o namoro',function()use($rom3Base){
+        return dev3Sandbox($rom3Base(),function(){
+            $j=$_SESSION['jogadores'];rom3Iniciar($j,'NPC1','interacoes_1','decisao');
+            $t=(string)$_SESSION['rom3_pendente']['token'];rom3Responder($j,'NPC1','interacoes_1',$t,2);
+            return rom3ConfirmarFim($j,'NPC1','interacoes_1',$t,'cancelar')
+                && rom3Parceiro($j,'NPC1')==='NPC2';
+        });
+    });
+    $caso('AUTO_51','Confirmação encerra casal sem afetar os outros pares',function()use($rom3Base){
+        $s=$rom3Base();$s['casais']['NPC3']='NPC4';$s['casais']['NPC4']='NPC3';
+        return dev3Sandbox($s,function(){
+            $j=$_SESSION['jogadores'];rom3Iniciar($j,'NPC1','interacoes_1','decisao');
+            $t=(string)$_SESSION['rom3_pendente']['token'];rom3Responder($j,'NPC1','interacoes_1',$t,2);
+            return rom3ConfirmarFim($j,'NPC1','interacoes_1',$t,'confirmar')
+                && rom3Parceiro($j,'NPC1')==='' && rom3Parceiro($j,'NPC3')==='NPC4';
+        });
+    });
+    $caso('AUTO_52','Cena antiga expira e não trava semana seguinte',function()use($rom3Base){
+        $s=$rom3Base();$s['rom3_pendente']=['semana'=>3,'fase'=>'interacoes_1','par'=>'NPC2','token'=>str_repeat('a',32)];
+        return dev3Sandbox($s,function(){rom3Sincronizar($_SESSION['jogadores'],'NPC1','interacoes_1');return empty($_SESSION['rom3_pendente']);});
+    });
+    $caso('AUTO_53','Evento de casal NPC não encerra namoro do jogador',function()use($rom3Base){
+        return dev3Sandbox($rom3Base(),function(){
+            $j=$_SESSION['jogadores'];rom3ProcessarNPCs($j,'NPC1','interacoes_2');
+            $a=$_SESSION['rom3_estado']['processados'][4]??false;
+            rom3ProcessarNPCs($j,'NPC1','interacoes_2');
+            return $a && rom3Parceiro($j,'NPC1')==='NPC2' && count($_SESSION['rom3_estado']['publicos'])===0;
+        });
     });
     return $out;
 }
