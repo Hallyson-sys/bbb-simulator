@@ -1,6 +1,7 @@
 <?php
 /** Multiplayer Beta 2: estado por sala isolado do PHP session do modo solo. */
 declare(strict_types=1);
+require_once __DIR__.'/multiplayer_provas.php';
 function mp_error(string $message, int $status=400): never {
     http_response_code($status);
     echo json_encode(['ok'=>false,'erro'=>$message],JSON_UNESCAPED_UNICODE);
@@ -133,9 +134,9 @@ function mp_apply_response(array &$room,array $req,string $answer,string $reply)
 function mp_phases(): array {
     return [
         'interacoes_1'=>['💬 Interações','Todos podem fazer até três interações, como no modo solo.'],
-        'lider'=>['👑 Prova do Líder','Disputa rápida de sorte nesta versão de testes.'],
+        'lider'=>['👑 Prova do Líder','Todos jogam o mesmo desafio em tempo real: memória, lógica ou caixas.'],
         'vip_xepa'=>['🍽️ VIP & Xepa','O Líder escolhe quem vai para o VIP.'],
-        'anjo'=>['😇 Prova do Anjo','Disputa rápida de sorte nesta versão de testes.'],
+        'anjo'=>['😇 Prova do Anjo','Prova igual para todos; o Líder não participa da disputa pelo Anjo.'],
         'imunidade'=>['🛡️ Imunidade do Anjo','O Anjo protege um participante.'],
         'queridometro'=>['💟 Queridômetro','Envie um emoji a alguém da casa.'],
         'interacoes_2'=>['💬 Interações','Nova rodada de três interações.'],
@@ -223,15 +224,22 @@ function mp_self(array $room,string $token): int {
 function mp_phase_time(array $room,string $phase): int {
     if(in_array($phase,['interacoes_1','interacoes_2','festa'],true))return $room['duration'];
     if($phase==='eliminacao')return 60;
+    if(in_array($phase,['lider','anjo'],true))return max(120,min(240,(int)$room['duration']));
     return max(60,min(150,$room['duration']));
 }
 function mp_set_phase(array &$room,string $phase): void {
     $room['phase']=$phase;$room['endsAt']=time()+mp_phase_time($room,$phase);$room['pending']=[];
+    if(in_array($phase,['lider','anjo'],true))$room['prova']=mp_prova_criar($room,$phase);
+    else unset($room['prova']);
     foreach($room['players'] as &$p){$p['done']=false;$p['actions']=[];$p['choice']=null;}
     unset($p);
     if(in_array($phase,['vip_xepa','imunidade'],true)){
         $controller=$phase==='vip_xepa'?$room['leader']:$room['angel'];
         foreach($room['players'] as &$p) if($p['id']!==$controller)$p['done']=true;
+        unset($p);
+    }
+    if($phase==='anjo'){
+        foreach($room['players'] as &$p)if($p['id']===($room['leader']??null))$p['done']=true;
         unset($p);
     }
     if($phase==='eliminacao'||$phase==='final'){
@@ -251,18 +259,7 @@ function mp_finish_phase(array &$room): void {
     // Convites não respondidos expiram antes da troca de fase.
     foreach($room['pending'] as &$q)if($q['status']==='pendente')$q['status']='expirou';
     unset($q);
-    if(in_array($phase,['lider','anjo'],true)){
-        $candidates=[];
-        foreach(mp_active($room) as $p){
-            if(isset($p['choice']['number']))$candidates[]=['id'=>$p['id'],'score'=>$p['choice']['score']];
-        }
-        if(!$candidates)foreach(mp_active($room) as $p)$candidates[]=['id'=>$p['id'],'score'=>random_int(1,100)];
-        usort($candidates,static fn($a,$b)=>$b['score']<=>$a['score']);
-        $winner=$candidates[0]['id'];
-        $winnerName=mp_find_player($room,$winner)['name']??'Participante';
-        $room[$phase==='lider'?'leader':'angel']=$winner;
-        mp_log($room,($phase==='lider'?'👑 ':'😇 ').$winnerName.' venceu a prova rápida da '.($phase==='lider'?'Liderança':'Anjo').'.');
-    }
+    if(in_array($phase,['lider','anjo'],true))mp_prova_resultado($room,$phase);
     if($phase==='vip_xepa'){
         if(!$room['vip']) $room['vip']=[$room['leader']];
         mp_log($room,'🍽️ O VIP foi definido pelo Líder.');
@@ -323,6 +320,13 @@ function mp_finish_phase(array &$room): void {
 }
 function mp_tick(array &$room): bool {
     if(in_array($room['phase'],['lobby','final'],true))return false;
+    if(in_array($room['phase'],['lider','anjo'],true) && !isset($room['prova'])){
+        $room['prova']=mp_prova_criar($room,$room['phase']);
+        if($room['phase']==='anjo')foreach($room['players'] as &$p){if($p['id']===($room['leader']??null))$p['done']=true;}
+        unset($p);
+        if($room['endsAt']<time()+35 && empty($room['paused']))$room['endsAt']=time()+120;
+        return true;
+    }
     if(!empty($room['paused']))return false;
     $force=time()>=$room['endsAt'];
     $allDone=true;
@@ -375,6 +379,7 @@ function mp_public(array $room,int $self): array {
         'leaderPick'=>$room['leaderPick'],'lastEliminated'=>$room['lastEliminated'],
         'paused'=>(bool)($room['paused']??false),'pauseRemaining'=>(int)($room['pauseRemaining']??0),
         'contacts'=>$contacts,'agreements'=>$agreements,'privateLogs'=>array_slice($privateLogs,-20),
+        'proof'=>mp_prova_publica($room,$self),'lastProof'=>$room['lastProof']??null,
     ];
     return $state;
 }

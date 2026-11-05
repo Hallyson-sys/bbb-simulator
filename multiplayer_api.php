@@ -1,5 +1,5 @@
 <?php
-/** BBB Simulator – Multiplayer Beta 5; interações contextuais, pausa e backup. */
+/** BBB Simulator – Multiplayer Beta 6; interações contextuais, pausa e backup. */
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -30,6 +30,7 @@ if($action==='create'){
         'relations'=>[],'alliances'=>[],'leader'=>null,'angel'=>null,'vip'=>[],
         'imune'=>null,'leaderPick'=>null,'nominees'=>[],'lastEliminated'=>null,
         'paused'=>false,'pauseRemaining'=>0,'privateLogs'=>[],'romanceMoments'=>[],'voteAgreements'=>[],'protectionPacts'=>[],
+        'prova'=>null,'lastProof'=>null,
         'createdAt'=>time(),'updatedAt'=>time(),
     ];
     for($i=0;$i<12;$i++){
@@ -102,6 +103,8 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
         if(in_array($phase,['lobby','final'],true))mp_error('A pausa fica disponível durante a temporada.',409);
         if(!empty($room['paused']))return false;
         $room['pauseRemaining']=max(1,$room['endsAt']-time());
+        if(($room['prova']['type']??'')==='memoria')
+            $room['prova']['revealRemaining']=max(0,(int)$room['prova']['revealUntil']-time());
         $room['paused']=true;$room['endsAt']=0;
         mp_log($room,'⏸️ O anfitrião pausou a temporada. O cronômetro foi congelado.');
         return true;
@@ -110,6 +113,10 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
         if($myId!==$room['hostId'])mp_error('Apenas o anfitrião pode retomar.',403);
         if(empty($room['paused']))mp_error('A temporada não está pausada.',409);
         $room['endsAt']=time()+max(1,(int)$room['pauseRemaining']);
+        if(($room['prova']['type']??'')==='memoria' && isset($room['prova']['revealRemaining'])){
+            $room['prova']['revealUntil']=time()+(int)$room['prova']['revealRemaining'];
+            unset($room['prova']['revealRemaining']);
+        }
         $room['pauseRemaining']=0;$room['paused']=false;
         mp_log($room,'▶️ O anfitrião retomou a temporada.');
         return true;
@@ -188,9 +195,19 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
         if($action==='finish'){$me['done']=true;return true;}
     }
     if($me['done'])mp_error('Você já concluiu esta fase.',409);
-    if(($phase==='lider'||$phase==='anjo')&&$action==='prova'){
-        $number=(int)($data['number']??0);if(!in_array($number,[1,2,3],true))mp_error('Escolha uma opção.');
-        $me['choice']=['number'=>$number,'score'=>random_int(1,100)];$me['done']=true;return true;
+    if(in_array($phase,['lider','anjo'],true)&&$action==='prova'){
+        if($phase==='anjo' && $myId===($room['leader']??null))mp_error('O Líder não participa da Prova do Anjo.',403);
+        $prova=$room['prova']??null;
+        if(!is_array($prova))mp_error('A prova ainda está sendo preparada. Atualize a página.',409);
+        $answers=$data['answers']??null;
+        if(!is_array($answers)||!array_is_list($answers)||count($answers)>5)mp_error('Respostas inválidas.');
+        $score=mp_prova_avaliar($prova,$answers,time());
+        if(!isset($room['prova']['submitted'])||!is_array($room['prova']['submitted']))$room['prova']['submitted']=[];
+        if(isset($room['prova']['submitted'][$myId]))mp_error('Você já confirmou sua resposta.',409);
+        $room['prova']['submitted'][$myId]=['score'=>$score,'at'=>time()];
+        $me['choice']=['proof'=>$prova['type'],'score'=>$score];
+        $me['done']=true;
+        return true;
     }
     if($phase==='vip_xepa'&&$action==='vip'){
         if($myId!==$room['leader'])mp_error('Apenas o Líder escolhe o VIP.',403);
