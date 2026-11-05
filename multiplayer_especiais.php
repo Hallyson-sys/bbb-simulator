@@ -51,7 +51,7 @@ function mp10_answer(array &$r,string $id): void {
   default=>'Você escolherá o alvo antes do Paredão.',
  };
  mp_private_log($r,[$id],'☎️ Big Fone: '.mp10_power_labels()[$power].'. '.$description);
- mp_set_phase($r,'anjo');
+ mp_set_phase($r,mp11_count($r)<=8?'queridometro':'anjo');
 }
 function mp10_is_immune(array $r,string $id): bool {
  return in_array($id,[$r['leader']??null,$r['imune']??null,$r['surprise']['extraImmune']??null,$r['bigFone']['extraImmune']??null],true);

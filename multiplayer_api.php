@@ -143,7 +143,17 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
         $room['duration']=$duration;mp_set_phase($room,'interacoes_1');return true;
     }
     if($phase==='lobby'||$phase==='final')mp_error('Esta fase não aceita ações.',409);
+    if($phase==='final_cerimonia'&&$action==='torcida_final'){
+        $target=mp_input_id($room,$data['id']??null);mp11_support($room,$myId,$target);return true;
+    }
     if($me['eliminated'])mp_error('Você está no modo espectador.',403);
+    if($phase==='final_cerimonia'&&$action==='discurso_final'){
+        if(!is_string($data['tone']??null))mp_error('Escolha seu discurso.',400);
+        mp11_speech($room,$myId,$data['tone']);return true;
+    }
+    if($phase==='top4_resistencia'&&$action==='resistencia'){
+        mp11_top4_answer($room,$myId,$data['posture']??null,$data['marker']??null);return true;
+    }
     if($phase==='bigfone' && $action==='answer_phone'){mp10_answer($room,$myId);return true;}
     if($phase==='poder_bigfone' && $action==='use_phone_power'){
         $target=mp_input_id($room,$data['id']??null);mp10_use_power($room,$myId,$target);return true;

@@ -3,9 +3,9 @@
 <meta name="theme-color" content="#09091f"><title>BBB Simulator • Temporada Online</title>
 <link rel="stylesheet" href="assets/css/jogo.css"><link rel="stylesheet" href="assets/css/header.css">
 <link rel="stylesheet" href="assets/css/interacoes_4.css?v=1"><link rel="stylesheet" href="assets/css/responsivo.css?v=34">
-<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=10">
+<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=11">
 <script src="assets/js/multiplayer_backup.js?v=5" defer></script>
-<script src="assets/js/multiplayer_jogo.js?v=10" defer></script>
+<script src="assets/js/multiplayer_jogo.js?v=11" defer></script>
 </head><body class="mp-app mp-game">
 <header class="top-header"><div class="header-glow"></div><div class="header-content">
 <div class="logo-area"><div class="bbb-icon">🎥</div><div class="brand-text"><h1>BBB Simulator</h1><div class="sub-info"><span id="headWeek">🔥 Semana 1</span><span class="dot"></span><span id="headCount">👥 Online</span></div></div></div>
