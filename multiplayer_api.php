@@ -21,7 +21,8 @@ function mp_reply(array $payload): never {echo json_encode(['ok'=>true,'serverTi
 if($action==='create'){
     $name=mp_name($data['name']??null);$capacity=(int)($data['capacity']??0);
     if(!in_array($capacity,[10,15,20],true))mp_error('Escolha 10, 15 ou 20 vagas.');
-    $token=bin2hex(random_bytes(24));$player=mp_player($name,$token);
+    $profile=mp_profile($data['profile']??null);
+    $token=bin2hex(random_bytes(24));$player=mp_player($name,$token,$profile);
     $room=[
         'code'=>'','capacity'=>$capacity,'phase'=>'lobby','week'=>1,'duration'=>180,'endsAt'=>0,
         'hostId'=>$player['id'],'players'=>[$player],'pending'=>[],'events'=>[],
@@ -39,14 +40,14 @@ if($action==='create'){
 }
 $code=mp_code(is_string($data['code']??null)?$data['code']:'');
 if($action==='join'){
-    $name=mp_name($data['name']??null);$token=bin2hex(random_bytes(24));
+    $name=mp_name($data['name']??null);$profile=mp_profile($data['profile']??null);$token=bin2hex(random_bytes(24));
     $path=mp_path($code);if(!is_file($path))mp_error('Sala não encontrada.',404);
     $f=@fopen($path,'r+');if(!$f||!flock($f,LOCK_EX))mp_error('Sala indisponível.',503);
     $room=json_decode((string)stream_get_contents($f),true);if(!is_array($room))mp_error('Sala inválida.',503);
     if($room['phase']!=='lobby')mp_error('Partida já começou.',409);
     if(count($room['players'])>=$room['capacity'])mp_error('Sala lotada.',409);
     foreach($room['players'] as $p)if(strcasecmp($p['name'],$name)===0)mp_error('Nome já utilizado na sala.',409);
-    $room['players'][]=mp_player($name,$token);$room['updatedAt']=time();rewind($f);ftruncate($f,0);
+    $room['players'][]=mp_player($name,$token,$profile);$room['updatedAt']=time();rewind($f);ftruncate($f,0);
     fwrite($f,json_encode($room,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));fflush($f);flock($f,LOCK_UN);fclose($f);
     mp_reply(['accessToken'=>$token,'room'=>mp_public($room,count($room['players'])-1)]);
 }
@@ -82,7 +83,7 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
                 'subject'=>$catalog[$type][2][$subject],'approach'=>$approach,'status'=>'pendente','answer'=>null,'at'=>time()];
             $room['pending'][]=$request;$me['actions'][]=$request['id'];
             if(count($me['actions'])>=3)$me['done']=true;
-            mp_log($room,'💬 '.($me['name']).' chamou '.(mp_find_player($room,$target)['name']??'?').' para uma conversa.');
+            mp_log($room,'💬 '.($me['name']).' chamou '.(mp_find_player($room,$target)['name']??'?').' para uma conversa.','convite');
             return true;
         }
         if($action==='respond'){
@@ -98,7 +99,7 @@ $state=mp_transact($code,$token,static function(array &$room,int $self)use($data
                 $room['relations'][$key]=max(-100,min(100,($room['relations'][$key]??0)+$delta));
                 if($req['type']==='alianca'&&$response==='aceitar')$room['alliances'][$key]=true;
                 $actor=mp_find_player($room,$req['from']);
-                mp_log($room,'📺 '.($me['name']).' '.($response==='recusar'?'recusou':($response==='aceitar'?'aceitou':'respondeu com cautela')).' a conversa de '.($actor['name']??'outro participante').'.');
+                mp_story_log($room,$req,($actor['name']??'Participante'),$me['name'],$response);
                 unset($req);return true;
             }unset($req);
             mp_error('Convite não encontrado.',404);

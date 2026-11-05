@@ -36,7 +36,18 @@
         <form id="roomForm" autocomplete="off">
             <label for="displayName">Nome do seu participante</label>
             <input id="displayName" required minlength="2" maxlength="28" placeholder="Ex.: Hallyson, Duda, Miguel...">
-            <p class="mp-field-hint">Esse é o nome que vai aparecer para os outros jogadores dentro da casa. Nesta etapa, você está definindo apenas como seu participante será identificado no multiplayer.</p>
+            <p class="mp-field-hint">Escolha o nome do participante que seus amigos verão na casa.</p>
+            <div class="mp-profile-intro"><span>🪪</span><div><strong>Sua ficha de participante</strong><small>Assim como no modo solo, cada pessoa monta seu próprio personagem antes de entrar.</small></div></div>
+            <div class="mp-profile-grid">
+                <div><label for="age">Idade</label><input id="age" type="number" min="18" max="70" inputmode="numeric" placeholder="Ex.: 19" required></div>
+                <div><label for="state">Estado</label><select id="state" required><option value="">Escolha o estado</option>
+                    <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
+            </div>
+            <label for="job">Profissão</label>
+            <input id="job" required minlength="2" maxlength="60" list="jobSuggestions" placeholder="Digite ou escolha sua profissão">
+            <datalist id="jobSuggestions"><option value="Estudante"><option value="Ator/Atriz"><option value="Youtuber"><option value="Cineasta"><option value="Professor(a)"><option value="Influencer"><option value="Cantor(a)"><option value="Streamer"><option value="Designer"><option value="Fotógrafo(a)"></datalist>
+            <label for="personality">Personalidade</label>
+            <select id="personality" required><option value="">Escolha sua personalidade</option><option>Estrategista</option><option>Explosivo</option><option>Planta</option><option>Manipulador</option><option>Emocional</option><option>Barraqueiro</option><option>Fofo</option><option>Líder Nato</option><option>Influencer</option><option>Falso</option><option>Neutro</option></select>
 
             <div id="createFields">
                 <label for="capacity">Capacidade da sala</label>
@@ -54,9 +65,17 @@
                 <p class="mp-field-hint">Digite o código que o anfitrião enviou para entrar direto na mesma sala.</p>
             </div>
 
-            <button class="btn mp-main-btn" id="submitRoom" type="submit">CRIAR MINHA SALA →</button>
+            <button class="btn mp-main-btn" id="submitRoom" type="submit">CONFERIR MEU PERSONAGEM →</button>
         </form>
-
+        <section id="characterConfirm" class="mp-confirm" hidden aria-live="polite">
+            <div class="mp-mini-kicker">SUA FICHA ESTÁ PRONTA</div>
+            <h3>Confirmar participante</h3>
+            <p>Confira sua ficha. Seus amigos verão essas informações nos cards dentro da casa.</p>
+            <div id="characterPreview" class="mp-character-preview"></div>
+            <p class="mp-field-hint" id="confirmRoomHint"></p>
+            <button type="button" id="confirmCharacter" class="btn mp-main-btn">CONFIRMAR E CRIAR SALA →</button>
+            <button type="button" id="editCharacter" class="btn mp-secondary">✎ Editar personagem</button>
+        </section>
         <div class="mp-subcard-grid">
             <div class="mp-subcard"><strong>🎮 Experiência</strong><span>Mesma proposta do BBB Simulator, agora com pessoas reais.</span></div>
             <div class="mp-subcard"><strong>⚠️ Versão beta</strong><span>As partidas ainda são temporárias e podem ser perdidas se o serviço reiniciar.</span></div>

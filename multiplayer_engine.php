@@ -31,9 +31,24 @@ function mp_new_code(): string {
     for($i=0;$i<6;$i++)$s.=$a[random_int(0,strlen($a)-1)];
     return $s;
 }
-function mp_player(string $name,string $token): array {
-    return ['id'=>bin2hex(random_bytes(8)),'name'=>$name,'tokenHash'=>hash('sha256',$token),'ready'=>false,'done'=>false,'actions'=>[], 'choice'=>null,'eliminated'=>false,'role'=>[]];
+function mp_profile(mixed $data): array {
+    if (!is_array($data)) mp_error('Preencha a ficha do seu participante antes de entrar na sala.');
+    $age=filter_var($data['idade']??null,FILTER_VALIDATE_INT);
+    if ($age===false || $age<18 || $age>70) mp_error('A idade do personagem deve estar entre 18 e 70 anos.');
+    $job=is_string($data['profissao']??null)?trim($data['profissao']):'';
+    if (!preg_match('//u',$job) || preg_match('/[\x00-\x1f\x7f]/u',$job) || preg_match_all('/./us',$job)>60 || preg_match_all('/./us',$job)<2) mp_error('Digite uma profissão entre 2 e 60 caracteres.');
+    $state=strtoupper(trim((string)($data['estado']??'')));
+    $states=explode(' ','AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO');
+    if (!in_array($state,$states,true)) mp_error('Escolha um estado válido.');
+    $personality=trim((string)($data['personalidade']??''));
+    $valid=['Estrategista','Explosivo','Planta','Manipulador','Emocional','Barraqueiro','Fofo','Líder Nato','Influencer','Falso','Neutro'];
+    if (!in_array($personality,$valid,true)) mp_error('Escolha uma personalidade disponível.');
+    return ['idade'=>$age,'profissao'=>$job,'estado'=>$state,'personalidade'=>$personality];
 }
+function mp_player(string $name,string $token,array $profile=[]): array {
+    return ['id'=>bin2hex(random_bytes(8)),'name'=>$name,'profile'=>$profile,'tokenHash'=>hash('sha256',$token),'ready'=>false,'done'=>false,'actions'=>[], 'choice'=>null,'eliminated'=>false,'role'=>[]];
+}
+
 function mp_catalog(): array {
     // Rótulos e agrupamento preservados do menu Interações 4.0 do modo solo.
     return [
@@ -74,8 +89,53 @@ function mp_phases(): array {
 function mp_active(array $room): array {
     return array_values(array_filter($room['players'],static fn($p)=>empty($p['eliminated'])));
 }
-function mp_log(array &$room,string $text,string $type='publico'): void {
-    $room['events'][]=['id'=>bin2hex(random_bytes(5)),'week'=>$room['week'],'text'=>$text,'at'=>time(),'type'=>$type];
+function mp_story_log(array &$room,array $request,string $from,string $to,string $answer): void {
+    $topic=trim((string)($request['subject']??'a convivência'));
+    $id=(string)($request['id']??'');
+    $places=['jardim','área externa','sala','cozinha','piscina','academia','quarto'];
+    $topicClean=trim((string)preg_replace('/^[^\p{L}\p{N}]+/u','',$topic));
+    $topicPhrase=match($topicClean) {
+        'Rumos do jogo'=>'os rumos do jogo',
+        'Nossa relação'=>'a relação dos dois',
+        'Convivência'=>'a convivência na casa',
+        'Saudade de casa'=>'a saudade de casa',
+        'Planos e sonhos'=>'seus planos e sonhos',
+        'Como está se sentindo'=>'como estavam se sentindo',
+        'Próximo Paredão'=>'o próximo Paredão',
+        'Clima da casa'=>'o clima da casa',
+        'Alianças'=>'as alianças',
+        'Cozinhar juntos'=>'cozinhar juntos',
+        'Piscina'=>'passar um tempo na piscina',
+        'Treinar'=>'treinar',
+        'Caminhar pelo jardim'=>'passear pelo jardim',
+        default=>'o assunto "'.$topicClean.'"'
+    };
+    $subjectRaw=strtolower($topicClean);
+    $place=$places[hexdec(substr(hash('sha256',$id),0,2))%count($places)];
+    foreach (['cozinha'=>'cozinha','piscina'=>'piscina','treinar'=>'academia','jardim'=>'jardim','caminhar'=>'jardim'] as $needle=>$p) {
+        if (str_contains($subjectRaw,$needle)) { $place=$p;break; }
+    }
+    $placePhrase=in_array($place,['jardim','quarto'],true)?'no '.$place:'na '.$place;
+    $context=match($request['type']??'') {
+        'i4_romance'=>'O encontro teve um clima mais pessoal, mas ninguém assumiu um compromisso público.',
+        'i4_sondar','i4_acordo','i4_protecao','i4_informacao'=>'Os dois trocaram impressões sobre a estratégia, sem revelar para a casa detalhes de acordos privados.',
+        'i4_satisfacao','discutir'=>'O clima ficou tenso enquanto expunham seus pontos de vista.',
+        'alianca'=>'O assunto foi parceria de jogo; a aproximação poderá influenciar as próximas decisões.',
+        default=>'A conversa movimentou a convivência e poderá influenciar a relação dos dois.'
+    };
+    if ($answer==='recusar') {
+        $title='🧊 Conversa interrompida';
+        $story="$from procurou $to $placePhrase para falar sobre $topicPhrase, mas o convite foi recusado. O encontro não aconteceu e a tentativa ficou registrada no Ao Vivo.";
+    } else {
+        $title=$answer==='aceitar'?'💬 Conversa na casa':'🎥 Papo reservado';
+        $approach=match($request['approach']??'') {'cautelosa'=>'de maneira cautelosa','leve'=>'em um clima descontraído',default=>'com sinceridade'};
+        $response=$answer==='aceitar'?'aceitou o convite':'preferiu conversar com cautela';
+        $story="Durante um encontro $placePhrase, $from e $to conversaram sobre $topicPhrase. $to $response; o papo começou $approach. $context";
+    }
+    mp_log($room,$story,'interacao',['title'=>$title,'place'=>$place,'topic'=>$topicClean]);
+}
+function mp_log(array &$room,string $text,string $type='publico',array $metadata=[]): void {
+    $room['events'][]=array_merge(['id'=>bin2hex(random_bytes(5)),'week'=>$room['week'],'text'=>$text,'at'=>time(),'type'=>$type],$metadata);
     if(count($room['events'])>240)$room['events']=array_slice($room['events'],-240);
 }
 function mp_find_player(array $room,string $id, bool $active=true): ?array {
@@ -200,7 +260,7 @@ function mp_public(array $room,int $self): array {
     $outgoing=array_values(array_filter($room['pending'],static fn($q)=>$q['from']===$me['id']));
     $players=[];
     foreach($room['players'] as $p)$players[]=[
-        'id'=>$p['id'],'name'=>$p['name'],'ready'=>$p['ready'],'done'=>$p['done'],
+        'id'=>$p['id'],'name'=>$p['name'],'profile'=>$p['profile']??[],'ready'=>$p['ready'],'done'=>$p['done'],
         'eliminated'=>$p['eliminated'],'actionsUsed'=>count($p['actions']),
         'isLeader'=>$room['leader']===$p['id'],'isAngel'=>$room['angel']===$p['id'],
         'isVIP'=>in_array($p['id'],$room['vip'],true),'isImmune'=>$room['imune']===$p['id'],

@@ -3,8 +3,8 @@
 <meta name="theme-color" content="#09091f"><title>BBB Simulator • Temporada Online</title>
 <link rel="stylesheet" href="assets/css/jogo.css"><link rel="stylesheet" href="assets/css/header.css">
 <link rel="stylesheet" href="assets/css/interacoes_4.css?v=1"><link rel="stylesheet" href="assets/css/responsivo.css?v=34">
-<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=2">
-<script src="assets/js/multiplayer_jogo.js?v=2" defer></script>
+<link rel="stylesheet" href="assets/css/multiplayer_integrado.css?v=4">
+<script src="assets/js/multiplayer_jogo.js?v=4" defer></script>
 </head><body class="mp-app mp-game">
 <header class="top-header"><div class="header-glow"></div><div class="header-content">
 <div class="logo-area"><div class="bbb-icon">🎥</div><div class="brand-text"><h1>BBB Simulator</h1><div class="sub-info"><span id="headWeek">🔥 Semana 1</span><span class="dot"></span><span id="headCount">👥 Online</span></div></div></div>
@@ -37,12 +37,15 @@
 <aside class="right mobile-panel mobile-collapsed" id="mobileAoVivo" data-mobile-panel="aovivo">
 <button class="mobile-panel-toggle" type="button" data-target="mobileAoVivo" aria-expanded="false"><span>📺 <strong>Na Casa</strong></span><span class="mobile-panel-chevron">⌄</span></button>
 <h2 class="mp-live-title">📺 Na Casa • Ao Vivo</h2><div class="mp-live-tag">● REC • ACONTECENDO AGORA</div><ul id="eventsList" class="mp-events"></ul></aside>
+<aside class="mp-feed-panel mobile-panel mobile-collapsed" id="mobileFeed" data-mobile-panel="feed">
+<button class="mobile-panel-toggle" type="button" data-target="mobileFeed" aria-expanded="false"><span>📱 <strong>Feed BBB</strong></span><span class="mobile-panel-chevron">⌄</span></button>
+<h2>📱 Feed BBB • Online</h2><p class="mp-mini-hint">Acompanhe os destaques da temporada em formato de posts. O Feed 3.0 completo do modo solo será adaptado depois.</p><div id="feedPosts" class="mp-feed-posts"></div></aside>
 </div>
 <nav class="mobile-bottom-nav" aria-label="Navegação online">
 <button type="button" class="mobile-nav-item ativo" data-view="mobileJogo"><span>🏠</span><small>Jogo</small></button>
 <button type="button" class="mobile-nav-item" data-view="mobileCasa"><span>👥</span><small>Casa</small></button>
 <button type="button" class="mobile-nav-item mobile-nav-live" data-view="mobileAoVivo"><span class="mobile-live-icon"><i></i>📺</span><small>Ao Vivo</small></button>
 <button type="button" class="mobile-nav-item" data-view="timeline"><span>📖</span><small>Semana</small></button>
-<button type="button" class="mobile-nav-item" data-view="eventsList"><span>📱</span><small>Feed</small></button>
+<button type="button" class="mobile-nav-item" data-view="mobileFeed"><span>📱</span><small>Feed</small></button>
 <a class="mobile-nav-item" href="multiplayer.php"><span>🌐</span><small>Sala</small></a>
 </nav></body></html>
