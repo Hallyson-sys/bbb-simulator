@@ -251,3 +251,19 @@ body.mp-app{overflow-x:clip}
 .mp-feed-stats{display:flex;align-items:center;gap:21px;padding-top:11px;margin-top:12px;border-top:1px solid rgba(255,255,255,.07);color:#c7b8e0;font-size:11px}
 .mp-feed-empty{font-size:12px;line-height:1.6;color:#bdb0d5;margin:9px 0}
 @media(max-width:410px){.mp-feed-trending,.mp-feed-fan-grid{grid-template-columns:1fr 1fr}.mp-feed-panel button.mp-feed-filter{font-size:11px;min-width:90px;padding:10px 6px}.mp-feed-box{padding:12px}.mp-feed-stats{gap:13px}}
+
+.mp-specials-board{display:grid;gap:10px;margin:12px 0 16px}.mp-special-item{padding:15px;border-radius:16px;background:linear-gradient(125deg,rgba(72,24,107,.65),rgba(13,16,51,.9));border:1px solid rgba(202,139,250,.27);color:#f7eaff}.mp-special-item strong{display:block;font-size:13px;margin-bottom:8px}.mp-special-item p{font-size:12px;line-height:1.6;color:#ded4ee}.mp-special-private{border-color:rgba(97,217,249,.46);background:linear-gradient(130deg,rgba(12,68,96,.47),rgba(20,15,61,.94))}.mp-phone-button{min-height:58px!important;box-shadow:0 0 25px rgba(227,36,152,.3)!important}
+
+/* Beta 11 — TOP 4 e coroação, mantendo os painéis do modo solo. */
+.mp-top4-cycle{margin:12px 0;padding:13px 14px;border:1px solid rgba(255,211,91,.3);background:linear-gradient(110deg,rgba(255,178,51,.12),rgba(165,75,220,.12));border-radius:14px;font-weight:900;color:#ffe5a2;letter-spacing:.3px}
+.mp-top4-ranking{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.mp-top4-score{padding:11px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(7,5,27,.5);font-size:12px;line-height:1.5}
+.mp-top4-last{color:#baffdd;font-weight:800;margin:10px 0}
+.mp-top4-meter{margin:15px 0;padding:16px 10px;background:linear-gradient(90deg,rgba(255,0,147,.12),rgba(68,225,255,.12));border:1px solid rgba(171,165,255,.3);border-radius:15px}
+.mp-top4-slider{width:100%;min-height:25px;accent-color:#fc51b6;cursor:pointer}
+.mp-top4-value{display:block;text-align:center;margin-top:8px;font-weight:800}
+.mp-champion{margin:16px 0;padding:20px;border-radius:18px;text-align:center;font-size:clamp(20px,5vw,32px);font-weight:900;color:#fff1b4;background:linear-gradient(125deg,rgba(247,150,32,.28),rgba(236,47,165,.21),rgba(101,56,216,.33));border:1px solid rgba(255,212,95,.5);box-shadow:0 0 30px rgba(239,176,50,.12)}
+.mp-final-result{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0;padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:rgba(10,7,30,.5)}
+.mp-final-result span{font-weight:900;color:#ffe1a0}
+.mp-final-speeches p,.mp-final-supporters p,.mp-final-preview{padding:12px;border-left:3px solid #e586fa;background:rgba(10,7,31,.4);border-radius:8px;margin:10px 0;font-size:13px;line-height:1.6}
+@media(max-width:520px){.mp-top4-ranking{grid-template-columns:1fr}.mp-top4-score{font-size:12px}}
